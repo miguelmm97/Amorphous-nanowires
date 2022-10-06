@@ -4,6 +4,8 @@
 import numpy as np
 from numpy import e, pi
 from random import gauss
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 # Pauli matrices
 sigma_0 = np.eye(2)
@@ -191,4 +193,26 @@ def H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, boundary, n_neigh
 
     return H
 
+def Check_blocks(H, len, site_dim, spin=None):
+    # Checks the block structure of a Hamiltonian matrix
+    # H: Hamiltonian matrix
+    # len: Dimension of the full hilbert space
+    # site_dim: Dimension of the onsite Hilbert space
+    # spin : Spin value of the system if applicable
 
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.spy(H)
+    for j in np.arange(0, len, site_dim):
+        aux = j - 0.5
+        ax.plot(aux * np.ones((len,)), np.arange(0, len, 1), 'b', linewidth=0.2)
+        ax.plot(np.arange(0, len, 1), aux * np.ones((len,)), 'b', linewidth=0.2)
+
+    if spin is not None:
+        spin_dim = int(2 * spin + 1)
+        for j in np.arange(0, len, spin_dim):
+            aux = j - 0.5
+            ax.plot(aux * np.ones((len,)), np.arange(0, len, 1), '--b', linewidth=0.1)
+            ax.plot(np.arange(0, len, 1), aux * np.ones((len,)), '--b', linewidth=0.1)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.show()

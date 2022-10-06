@@ -3,25 +3,26 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from numpy.linalg import eigh
 from numpy import pi
 from random import seed
-from functions import GaussianPointSet2D, H_onsite, H_offdiag, spectrum
+from functions import GaussianPointSet2D, H_onsite, H_offdiag, spectrum, displacement2D, Check_blocks
 
 start_time = time.time()
 # %%  Global definitions
 
 # Parameters of the model
-n_orb = 4                           # Number of orbitals per site
-n_neighbours = 6                    # Number of neighbours
-width = 0.1                           # Width of the gaussian for the WT model
-M = 2                               # Mass parameter in units of t1
-t1, t2, lamb = 1, 0, 1              # Hopping and spin-orbit coupling in WT model
-flux = 0.5                            # Magnetic flux through the cross-section
+n_orb = 4                            # Number of orbitals per site
+n_neighbours = 4                     # Number of neighbours
+width = 0                            # Width of the gaussian for the WT model
+M = 2                                # Mass parameter in units of t1
+t1, t2, lamb = 1, 0, 1               # Hopping and spin-orbit coupling in WT model
+flux = 0.4                             # Magnetic flux through the cross-section
 kz = np.linspace(-pi, pi, 1001)      # Momentum space
 
 # Lattice definition
-L_x, L_y= 9, 9                             # In units of a (average bond length)
+L_x, L_y= 8, 8                             # In units of a (average bond length)
 n_sites = int(L_x * L_y)                   # Number of sites in the lattice
 n_states = n_sites * n_orb                 # Number of basis states
 n_particles = int(n_states / 2)            # Number of filled states
@@ -36,15 +37,17 @@ B = flux / S                               # Magnetic field through the cross-se
 energy_OBC = np.zeros((n_states, len(kz)))
 # %% Main
 
+
 # Hamiltonians and band structures
 H_offdiag_OBC = H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, "Open",  n_neighbours)
 for j, k in enumerate(kz):
-    print(str(j) + "/" + str(len(kz)))
+    # print(str(j) + "/" + str(len(kz)))
     H_diag = np.kron(np.eye(n_sites), H_onsite(M, t1, t2, lamb, k))  # Onsite Hamiltonian
     H_OBC = H_diag + H_offdiag_OBC                                   # Off-diagonal Hamiltonian OBC
     energy_OBC[:, j] = spectrum(H_OBC)[0]                            # OBC bands
 
 
+# Check_blocks(H_OBC, n_states, 4, spin=1/2)
 
 
 # %% Figures
@@ -62,7 +65,7 @@ for j in range(n_states):
 ax.set_ylabel("$E$", fontsize=25)
 ax.set_xlabel("$ka$", fontsize=25)
 ax.set_xlim(-pi, pi)
-# ax.set_ylim(-3, 2)
+ax.set_ylim(-6, 6)
 
 plt.title(" $w=$ " + str(width) + "," + " $M=$ " + str(M) + ", $\phi / \phi_0=$ " + str(flux))
 plt.show()
