@@ -27,7 +27,6 @@ def GaussianPointSet2D(x, y, width):
 
     return x, y
 
-
 def displacement2D(x1, y1, x2, y2, L_x, L_y, boundary):
     # Calculates the displacement vector between sites 2 and 1.
     # x1, y1, z1, x2, y2, z2: Coordinates of the sites
@@ -60,7 +59,6 @@ def displacement2D(x1, y1, x2, y2, L_x, L_y, boundary):
             phi = 2 * pi + np.arctan2(v[1], v[0])    # 3rd and 4th quadrants
 
     return r, phi
-
 
 # %% Hopping functions and hamiltonian
 
@@ -216,3 +214,59 @@ def Check_blocks(H, len, site_dim, spin=None):
     ax.set_xticks([])
     ax.set_yticks([])
     plt.show()
+
+def list_neighbours(x, y, L_x, L_y, boundary, n_neighbours=None):
+    # Function that gives back a matrix of neighbours, their relative distance, angle, and vector.
+    # x, y: x, y positions of each site
+    # L_xy : Length of the system in each direction
+    # Boundary: "Open" or "Closed"
+    # n_neighbours: (Optional) Fixed number of nearest neighbours
+
+    # Declarations
+    L = len(x)
+    matrix_neighbours = np.tile(np.arange(L), (L, 1))     # Declaration matrix of neighbours
+    matrix_dist = np.zeros((L, L))                         # Declaration matrix of dists
+    matrix_phis = np.zeros((L, L))                         # Declaration matrix of phis
+    matrix_vecs = np.zeros((L, L, 2))                      # Declaration  matrix of vectors connecting neighbours
+
+    # Loop through the different sites of the lattice
+    cont = 1
+    for site1 in range(0, L):
+        for site2 in range(cont, L):
+            r, phi = displacement2D(x[site1], y[site1], x[site2], y[site2], L_x, L_y, boundary)
+            matrix_dist[site1, site2], matrix_phis[site1, site2], = r, phi
+            matrix_dist[site2, site1], matrix_phis[site2, site1], = r, phi + pi
+            matrix_vecs[site1, site2, 0], matrix_vecs[site1, site2, 1] = r * np.cos(phi), r * np.sin(phi)
+            matrix_vecs[site2, site1, 0], matrix_vecs[site2, site1, 1] = -r * np.cos(phi), -r * np.sin(phi)
+        # Sorting
+        idx = matrix_dist[site1, :].argsort()                        # Sorting the distances from minimum to maximum
+        matrix_neighbours[site1, :] = matrix_neighbours[site1, idx]  # Ordered neighbours
+        matrix_dist[site1, :] = matrix_dist[site1, idx]              # Ordered distances
+        matrix_phis[site1, :] = matrix_phis[site1, idx]              # Ordered phis
+        matrix_vecs[site1, :, :] = matrix_vecs[site1, idx, :]        # Ordered vectors connecting neighbours
+
+    # Delete the first column containing the same site so that we get only info about the neighbours
+    matrix_neighbours = np.delete(matrix_neighbours, 0, 1)
+    matrix_dist= np.delete(matrix_dist, 0, 1)
+    matrix_phis= np.delete(matrix_phis, 0, 1)
+    matrix_vecs = np.delete(matrix_vecs, 0, 1, 0)
+
+    if n_neighbours is not None:
+        matrix_neighbours = matrix_neighbours[:, 0:n_neighbours]
+        matrix_dist = matrix_dist[:, 0:n_neighbours]
+        matrix_phis = matrix_phis[:, 0:n_neighbours]
+        matrix_vecs = matrix_vecs[:, 0:n_neighbours, :]
+
+    return matrix_neighbours, matrix_dist, matrix_phis, matrix_vecs
+
+def boundary(x, y, matrix_neighbours, matrix_vecs):
+
+    leftmost = np.where(x == min(x))
+
+    boundary = [leftmost]
+
+    site0 =
+    while site0 != leftmost:
+
+
+
