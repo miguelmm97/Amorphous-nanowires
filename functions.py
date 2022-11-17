@@ -173,7 +173,7 @@ def Peierls(x0, x1, y0, y1, B):
     return np.exp(1j * 2 * pi * phase)
 
 
-def H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, r_cutoff, boundary):
+def H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, neighbour_cutoff, neighbours, dist, phis):
     # Generates the Hamiltonian for a 3D insulator with the parameters specified
     # t2 = 0  we are in the DIII class (S = - sigma0 x sigma_y), if t2 is non-zero we are in the AII class
     # n_sites: Number of sites in the lattice
@@ -182,24 +182,281 @@ def H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, r_cutoff, boundar
     # y: y position of the sites in the RPS
     # M, t1, t2, lamb: Parameters of the AII model
     # B: Magnetic field through the cross-section of the wire
-    # Boundary: String with values "Open" or "Closed" which selects the boundary we want
+    # neighbour_cutoff: Scale of the allowed neighbour hoppings
+    # neighbours, dist, phis: Matrix with neighbour sites, distances and phis sorted by distance along every row
 
-    H = np.zeros((n_sites * n_orb, n_sites * n_orb), complex)  # Declaration of the matrix hamiltonian
+    H = np.zeros((n_sites * n_orb, n_sites * n_orb), complex)  # Definition of the matrix hamiltonian
 
     # Loop through the different sites of the lattice
-    cont = 1  # Starts at 1 to avoid calculating diagonal properties which we do not need
     for site1 in range(0, n_sites):
-        for site2 in range(cont, n_sites):
-            r, phi = displacement2D(x[site1], y[site1], x[site2], y[site2], L_x, L_y, boundary)
-            if r < r_cutoff:
-                row, column = site1 * n_orb, site2 * n_orb
-                H[row: row + n_orb, column: column + n_orb] = H_hopp(r, phi, t1, t2, lamb) * Peierls(x[site1], x[site2],
-                                                                                                     y[site1], y[site2],
-                                                                                                     B)
-                H[column: column + n_orb, row: row + n_orb] = np.conj(H[row: row + n_orb, column: column + n_orb]).T
-        cont = cont + 1
+
+        # Neighbours associated to this site, enforcing at least two neighbours
+        ind1 = np.where(dist[site1, :] < neighbour_cutoff)[0]
+        if len(ind1) < 2:
+            list_neigh = neighbours[site1, np.array([0, 1])]
+        else:
+            list_neigh = neighbours[site1, ind1]
+
+        # Coupling with the neighbours
+        for j, site2 in enumerate(list_neigh):
+            r, phi = dist[site1, j], phis[site1, j]
+            row, column = site1 * n_orb, site2 * n_orb
+            H[row: row + n_orb, column: column + n_orb] = H_hopp(r, phi, t1, t2, lamb) * Peierls(x[site1], x[site2],
+                                                                                                 y[site1], y[site2], B)
+            H[column: column + n_orb, row: row + n_orb] = np.conj(H[row: row + n_orb, column: column + n_orb]).T
 
     return H
+
+
+def list_neighbours(x, y, L_x, L_y, boundary, sorted=None):
+    # Function that gives back a matrix of neighbours, their relative distance, angle, and vector.
+    # x, y: x, y positions of each site
+    # L_xy : Length of the system in each direction
+    # Boundary: "Open" or "Closed"
+    # sorted: (Optional) = "sorted" gives the neighbours sorted by distance
+
+    # Declarations
+    L = len(x)
+    matrix_neighbours = np.tile(np.arange(L), (L, 1))  # Declaration matrix of neighbours
+    matrix_dist = np.zeros((L, L))  # Declaration matrix of dists
+    matrix_phis = np.zeros((L, L))  # Declaration matrix of phis
+    matrix_vecs_x = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
+    matrix_vecs_y = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
+
+    # Loop through the different sites of the lattice
+    cont = 1
+    for site1 in range(0, L):
+        for site2 in range(cont, L):
+            r, phi = displacement2D(x[site1], y[site1], x[site2], y[site2], L_x, L_y, boundary)
+            matrix_dist[site1, site2], matrix_phis[site1, site2], = r, phi
+            matrix_dist[site2, site1], matrix_phis[site2, site1], = r, phi + pi
+            matrix_vecs_x[site1, site2], matrix_vecs_y[site1, site2] = np.cos(phi), np.sin(phi)
+            matrix_vecs_x[site2, site1], matrix_vecs_y[site2, site1] = -np.cos(phi), -np.sin(phi)
+
+    if sorted == "sorted":
+        # Sorting
+        idx = np.argsort(matrix_dist, axis=1)  # Sorting distances from minimum to maximum
+        matrix_neighbours = np.take_along_axis(matrix_neighbours, idx, axis=1)  # Ordered neighbours
+        matrix_dist = np.take_along_axis(matrix_dist, idx, axis=1)  # Ordered distances
+        matrix_phis = np.take_along_axis(matrix_phis, idx, axis=1)  # Ordered phis
+        matrix_vecs_x = np.take_along_axis(matrix_vecs_x, idx, axis=1)  # Ordered vectors connecting neighbours
+        matrix_vecs_y = np.take_along_axis(matrix_vecs_y, idx, axis=1)  # Ordered vectors connecting neighbours
+
+        # Delete the first column containing the same site so that we get only info about the neighbours
+        neighbours = matrix_neighbours[:, 1:]
+        dist = matrix_dist[:, 1:]
+        phis = matrix_phis[:, 1:]
+        vecs_x, vecs_y = matrix_vecs_x[:, 1:], matrix_vecs_y[:, 1:]
+
+    return neighbours, dist, phis, vecs_x, vecs_y
+
+
+def No_Boundary_intersection(boundary_line, boundary_points, line_neigh):
+    # Calculates the intersection between boundary_line and line_neigh without counting
+    # the points included in boundary_points
+    # boundary_line, line_neigh: LineString objects
+    # boundary_points: MultiPoints object
+
+    inters_point = line_neigh.intersection(boundary_line)
+
+    return boundary_points.contains(inters_point)
+
+
+def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
+    # Calculates one of the allowed boundaries of an amorphous point set i.e without self intersections.
+    # x, y: Position of the sites of the point set
+    # neighbours, dist, vecs_xy: Matrices with in which the row number is the site, and the different
+    # columns are sorted by distance to that site, being neighbours, distances, and vector components
+    # neighbour_cutoff: Cutoff scale for the neighbour couplings
+
+    # Definitions
+    site0, vec0, count, loop = None, np.array([1, 0]), 0, 0
+    new_point = []
+    pts_boundary = []
+    sites_boundary = []
+    modified_dist = dist
+
+    # Adding neighbours for the points that have less than 2
+    for j in range(len(x)):
+
+        # Neighbours
+        ind = np.where(dist[j, :] < neighbour_cutoff)[0]
+
+        # Case of no neighbours
+        if len(ind) == 0:
+            neigh0, neigh1 = neighbours[j, 0], neighbours[j, 1]  # Firs two neighbours
+            ind1 = np.where(neighbours[neigh0, :] == j)[0]  # Index for j as a neighbour for neigh0
+            ind2 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+
+            # Modified distances
+            modified_dist[j, 0] = neighbour_cutoff - 0.1
+            modified_dist[j, 1] = neighbour_cutoff - 0.1
+            modified_dist[neigh0, ind1] = neighbour_cutoff - 0.1
+            modified_dist[neigh1, ind2] = neighbour_cutoff - 0.1
+
+        # Case of 1 neighbour
+        elif len(ind) == 1:
+            neigh1 = neighbours[j, 1]  # Firs two neighbours
+            ind1 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+
+            # Modified distances
+            modified_dist[j, 1] = neighbour_cutoff - 0.1
+            modified_dist[neigh1, ind1] = neighbour_cutoff - 0.1
+
+    # Choosing initial site
+    site_left = np.where(x == min(x))[0][0]
+
+    # Algorithm to find the boundary
+    while site0 != site_left:
+        dif = 2 * pi - 0.01
+        return_needed = 1
+
+        # Initial point
+        if count == 0:
+            site0 = site_left
+            new_point = Point(x[site0], y[site0])
+            pts_boundary = [new_point]
+            multipts_boundary = MultiPoint(pts_boundary)
+            sites_boundary.append(site0)
+
+        # Neighbours admissible for the boundary
+        ind1 = np.where(modified_dist[site0, :] < neighbour_cutoff)[0]
+        list_neigh = neighbours[site0, ind1]
+        vec_neigh_x, vec_neigh_y = vecs_x[site0, ind1], vecs_y[site0, ind1]
+
+        # Choosing neighbour that minimises the angle with vec0 and does not intersect the boundary
+        for j, neigh in enumerate(list_neigh):
+
+            # Select possible neighbour
+            neigh_point = Point(x[neigh], y[neigh])
+            line_neigh = LineString([new_point, neigh_point])
+            vec1 = np.array([vec_neigh_x[j], vec_neigh_y[j]])
+            ang = angle(vec1, -vec0)
+
+            # First point
+            if count == 0:
+                if ang < dif:
+                    dif = ang
+                    vec2 = vec1
+                    site0 = neigh
+                    return_needed = 0
+
+            # Case we go back to the initial neighbour and we can close the boundary
+            elif count > 1 and sites_boundary[-1] == sites_boundary[1] and neigh != sites_boundary[-2]:
+                if ang < dif:
+                    dif = ang
+                    vec2 = vec1
+                    site0 = neigh
+                    return_needed = 0
+
+            # Next points
+            else:
+                if ang < dif and No_Boundary_intersection(line_boundary, multipts_boundary, line_neigh) is True:
+                    dif = ang
+                    vec2 = vec1
+                    site0 = neigh
+                    return_needed = 0
+
+        # In case returning back is the only option we go back to the previous point
+        if return_needed == 1:
+            vec_x = x[sites_boundary[-2]] - x[sites_boundary[-3]]
+            vec_y = y[sites_boundary[-2]] - y[sites_boundary[-3]]
+            vec2 = np.array([vec_x, vec_y])
+            site0 = sites_boundary[-2]
+            index = np.where(neighbours[site0, :] == sites_boundary[-1])[0]
+            modified_dist[site0, index] = neighbour_cutoff + 0.1
+
+        # New point at the boundary
+        vec0 = vec2
+        new_point = Point(x[site0], y[site0])
+        pts_boundary.append(new_point)
+        multipts_boundary = MultiPoint(pts_boundary)
+        line_boundary = LineString(pts_boundary)
+        sites_boundary.append(site0)
+        count = count + 1
+
+        # In case we run into an infinite loop
+        if len(sites_boundary) > len(x):
+            loop = 1
+            break
+
+    return line_boundary, sites_boundary, loop
+
+
+def lattice_graph(L_x, L_y, n_sites, x, y, neighbour_cutoff, neighbours, dist, pts_boundary=None):
+    # Generates the graph of a RPS
+    # L_x, L_y: Dimensions of the RPS grid
+    # n_sites: Number of sites in the RPS
+    # x: x position of the sites in the RPS
+    # y: y position of the sites in the RPS
+    # neighbour_cutoff: Distance cut-off for the hopping amplitudes
+    # neighbours, dist: Matrices with neighbours and distances on each colum sorted by distance
+    # pts_boundary: (Optional) List of sites at the boundary
+
+    modified_dist = dist
+
+    # Adding neighbours for the points that have less than 2
+    for j in range(len(x)):
+
+        # Neighbours
+        ind = np.where(dist[j, :] < neighbour_cutoff)[0]
+
+        # Case of no neighbours
+        if len(ind) == 0:
+            neigh0, neigh1 = neighbours[j, 0], neighbours[j, 1]  # Firs two neighbours
+            ind1 = np.where(neighbours[neigh0, :] == j)[0]  # Index for j as a neighbour for neigh0
+            ind2 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+
+            # Modified distances
+            modified_dist[j, 0] = neighbour_cutoff - 0.1
+            modified_dist[j, 1] = neighbour_cutoff - 0.1
+            modified_dist[neigh0, ind1] = neighbour_cutoff - 0.1
+            modified_dist[neigh1, ind2] = neighbour_cutoff - 0.1
+
+        # Case of 1 neighbour
+        elif len(ind) == 1:
+            neigh1 = neighbours[j, 1]  # Firs two neighbours
+            ind1 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+
+            # Modified distances
+            modified_dist[j, 1] = neighbour_cutoff - 0.1
+            modified_dist[neigh1, ind1] = neighbour_cutoff - 0.1
+
+    # Loop through the different sites of the lattice
+    for site1 in range(0, n_sites):
+
+        # Label each site
+        plt.text(x[site1] + 0.1, y[site1] + 0.1, str(site1))
+
+        # Neighbours associated to this site, enforcing at least two neighbours
+        ind1 = np.where(modified_dist[site1, :] < neighbour_cutoff)[0]
+        list_neigh = neighbours[site1, ind1]
+
+        # Coupling with the neighbours
+        for j, site2 in enumerate(list_neigh):
+            plt.plot([x[site1], x[site2]], [y[site1], y[site2]], 'tab:gray', linewidth=1, alpha=0.3)
+
+    # Plot the boundaary if it exists
+    if pts_boundary is not None:
+        for j in range(0, len(pts_boundary)):
+
+            if j == len(pts_boundary) - 1:
+                site1 = pts_boundary[j]
+                site2 = pts_boundary[0]
+            else:
+                site1 = pts_boundary[j]
+                site2 = pts_boundary[j + 1]
+
+            plt.plot([x[site1], x[site2]], [y[site1], y[site2]], 'tab:Green', linewidth=1, alpha=1)
+
+    # PLot the sites
+    plt.scatter(x, y)
+
+    plt.xlim(-1, L_x + 1)
+    plt.ylim(-1, L_y + 1)
+    plt.xticks(color="w")
+    plt.yticks(color="w")
+    plt.show()
 
 
 def Check_blocks(H, len, site_dim, spin=None):
@@ -222,183 +479,7 @@ def Check_blocks(H, len, site_dim, spin=None):
             aux = j - 0.5
             ax.plot(aux * np.ones((len,)), np.arange(0, len, 1), '--b', linewidth=0.1)
             ax.plot(np.arange(0, len, 1), aux * np.ones((len,)), '--b', linewidth=0.1)
+
     ax.set_xticks([])
     ax.set_yticks([])
     plt.show()
-
-
-def list_neighbours(x, y, L_x, L_y, boundary):
-    # Function that gives back a matrix of neighbours, their relative distance, angle, and vector.
-    # x, y: x, y positions of each site
-    # L_xy : Length of the system in each direction
-    # Boundary: "Open" or "Closed"
-    # n_neighbours: (Optional) Fixed number of nearest neighbours
-
-    # Declarations
-    L = len(x)
-    matrix_neighbours = np.tile(np.arange(L), (L, 1))  # Declaration matrix of neighbours
-    matrix_dist = np.zeros((L, L))  # Declaration matrix of dists
-    matrix_phis = np.zeros((L, L))  # Declaration matrix of phis
-    matrix_vecs_x = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
-    matrix_vecs_y = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
-
-    # Loop through the different sites of the lattice
-    cont = 1
-    for site1 in range(0, L):
-        for site2 in range(cont, L):
-            r, phi = displacement2D(x[site1], y[site1], x[site2], y[site2], L_x, L_y, boundary)
-            matrix_dist[site1, site2], matrix_phis[site1, site2], = r, phi
-            matrix_dist[site2, site1], matrix_phis[site2, site1], = r, phi + pi
-            matrix_vecs_x[site1, site2], matrix_vecs_y[site1, site2] = np.cos(phi), np.sin(phi)
-            matrix_vecs_x[site2, site1], matrix_vecs_y[site2, site1] = -np.cos(phi), -np.sin(phi)
-
-    # Sorting
-    idx = np.argsort(matrix_dist, axis=1)  # Sorting distances from minimum to maximum
-    matrix_neighbours = np.take_along_axis(matrix_neighbours, idx, axis=1)  # Ordered neighbours
-    matrix_dist = np.take_along_axis(matrix_dist, idx, axis=1)  # Ordered distances
-    matrix_phis = np.take_along_axis(matrix_phis, idx, axis=1)  # Ordered phis
-    matrix_vecs_x = np.take_along_axis(matrix_vecs_x, idx, axis=1)  # Ordered vectors connecting neighbours
-    matrix_vecs_y = np.take_along_axis(matrix_vecs_y, idx, axis=1)  # Ordered vectors connecting neighbours
-
-    # Delete the first column containing the same site so that we get only info about the neighbours
-    neighbours = matrix_neighbours[:, 1:]
-    dist = matrix_dist[:, 1:]
-    phis = matrix_phis[:, 1:]
-    vecs_x, vecs_y = matrix_vecs_x[:, 1:], matrix_vecs_y[:, 1:]
-
-    return neighbours, dist, phis, vecs_x, vecs_y
-
-
-def No_Boundary_intersection(boundary_line, boundary_points, line_neigh):
-
-    # Calculates the intersection of a boundary line with a neighbour line, without taking the boundaries points
-    # into account.
-    # boundary_line: LineString containing the boundary
-    # boundary_points: MultiPoint containing the points generating the boundary
-    # line_neigh: Line connecting the two neighbours in question
-
-    inters_point = line_neigh.intersection(boundary_line)
-
-    return boundary_points.contains(inters_point)
-
-
-def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
-
-    # Calculates the "physical" boundary of an amorphous point set, that is, the outermost loop one can create by
-    # connecting neighbouring sites (or at least it calculates one of the many).
-    # x, y: x, y positions of the point set sites
-    # neighbours: Matrix whose nth row contains the sites sorted by distance with respect to the nth site
-    # dist: Matrix whose nth row contains the distances sorted by distance with respect to the nth site
-    # vecs_x,y: Matrix whose nth row contains the x,y component of the directive vector sorted by distance with respect to the nth site
-    # neighbour cutoff: Cutoff scale for the nearest neighbour couplings
-
-    # Declarations
-    site0, vec0, count = None, np.array([1, 0]), 0
-    new_point = []
-    pts_boundary = []
-    sites_boundary = []
-
-    # Choosing initial site
-    site_left = np.where(x == min(x))[0][0]
-
-    # Algorithm to find the boundary
-    while site0 != site_left:
-
-        # Parameters for each iteration
-        dif = 2 * pi - 0.01  # Minimum angle between the neighbours and the last neighbour connection
-        return_needed = 1    # 0 if we find a neighbour that does not intersect the boundary, 1 otherwise
-
-        # Initial point
-        if count == 0:
-            site0 = site_left
-            new_point = Point(x[site0], y[site0])
-            pts_boundary = [new_point]                      # List of Point objects at the boundary
-            multipts_boundary = MultiPoint(pts_boundary)    # Multipoint object forming the boundary
-            sites_boundary.append(site0)                    # List of sites at the boundary
-
-        # Neighbours admissible for the boundary
-        ind1 = np.where(dist[site0, :] < neighbour_cutoff)[0]                  # "Nearest" neighbours
-        list_neigh = neighbours[site0, ind1]                                   # List of nearest neighbours
-        vec_neigh_x, vec_neigh_y = vecs_x[site0, ind1], vecs_y[site0, ind1]    # Vectors connecting the nearest neighbours
-
-        # Choosing the neighbour that minimises the angle with vec0 and does not intersect the boundary
-        for j, neigh in enumerate(list_neigh):
-
-            # Select possible neighbour
-            neigh_point = Point(x[neigh], y[neigh])               # Point object for the neighbour
-            line_neigh = LineString([new_point, neigh_point])     # LineString connecting to the neighbour
-            vec1 = np.array([vec_neigh_x[j], vec_neigh_y[j]])     # Vector to the neighbour
-            ang = angle(vec1, -vec0)                              # Angle between neighbour and previous connection
-
-            # Minimise the angle for the first point
-            if count == 0:
-                if ang < dif:
-                    dif = ang
-                    vec2 = vec1
-                    site0 = neigh
-                    return_needed = 0
-
-            # Minimise the angle for the other points
-            else:
-                if ang < dif and No_Boundary_intersection(line_boundary, multipts_boundary, line_neigh) is True:
-                    dif = ang
-                    vec2 = vec1
-                    site0 = neigh
-                    return_needed = 0
-
-        # In case returning is the only option...
-        if return_needed == 1:
-            for j, neigh in enumerate(list_neigh):
-                vec2 = np.array([vec_neigh_x[j], vec_neigh_y[j]])
-                site0 = neigh
-
-        # New point at the boundary
-        vec0 = vec2
-        new_point = Point(x[site0], y[site0])
-        pts_boundary.append(new_point)
-        multipts_boundary = MultiPoint(pts_boundary)
-        line_boundary = LineString(pts_boundary)
-        sites_boundary.append(site0)
-        count = count + 1
-
-    return line_boundary, sites_boundary
-
-
-def lattice_graph(L_x, L_y, n_sites, x, y, r_cutoff, pts_boundary=None):
-    # Generates the  graph of the RPS
-    # L_x, L_y: Dimensions of the RPS grid
-    # n_sites: Number of sites in the RPS
-    # x: x position of the sites in the RPS
-    # y: y position of the sites in the RPS
-    # r_cutoff: Distance cut-off for the hopping amplitudes
-    # pts_boundary : List of sites at the boundary
-
-    cont = 0
-    for index1 in range(0, n_sites):
-        for index2 in range(cont, n_sites):
-
-            r, angle = displacement2D(x[index1], y[index1], x[index2], y[index2], L_x, L_y,
-                                      "Open")  # Distance between sites
-            if r < r_cutoff:  # Hopping between sites
-                plt.plot([x[index1], x[index2]], [y[index1], y[index2]], 'tab:gray', linewidth=1, alpha=0.3)
-        cont = cont + 1  # Update the counter so that we skip through index2 = previous indexes 1
-
-    if pts_boundary is not None:
-        for j in range(0, len(pts_boundary)):
-
-            if j == len(pts_boundary) - 1:
-                site1 = pts_boundary[j]
-                site2 = pts_boundary[0]
-            else:
-                site1 = pts_boundary[j]
-                site2 = pts_boundary[j + 1]
-
-            plt.plot([x[site1], x[site2]], [y[site1], y[site2]], 'tab:Green', linewidth=1, alpha=1)
-
-    plt.scatter(x, y)
-    plt.xlim(-1, L_x + 1)
-    plt.ylim(-1, L_y + 1)
-    plt.xticks(color="w")
-    plt.yticks(color="w")
-    plt.show()
-
