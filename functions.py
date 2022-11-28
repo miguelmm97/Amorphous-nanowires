@@ -4,7 +4,7 @@
 import numpy as np
 from numpy import e, pi
 import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString, MultiPoint
+from shapely.geometry import Point, LineString, MultiPoint, Polygon
 from shapely.iterops import intersects
 
 # Pauli matrices
@@ -156,8 +156,8 @@ def H_hopp(r, phi, t1, t2, lamb):
     # k: momentum in z direction
 
     # Hamiltonian
-    H_off = 1j * lamb * np.kron(sigma_x * np.cos(phi) + sigma_y * np.sin(phi), sigma_x) + \
-            +  t2 * np.kron(sigma_x * np.cos(phi) + sigma_y * np.sin(phi), sigma_y) - t1 * np.kron(sigma_0, sigma_z)
+    H_off = 1j * lamb * np.kron(sigma_x * np.cos(phi) - sigma_y * np.sin(phi), sigma_x) + \
+            +  t2 * np.kron(sigma_x * np.cos(phi) - sigma_y * np.sin(phi), sigma_y) - t1 * np.kron(sigma_0, sigma_z)
 
     return RadialHopp(r) * 0.5 * H_off
 
@@ -167,13 +167,13 @@ def Peierls(x0, x1, y0, y1, B):
     # x0, x1, y0, y1: Coordinates of the sites
     # Magnetic field through the cross-section
     if x1 != x0:
-        phase = B * ((y1 - y0) / (x1 - x0)) * 0.5 * (x1 ** 2 + x1 * x0) + B * y0 * (x1 - x0)
+        phase = B * ((y1 - y0) / (x1 - x0)) * 0.5 * (x1 ** 2 + x1 * x0) + B * (y0 * x1 - y1 * x0)
     else:
         phase = 0
     return np.exp(1j * 2 * pi * phase)
 
 
-def H_offdiag(n_sites, n_orb, L_x, L_y, x, y, t1, t2, lamb, B, neighbour_cutoff, neighbours, dist, phis):
+def H_offdiag(n_sites, n_orb, x, y, t1, t2, lamb, B, neighbour_cutoff, neighbours, dist, phis):
     # Generates the Hamiltonian for a 3D insulator with the parameters specified
     # t2 = 0  we are in the DIII class (S = - sigma0 x sigma_y), if t2 is non-zero we are in the AII class
     # n_sites: Number of sites in the lattice
@@ -380,7 +380,9 @@ def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
             loop = 1
             break
 
-    return line_boundary, sites_boundary, loop
+    area = Polygon(pts_boundary).area
+
+    return line_boundary, sites_boundary, area, loop
 
 
 def lattice_graph(L_x, L_y, n_sites, x, y, neighbour_cutoff, neighbours, dist, pts_boundary=None):
