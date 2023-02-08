@@ -15,101 +15,6 @@ sigma_z = np.array([[1, 0], [0, -1]])
 sigma_p = 0.5 * (sigma_x + 1j * sigma_y)
 sigma_m = 0.5 * (sigma_x - 1j * sigma_y)
 
-
-# %%  Definition of the RPS, distance, angle and boundary conditions
-
-def GaussianPointSet2D(x, y, width):
-    # Generate a gaussian point set with the specified width
-    # x, y, z: Positions for the crystalline case
-    # width: Specified with for the gaussian distribution
-
-    x = np.random.normal(x, width, len(x))
-    y = np.random.normal(y, width, len(y))
-
-    return x, y
-
-
-def displacement2D(x1, y1, x2, y2, L_x, L_y, boundary):
-    # Calculates the displacement vector between sites 2 and 1.
-    # x1, y1, z1, x2, y2, z2: Coordinates of the sites
-    # L_x, L_y, L_z: System sizes
-    # boundary: String containing "Open" or "Closed"
-
-    # Definition of the vector between sites 2 and 1 (from st.1 to st.2)
-    v = np.zeros((2,))
-    if boundary == "Closed":
-        v[0] = (x2 - x1) - L_x * np.sign(x2 - x1) * np.heaviside(abs(x2 - x1) - L_x / 2, 0)
-        v[1] = (y2 - y1) - L_y * np.sign(y2 - y1) * np.heaviside(abs(y2 - y1) - L_y / 2, 0)
-
-    elif boundary == "Open":
-        v[0] = (x2 - x1)
-        v[1] = (y2 - y1)
-
-    # Module of the vector between sites 2 and 1
-    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
-
-    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
-    if v[0] == 0:  # Pathological case, separated to not divide by 0
-        if v[1] > 0:
-            phi = pi / 2  # Hopping in y
-        else:
-            phi = 3 * pi / 2  # Hopping in -y
-    else:
-        if v[1] > 0:
-            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
-        else:
-            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
-
-    return r, phi
-
-
-def angle_x(v):
-    # Computes the angle of a vector with respect to axis x
-    # v: Vector in question
-
-    if v[0] == 0:  # Pathological case, separated to not divide by 0
-        if v[1] > 0:
-            phi = pi / 2  # Hopping in y
-        else:
-            phi = 3 * pi / 2  # Hopping in -y
-    else:
-        if v[1] > 0:
-            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
-        else:
-            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
-
-    return phi
-
-
-def angle(v, ax):
-    # Computes the angle between a vector and a particular axis with correct cuadrants from 0 to 2pi
-    # v: Vector in question
-    # ax: Axis to measure angle
-    alpha = - angle_x(ax)
-    R = np.array([[np.cos(alpha), -np.sin(alpha)],
-                  [np.sin(alpha), np.cos(alpha)]])
-    phi = angle_x(R @ v)
-    return phi
-
-
-# %% Hopping functions and hamiltonian
-
-def xtranslation2D(x, y, n_x, n_y):
-    # Translates the vector x one site in direction x
-    # x, y: Vectors with the position of the lattice sites
-    # n_x, n_y: Dimension s of the lattice grid
-    transx = ((x + 1) % n_x) + n_x * y
-    return transx
-
-
-def ytranslation2D(x, y, n_x, n_y):
-    # Translates the vector y one site in direction y
-    # x, y: Vectors with the position of the lattice sites
-    # n_x, n_y: Dimension s of the lattice grid
-    transy = x + n_x * ((y + 1) % n_y)
-    return transy
-
-
 def spectrum(H):
     # Calculates the spectrum a of the given Hamiltonian
     # H: Hamiltonian for the model
@@ -122,24 +27,171 @@ def spectrum(H):
 
     return energy, eigenstates
 
+# %%  Definition of the RPS, distance, angle and boundary conditions
 
-def H_onsite(M, t1, t2, lamb, k):
-    # Calculates the diagonal block associated with the onsite energies and onsite orbital/spin hopping
-    # M: Mass parameter of the model
-    # lamb: Chiral spin orbit coupling/ pairing potential
-    # t1: Chiral diagonal hopping
-    # t2: Non-chiral spin orbit coupling
-    # k: momentum in z direction
+def GaussianPointSet2D(x, y, width):
+    """
+    Generates a gaussian point set with the specified width
 
-    H_on = - (M + 2 * t1 * np.cos(k)) * np.kron(sigma_0, sigma_z) + 2 * t2 * np.cos(k) * np.kron(sigma_z, sigma_y) + \
-           - 2 * lamb * np.sin(k) * np.kron(sigma_z, sigma_x)
+    Params:
+    ------
+    x, y, z:  {np.array(float)}Positions for the crystalline lattice
+    width:    {float} Specified with for the gaussian distribution
 
-    return H_on
+    Returns:
+    -------
+    x, y:     {np.array(float)} Positions for the gaussian point set
+    """
+    x = np.random.normal(x, width, len(x))
+    y = np.random.normal(y, width, len(y))
+
+    return x, y
+
+def displacement2D(x1, y1, x2, y2, L_x, L_y, boundary):
+    """
+    Calculates the displacement vector between sites 2 and 1
+
+    Params:
+    ------
+    x1:        {float}   Coordinates of the sites
+    y1:        {float}   Coordinates of the sites
+    x2:        {float}   Coordinates of the sites
+    y2:        {float}   Coordinates of the sites
+    L_x:       {int}     System sizes
+    L_y:       {int}     System sizes
+    boundary:  {string}  'Open' or  'Closed'
+
+    Returns:
+    -------
+    r:    {float} Distance between sites
+    phi:  {float} Angle measured from +x between the sites
+    """
+
+    # Definition of the vector between sites 2 and 1 (from st.1 to st.2)
+    v = np.zeros((2,))
+    if boundary == "Closed":
+        v[0] = (x2 - x1) - L_x * np.sign(x2 - x1) * np.heaviside(abs(x2 - x1) - L_x / 2, 0)
+        v[1] = (y2 - y1) - L_y * np.sign(y2 - y1) * np.heaviside(abs(y2 - y1) - L_y / 2, 0)
+
+    elif boundary == "Open":
+        v[0] = (x2 - x1)
+        v[1] = (y2 - y1)
+
+    # Norm of the vector between sites 2 and 1
+    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
+
+    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
+    if v[0] == 0:                                    # Pathological case, separated to not divide by 0
+        if v[1] > 0:
+            phi = pi / 2                             # Hopping in y
+        else:
+            phi = 3 * pi / 2                         # Hopping in -y
+    else:
+        if v[1] > 0:
+            phi = np.arctan2(v[1], v[0])             # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])    # 3rd and 4th quadrants
+
+    return r, phi
+
+def angle_x(v):
+    """
+    Computes the angle of a vector with respect to axis x
+
+    Params:
+    ------
+    v:   {np.array(2,)} Vector in question
+
+    Returns:
+    -------
+    phi: {float} Angle
+    """
+
+    if v[0] == 0:                                  # Pathological case, separated to not divide by 0
+        if v[1] > 0:
+            phi = pi / 2                           # Hopping in y
+        else:
+            phi = 3 * pi / 2                       # Hopping in -y
+    else:
+        if v[1] > 0:
+            phi = np.arctan2(v[1], v[0])           # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
+
+    return phi
+
+def angle(v, ax):
+    """
+        Computes the angle of a vector and a particular axis with correct quadrants from 0 to 2pi
+
+        Params:
+        ------
+        v:   {np.array(2, )} Vector in question
+        ax:  {np.array(2, }  Axis to measure angle
+
+        Returns:
+        -------
+        phi: {float} Angle
+        """
+
+    alpha = - angle_x(ax)
+    R = np.array([[np.cos(alpha), -np.sin(alpha)],
+                  [np.sin(alpha), np.cos(alpha)]])
+    phi = angle_x(R @ v)
+    return phi
+
+def xtranslation2D(x, y, n_x, n_y):
+    """
+    Translates the vector x one site in x direction
+    Params:
+    ------
+    x:   {np.array}     Vectors with the position of the lattice sites
+    y:   {np.array}     Vectors with the position of the lattice sites
+    n_x: {int}          Dimensions of the lattice grid
+    n_y: {int}          Dimensions of the lattice grid
+
+    Returns:
+    -------
+    transx:  {np.array} Translated positions of the sites
+    """
+
+    transx = ((x + 1) % n_x) + n_x * y
+    return transx
+
+def ytranslation2D(x, y, n_x, n_y):
+    """
+    Translates the vector y one site in y direction
+    Params:
+    ------
+    x:   {np.array}     Vectors with the position of the lattice sites
+    y:   {np.array}     Vectors with the position of the lattice sites
+    n_x: {int}          Dimensions of the lattice grid
+    n_y: {int}          Dimensions of the lattice grid
+
+    Returns:
+    -------
+    transy:  {np.array} Translated positions of the sites
+    """
+    transy = x + n_x * ((y + 1) % n_y)
+    return transy
+
+
+
+# %% Hopping functions and hamiltonian
 
 
 def RadialHopp(r):
-    # Calculates the radial hopping strength for two sites at a distance r
-    # r : Distance between sites (in units of a)
+    """
+    Calculates the radial hopping strength for two sites at a distance r
+
+    Params:
+    ------
+    r: {float} Distance between the sites
+
+    Returns:
+    -------
+    hop_amplitude: {float} Hopping amplitude
+    """
 
     hop_amplitude = e * np.exp(- r)  # Hopping amplitude
 
@@ -147,15 +199,22 @@ def RadialHopp(r):
 
 
 def H_hopp(r, phi, t1, t2, lamb):
-    # Calculates the angular hopping hamiltonian
-    # phi:  Relative angle between sites in XY cross-section
-    # M: Mass parameter of the model
-    # lamb: Chiral spin orbit coupling/ pairing potential
-    # t1: Chiral diagonal hopping
-    # t2: Non-chiral spin orbit coupling
-    # k: momentum in z direction
+    """
+    Calculates the angular hopping hamiltonian on the inner degrees of freedom
 
-    # Hamiltonian
+    Params:
+    ------
+    r:     {float} Distance between sites
+    phi:   {float} Relative angle between sites in XY cross-section
+    t1:    {float} Chiral diagonal hopping
+    t2:    {float} Non-chiral spin orbit coupling
+    lamb:  {float} Chiral spin orbit coupling/ pairing potential
+
+    Returns:
+    -------
+    {np.array(4, 4)} Matrix hamiltonian
+    """
+
     H_off = 1j * lamb * np.kron(sigma_x * np.cos(phi) - sigma_y * np.sin(phi), sigma_x) + \
             +  t2 * np.kron(sigma_x * np.cos(phi) - sigma_y * np.sin(phi), sigma_y) - t1 * np.kron(sigma_0, sigma_z)
 
@@ -163,9 +222,22 @@ def H_hopp(r, phi, t1, t2, lamb):
 
 
 def Peierls(x0, x1, y0, y1, B):
-    # Calculates the Peierls phase betwee sites 0 and 1.
-    # x0, x1, y0, y1: Coordinates of the sites
-    # Magnetic field through the cross-section
+    """
+    Calculates the Peierls phase between sites 0 and 1.
+
+    Params:
+    ------
+    x0: {float} Coordinates of the sites
+    x1: {float} Coordinates of the sites
+    y0: {float} Coordinates of the sites
+    y1: {float} Coordinates of the sites
+    B:  {float} Magnetic field through the cross-section
+
+    Returns:
+    -------
+    {float} Peierls phase
+    """
+
     if x1 != x0:
         phase = B * ((y1 - y0) / (x1 - x0)) * 0.5 * (x1 ** 2 + x1 * x0) + B * (y0 * x1 - y1 * x0)
     else:
@@ -173,17 +245,49 @@ def Peierls(x0, x1, y0, y1, B):
     return np.exp(1j * 2 * pi * phase)
 
 
+def H_onsite(M, t1, t2, lamb, k):
+    """
+    Calculates the onsite hamiltonian on the inner degrees of freedom
+
+    Params:
+    ------
+    M:     {float} Mass term
+    t1:    {float} Chiral diagonal hopping
+    t2:    {float} Non-chiral spin orbit coupling
+    lamb:  {float} Chiral spin orbit coupling/ pairing potential
+    k:     {float} Momentum along the translationally invariant direction
+
+    Returns:
+    -------
+    {np.array(4, 4)} Matrix hamiltonian
+    """
+
+    H_on = - (M + 2 * t1 * np.cos(k)) * np.kron(sigma_0, sigma_z) + 2 * t2 * np.cos(k) * np.kron(sigma_z, sigma_y) + \
+           - 2 * lamb * np.sin(k) * np.kron(sigma_z, sigma_x)
+
+    return H_on
+
+
 def H_offdiag(n_sites, n_orb, x, y, t1, t2, lamb, B, neighbour_cutoff, neighbours, dist, phis):
-    # Generates the Hamiltonian for a 3D insulator with the parameters specified
-    # t2 = 0  we are in the DIII class (S = - sigma0 x sigma_y), if t2 is non-zero we are in the AII class
-    # n_sites: Number of sites in the lattice
-    # n_orb: Number of orbitals in the model
-    # x: x position of the sites in the RPS
-    # y: y position of the sites in the RPS
-    # M, t1, t2, lamb: Parameters of the AII model
-    # B: Magnetic field through the cross-section of the wire
-    # neighbour_cutoff: Scale of the allowed neighbour hoppings
-    # neighbours, dist, phis: Matrix with neighbour sites, distances and phis sorted by distance along every row
+    """
+    Generates the Hamiltonian for a 3D insulator with the parameters specified.
+    We enforce at least two neighbours per site.
+
+    Params:
+    ------
+    n_sites:                   {int}         Number of sites in the lattice
+    n_orb:                     {int}         Number of orbitals in the model
+    x:                         {np.array()}  x position of the sites in the RPS
+    y:                         {np.array()}  y position of the sites in the RPS
+    t1, t2, lamb:              {float}       Parameters of the model
+    B:                         {float}       Magnetic field through the cross-section of the wire
+    neighbour_cutoff:          {float}       Scale of the allowed neighbour hoppings
+    neighbours, dist, phis:    {np.array()}  Matrix with neighbour sites, distances and phis sorted by distance along every row
+
+    Returns:
+    -------
+    {np.array} Matrix hamiltonian
+    """
 
     H = np.zeros((n_sites * n_orb, n_sites * n_orb), complex)  # Definition of the matrix hamiltonian
 
@@ -208,20 +312,32 @@ def H_offdiag(n_sites, n_orb, x, y, t1, t2, lamb, B, neighbour_cutoff, neighbour
     return H
 
 
+
+#%% Neighbours and boundary
+
 def list_neighbours(x, y, L_x, L_y, boundary, sorted=None):
-    # Function that gives back a matrix of neighbours, their relative distance, angle, and vector.
-    # x, y: x, y positions of each site
-    # L_xy : Length of the system in each direction
-    # Boundary: "Open" or "Closed"
-    # sorted: (Optional) = "sorted" gives the neighbours sorted by distance
+    """
+    Gives back a matrix of neighbours, their relative distance, angle, and vector.
+
+    Params:
+    ------
+    x, y:                 {np.array()}        x, y positions of each site
+    L_x, L_y :            {int}               Length of the system in each direction
+    Boundary:             {string}            "Open" or "Closed"
+    sorted:               {string, optional}  "sorted" gives the neighbours sorted by distance
+
+    Returns:
+    -------
+    neighbours, dist, phis, vecs_x, vecs_y: {np.arrays}
+    """
 
     # Declarations
     L = len(x)
     matrix_neighbours = np.tile(np.arange(L), (L, 1))  # Declaration matrix of neighbours
-    matrix_dist = np.zeros((L, L))  # Declaration matrix of dists
-    matrix_phis = np.zeros((L, L))  # Declaration matrix of phis
-    matrix_vecs_x = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
-    matrix_vecs_y = np.zeros((L, L))  # Declaration  matrix of vectors connecting neighbours
+    matrix_dist = np.zeros((L, L))                     # Declaration matrix of dists
+    matrix_phis = np.zeros((L, L))                     # Declaration matrix of phis
+    matrix_vecs_x = np.zeros((L, L))                   # Declaration  matrix of vectors connecting neighbours
+    matrix_vecs_y = np.zeros((L, L))                   # Declaration  matrix of vectors connecting neighbours
 
     # Loop through the different sites of the lattice
     cont = 1
@@ -237,10 +353,10 @@ def list_neighbours(x, y, L_x, L_y, boundary, sorted=None):
         # Sorting
         idx = np.argsort(matrix_dist, axis=1)  # Sorting distances from minimum to maximum
         matrix_neighbours = np.take_along_axis(matrix_neighbours, idx, axis=1)  # Ordered neighbours
-        matrix_dist = np.take_along_axis(matrix_dist, idx, axis=1)  # Ordered distances
-        matrix_phis = np.take_along_axis(matrix_phis, idx, axis=1)  # Ordered phis
-        matrix_vecs_x = np.take_along_axis(matrix_vecs_x, idx, axis=1)  # Ordered vectors connecting neighbours
-        matrix_vecs_y = np.take_along_axis(matrix_vecs_y, idx, axis=1)  # Ordered vectors connecting neighbours
+        matrix_dist = np.take_along_axis(matrix_dist, idx, axis=1)              # Ordered distances
+        matrix_phis = np.take_along_axis(matrix_phis, idx, axis=1)              # Ordered phis
+        matrix_vecs_x = np.take_along_axis(matrix_vecs_x, idx, axis=1)          # Ordered vectors connecting neighbours
+        matrix_vecs_y = np.take_along_axis(matrix_vecs_y, idx, axis=1)          # Ordered vectors connecting neighbours
 
         # Delete the first column containing the same site so that we get only info about the neighbours
         neighbours = matrix_neighbours[:, 1:]
@@ -252,10 +368,20 @@ def list_neighbours(x, y, L_x, L_y, boundary, sorted=None):
 
 
 def No_Boundary_intersection(boundary_line, boundary_points, line_neigh):
-    # Calculates the intersection between boundary_line and line_neigh without counting
-    # the points included in boundary_points
-    # boundary_line, line_neigh: LineString objects
-    # boundary_points: MultiPoints object
+    """
+    Calculates the intersection between boundary_line and line_neigh without counting the points included
+    in boundary_points
+
+    Params:
+    ------
+    boundary_line:    {shapely.geometry.LineString}   Boundary
+    boundary_points:  {shapely.geometry.MultiPoints}  Vertices of the boundary line
+    line_neigh:       {shapely.geometry.LineString}   Line connecting the two neighbours in question
+
+    Returns:
+    -------
+    True or False
+    """
 
     inters_point = line_neigh.intersection(boundary_line)
 
@@ -263,11 +389,25 @@ def No_Boundary_intersection(boundary_line, boundary_points, line_neigh):
 
 
 def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
-    # Calculates one of the allowed boundaries of an amorphous point set i.e without self intersections.
-    # x, y: Position of the sites of the point set
-    # neighbours, dist, vecs_xy: Matrices with in which the row number is the site, and the different
-    # columns are sorted by distance to that site, being neighbours, distances, and vector components
-    # neighbour_cutoff: Cutoff scale for the neighbour couplings
+    """
+    Calculates one of the possible allowed boundaries of an amorphous point set without self intersections.
+    It enforces that every point is at last connected to the two nearest neighbours, as we require in the
+    Hamiltonian as well. In the event of running into an infinite loop because of a patological configuration
+    of the lattice, we discard the calculation but keep track of how may configurations we throw away.
+
+    Params:
+    ------
+    x, y:                                  {np.array} Position of the sites of the point set
+    neighbours, dist, vecs_x, vecs_y:      {np.array} Row=site, colums sorted by distance to site
+    neighbour_cutoff:                         {float} Cutoff scale for the neighbour couplings
+
+    Returns:
+    ------
+    line_boundary:     {shapely.geometry.LineString} Line containing the boundary of the lattice
+    sites_boundary:                           {list} List of sites at the boundary
+    area:                                     {float} Area enclosed by the boundary
+    loop                                        {int} Counter of thrown-away configurations
+    """
 
     # Definitions
     site0, vec0, count, loop = None, np.array([1, 0]), 0, 0
@@ -284,9 +424,9 @@ def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
 
         # Case of no neighbours
         if len(ind) == 0:
-            neigh0, neigh1 = neighbours[j, 0], neighbours[j, 1]  # Firs two neighbours
-            ind1 = np.where(neighbours[neigh0, :] == j)[0]  # Index for j as a neighbour for neigh0
-            ind2 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+            neigh0, neigh1 = neighbours[j, 0], neighbours[j, 1]  # First two neighbours
+            ind1 = np.where(neighbours[neigh0, :] == j)[0]       # Index for j as a neighbour for neigh0
+            ind2 = np.where(neighbours[neigh1, :] == j)[0]       # Index for j as a neighbour for neigh1
 
             # Modified distances
             modified_dist[j, 0] = neighbour_cutoff - 0.1
@@ -296,8 +436,8 @@ def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
 
         # Case of 1 neighbour
         elif len(ind) == 1:
-            neigh1 = neighbours[j, 1]  # Firs two neighbours
-            ind1 = np.where(neighbours[neigh1, :] == j)[0]  # Index for j as a neighbour for neigh1
+            neigh1 = neighbours[j, 1]                           # First two neighbours
+            ind1 = np.where(neighbours[neigh1, :] == j)[0]      # Index for j as a neighbour for neigh1
 
             # Modified distances
             modified_dist[j, 1] = neighbour_cutoff - 0.1
@@ -341,7 +481,7 @@ def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
                     site0 = neigh
                     return_needed = 0
 
-            # Case we go back to the initial neighbour and we can close the boundary
+            # Case we go back to the initial neighbour when we can close the boundary
             elif count > 1 and sites_boundary[-1] == sites_boundary[1] and neigh != sites_boundary[-2]:
                 if ang < dif:
                     dif = ang
@@ -386,14 +526,23 @@ def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
 
 
 def lattice_graph(L_x, L_y, n_sites, x, y, neighbour_cutoff, neighbours, dist, pts_boundary=None):
-    # Generates the graph of a RPS
-    # L_x, L_y: Dimensions of the RPS grid
-    # n_sites: Number of sites in the RPS
-    # x: x position of the sites in the RPS
-    # y: y position of the sites in the RPS
-    # neighbour_cutoff: Distance cut-off for the hopping amplitudes
-    # neighbours, dist: Matrices with neighbours and distances on each colum sorted by distance
-    # pts_boundary: (Optional) List of sites at the boundary
+    """
+    Plots the lattice graph
+
+    Params:
+    ------
+    L_x, L_y:                 {int} Dimensions of the RPS grid
+    n_sites:                  {int} Number of sites in the RPS
+    x:                   {np.array} x position of the sites in the RPS
+    y:                   {np.array} y position of the sites in the RPS
+    neighbour_cutoff:       {float} Distance cut-off for the hopping amplitudes
+    neighbours, dist:    {np.array} Matrices with neighbours and distances on each colum sorted by distance
+    pts_boundary:            {list} (Optional) List of sites at the boundary
+
+    Returns:
+    -------
+    None, but plots the graph
+    """
 
     modified_dist = dist
 
