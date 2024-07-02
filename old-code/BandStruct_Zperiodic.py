@@ -15,14 +15,14 @@ start_time = time.time()
 
 # Parameters of the model
 n_orb = 4                            # Number of orbitals per site
-width = 0.5                          # Width of the gaussian for the WT model
+width = 0.2                          # Width of the gaussian for the WT model
 M = 2                                # Mass parameter in units of t1
 t1, t2, lamb = 1, 0, 1               # Hopping and spin-orbit coupling in WT model
 flux = 0.5                           # Magnetic flux through the cross-section
 kz = np.linspace(-pi - 0.2, -pi + 0.2, 300)      # Momentum space
 
 # Lattice definition
-L_x, L_y= 10, 10                           # In units of a (average bond length)
+L_x, L_y= 6,6                            # In units of a (average bond length)
 n_sites = int(L_x * L_y)                   # Number of sites in the lattice
 n_states = n_sites * n_orb                 # Number of basis states
 n_particles = int(n_states / 2)            # Number of filled states

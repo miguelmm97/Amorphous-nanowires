@@ -5,7 +5,7 @@ import numpy as np
 from numpy import e, pi
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString, MultiPoint, Polygon
-from shapely.iterops import intersects
+from shapely import intersects
 
 # Pauli matrices
 sigma_0 = np.eye(2)
@@ -391,7 +391,7 @@ def No_Boundary_intersection(boundary_line, boundary_points, line_neigh):
 def physical_boundary(x, y, neighbours, dist, vecs_x, vecs_y, neighbour_cutoff):
     """
     Calculates one of the possible allowed boundaries of an amorphous point set without self intersections.
-    It enforces that every point is at last connected to the two nearest neighbours, as we require in the
+    It enforces that every point is at least connected to the two nearest neighbours, as we require in the
     Hamiltonian as well. In the event of running into an infinite loop because of a patological configuration
     of the lattice, we discard the calculation but keep track of how may configurations we throw away.
 
