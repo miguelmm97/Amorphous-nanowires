@@ -175,6 +175,7 @@ class InfiniteNanowire_FuBerg:
 
         loger_wire.info('Generating lattice and neighbour tree.')
         self.Nsites = int(self.Nx * self.Ny)
+        self.dimH = int(self.Nsites * 4)
         list_sites = np.arange(0, self.Nsites)
         self.x, self.y = gaussian_point_set_2D(list_sites % self.Nx, list_sites // self.Nx, self.w)
         self.neighbours = KDTree(np.array([self.x, self.y]).T).query_ball_point(np.array([self.x, self.y]).T, self.r)
@@ -235,7 +236,8 @@ class InfiniteNanowire_FuBerg:
             if len(self.boundary) > self.Nsites:
                 raise OverflowError('Algorithm caught in an infinite loop.')
 
-            loger_wire.info(f'Boundary given by: {self.boundary}')
+            loger_wire.trace(f'Boundary given by: {self.boundary}')
+        loger_wire.info(f'Boundary given by: {self.boundary}')
 
     def plot_lattice(self, ax):
 
@@ -243,19 +245,22 @@ class InfiniteNanowire_FuBerg:
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
 
         # Neighbour links
-        for site in np.arange(0, self.Nsites):
+        for site in range(self.Nsites):
             for n in self.neighbours[site]:
                 plt.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], 'royalblue', linewidth=1, alpha=0.2)
                 plt.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
 
         # Boundary
-        if self.boundary is not None:
+        try:
             for j in range(0, len(self.boundary)):
                 if j == len(self.boundary) - 1:
                     site1, site2 = self.boundary[j], self.boundary[0]
                 else:
                     site1, site2 = self.boundary[j], self.boundary[j + 1]
                 plt.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
+        except AttributeError:
+            loger_wire.warning('Boundary has not been calculated before plotting')
+            pass
 
     # Methods for calculating the Hamiltonian
     def H_onsite(self, k):
@@ -276,7 +281,7 @@ class InfiniteNanowire_FuBerg:
 
         # Off-diagonal terms
         loger_wire.info('Generating off-diagonal Hamiltonian')
-        for i in np.range(self.Nsites):
+        for i in range(self.Nsites):
             for n in self.neighbours[i]:
                 loger_wire.trace(f'site: {i}, neighbour: {n}')
                 d, phi = displacement2D(self.x[i], self.y[i], self.x[n], self.y[n])
@@ -286,13 +291,14 @@ class InfiniteNanowire_FuBerg:
         # Onsite terms
         for j, k in enumerate(self.kz):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
-            self.H[:, :, j] = np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
+            aux = np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
+            self.H[j, :, :] += np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
 
             # Debug
             if debug:
                 loger_wire.debug('Checking hermiticity of H...')
-                if not np.allclose(self.H[:, :, j], self.H[:, :, j].T.conj(), tol=1e-15):
-                    error = np.abs(np.sum(self.H[:, :, j] - self.H[:, :, j].T.conj()))
+                if not np.allclose(self.H[j, :, :], self.H[j, :, :].T.conj(), atol=1e-15):
+                    error = np.abs(np.sum(self.H[j, :, :] - self.H[j, :, :].T.conj()))
                     loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
                     raise ValueError('Hamiltonian is not hermitian!')
 
