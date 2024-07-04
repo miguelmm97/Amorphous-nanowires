@@ -15,11 +15,43 @@ from dataclasses import dataclass, field
 import time
 
 # Managing logging
-# import logging
-# import colorlog
-# from colorlog import ColoredFormatter
+import logging
+import colorlog
+from colorlog import ColoredFormatter
+
+#%% Logging setup
+loger_wire = logging.getLogger('nanowire')
+loger_wire.setLevel(logging.INFO)
+
+stream_handler = colorlog.StreamHandler()
+formatter = ColoredFormatter(
+    '%(black)s%(asctime) -5s| %(blue)s%(name) -10s %(black)s| %(cyan)s %(funcName) '
+    '-40s %(black)s|''%(log_color)s%(levelname) -10s | %(message)s',
+    datefmt=None,
+    reset=True,
+    log_colors={
+        'TRACE': 'black',
+        'DEBUG': 'purple',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'red,bg_white',
+    },
+    secondary_log_colors={},
+    style='%'
+)
+stream_handler.setFormatter(formatter)
+loger_wire.addHandler(stream_handler)
 
 #%% Module
+
+sigma_0 = np.eye(2, dtype=np.complex128)
+sigma_x = np.array([[0, 1], [1, 0]], dtype=np.complex128)
+sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
+sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
+tau_0, tau_x, tau_y, tau_z  = sigma_0, sigma_x, sigma_y, sigma_z
+
+
 def gaussian_point_set_2D(x, y, width):
 
     x = np.random.normal(x, width, len(x))
@@ -31,16 +63,11 @@ def random_point_set_2D(x, y, d):
     y = y + d * (2 * np.random.rand(y.shape[0]) - 1)
     return x, y
 
-def displacement2D(x1, y1, x2, y2, L_x, L_y, boundary):
+def displacement2D(x1, y1, x2, y2):
 
     v = np.zeros((2,))
-    if boundary == "Closed":
-        v[0] = (x2 - x1) - L_x * np.sign(x2 - x1) * np.heaviside(abs(x2 - x1) - L_x / 2, 0)
-        v[1] = (y2 - y1) - L_y * np.sign(y2 - y1) * np.heaviside(abs(y2 - y1) - L_y / 2, 0)
-
-    elif boundary == "Open":
-        v[0] = (x2 - x1)
-        v[1] = (y2 - y1)
+    v[0] = (x2 - x1)
+    v[1] = (y2 - y1)
 
     # Norm of the vector between sites 2 and 1
     r = np.sqrt(v[0] ** 2 + v[1] ** 2)
@@ -141,10 +168,12 @@ class InfiniteNanowire_FuBerg:
     H:             np.ndarray = field(init=False)    # Hamiltonian
     x:             np.ndarray = field(init=False)    # x position of the sites
     y:             np.ndarray = field(init=False)    # y position of the sites
+    kz:            np.ndarray = field(init=False)    # Momentum along z direction
 
-
-    # Methods
+    # Methods for building the lattice
     def build_lattice(self):
+
+        loger_wire.info('Generating lattice and neighbour tree.')
         self.Nsites = int(self.Nx * self.Ny)
         list_sites = np.arange(0, self.Nsites)
         self.x, self.y = gaussian_point_set_2D(list_sites % self.Nx, list_sites // self.Nx, self.w)
@@ -169,6 +198,7 @@ class InfiniteNanowire_FuBerg:
         start_site = site0
 
         # Algorithm to find the boundary
+        loger_wire.info('Constructing the boundary of the lattice...')
         while site0 != start_site or (site0 == start_site and count == 0):
             dif, return_needed = 2 * pi - 0.01, True
             current_x, current_y = self.x[site0], self.y[site0]
@@ -178,7 +208,7 @@ class InfiniteNanowire_FuBerg:
             list_neighbours = remove_site(self.neighbours[site0], avoid_site)
             for n in list_neighbours:
                 line_neigh = LineString([current_point, Point(self.x[n], self.y[n])])
-                r, phi = displacement2D(current_x, current_y, self.x[n], self.y[n], self.Nx, self.Nx, boundary='Open')
+                r, phi = displacement2D(current_x, current_y, self.x[n], self.y[n])
                 vector_neigh = np.array([np.cos(phi), np.sin(phi)])
                 ang = angle(vector_neigh, -aux_vector)
                 if ang < dif:
@@ -205,6 +235,8 @@ class InfiniteNanowire_FuBerg:
             if len(self.boundary) > self.Nsites:
                 raise OverflowError('Algorithm caught in an infinite loop.')
 
+            loger_wire.info(f'Boundary given by: {self.boundary}')
+
     def plot_lattice(self, ax):
 
         # Lattice sites
@@ -225,34 +257,56 @@ class InfiniteNanowire_FuBerg:
                     site1, site2 = self.boundary[j], self.boundary[j + 1]
                 plt.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
 
+    # Methods for calculating the Hamiltonian
+    def H_onsite(self, k):
+        return (self.eps - 2 * self.t * np.cos(k)) * np.kron(sigma_x, tau_0) + \
+            1j * self.lamb_z * np.sin(k) * np.kron(sigma_y, tau_0)
+
+    def H_offdiag(self, d, phi):
+        f_cutoff = np.heaviside(self.r - d, 1) * np.exp(-d + 1)
+        return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
+            1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.sin(phi) * tau_x - np.cos(phi) * tau_y)
+
+    def get_Hamiltonian(self, Nk=1000, debug=True):
+
+        # Preallocation
+        self.kz   = np.linspace(-pi, pi, Nk)
+        H_offdiag = np.zeros((self.dimH, self.dimH), dtype=np.complex128)
+        self.H    = np.zeros((len(self.kz), self.dimH, self.dimH), dtype=np.complex128)
+
+        # Off-diagonal terms
+        loger_wire.info('Generating off-diagonal Hamiltonian')
+        for i in np.range(self.Nsites):
+            for n in self.neighbours[i]:
+                loger_wire.trace(f'site: {i}, neighbour: {n}')
+                d, phi = displacement2D(self.x[i], self.y[i], self.x[n], self.y[n])
+                H_offdiag[i * 4: i * 4 + 4, n * 4: n * 4 + 4] = self.H_offdiag(d, phi)
+        self.H = np.tile(H_offdiag, (len(self.kz), 1, 1))
+
+        # Onsite terms
+        for j, k in enumerate(self.kz):
+            loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
+            self.H[:, :, j] = np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
+
+            # Debug
+            if debug:
+                loger_wire.debug('Checking hermiticity of H...')
+                if not np.allclose(self.H[:, :, j], self.H[:, :, j].T.conj(), tol=1e-15):
+                    error = np.abs(np.sum(self.H[:, :, j] - self.H[:, :, j].T.conj()))
+                    loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
+                    raise ValueError('Hamiltonian is not hermitian!')
+
+    def get_bands(self, Nk=1000):
+
+        # Calculating Hamiltonian
+        energy_bands, eigenstates = {}, {}
+        self.get_Hamiltonian(Nk=Nk)
+
+        # Diagonalising Hamiltonian
+        loger_wire.info('Diagonalising Hamiltonian...')
+        for j in range(len(self.kz)):
+            loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
+            energy_bands[j], eigenstates[j] = np.linalg.eigh(self.H[j, :, :])
+        return energy_bands, eigenstates
 
 
-
-
-
-
-# def H_hoppx(self):
-#
-#
-# def get_Hamiltonian(self):
-#     self.dimH = self.Nx * self.Ny * 4
-#     self.H = np.zeros((self.dimH, self.dimH), dtype=np.complex128)
-#     for i in sites.keys():
-#
-#         # States for the i-th site and nearest neighbours
-#         psi_i = np.zeros((self.dimH, ), dtype=np.complex128)
-#         psi_i_x = np.zeros((self.dimH, ), dtype=np.complex128)
-#         psi_i_y = np.zeros((self.dimH,), dtype=np.complex128)
-#         psi_i[i] = 1.
-#         psi_i_x[i + 1] = 1. if sites[i]['x'] != (self.Nx - 1) else 0.
-#         psi_i_y[i + Nx] = 1. if sites[i]['y'] != (self.Ny - 1) else 0.
-#
-#         # Hopping operators
-#         onsite_block = np.outer(psi_i.conj(), psi_i)
-#         x_block = np.outer(psi_i.conj(), psi_i_x)
-#         y_block = np.outer(psi_i.conj(), psi_i_y)
-#
-#         # Hamiltonian
-#         self.H += np.kron(H_onsite, onsite_block)
-#         self.H += np.kron(H_hoppx, x_block)
-#         self.H += np.kron(H_hoppy, y_block)
