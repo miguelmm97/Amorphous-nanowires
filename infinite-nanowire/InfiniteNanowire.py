@@ -142,16 +142,23 @@ def remove_site(list, site):
     except ValueError:
         return list
 
+def Peierls(x1, y1, x2, y2, B):
+    if x1 != x2:
+        phase = B * ((y2 - y1) / (x2 - x1)) * 0.5 * (x2 ** 2 - x1 ** 2) + B * (y1 * x2 - y2 * x1)
+    else:
+        phase = 0
+    return np.exp(1j * 2 * pi * phase)
 
 @dataclass
 class InfiniteNanowire_FuBerg:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Lattice parameters
-    Nx: int           # Number of lattice sites along x direction
-    Ny: int           # Number of lattice sites along y direction
-    w:  float         # Width of the Gaussian distribution
-    r:  float         # Cutoff distance to consider neighbours
+    Nx:   int           # Number of lattice sites along x direction
+    Ny:   int           # Number of lattice sites along y direction
+    w:    float         # Width of the Gaussian distribution
+    r:    float         # Cutoff distance to consider neighbours
+    flux: float         # Magnetic flux threaded through the cross-section
 
     # Electronic parameters
     eps:    float     # Onsite energy coupling different orbitals
@@ -238,6 +245,7 @@ class InfiniteNanowire_FuBerg:
 
             loger_wire.trace(f'Boundary given by: {self.boundary}')
         loger_wire.info(f'Boundary given by: {self.boundary}')
+        self.area = Polygon(boundary_points).area
 
     def plot_lattice(self, ax):
 
@@ -265,7 +273,7 @@ class InfiniteNanowire_FuBerg:
     # Methods for calculating the Hamiltonian
     def H_onsite(self, k):
         return (self.eps - 2 * self.t * np.cos(k)) * np.kron(sigma_x, tau_0) + \
-            1j * self.lamb_z * np.sin(k) * np.kron(sigma_y, tau_0)
+                 self.lamb_z * np.sin(k) * np.kron(sigma_y, tau_0)
 
     def H_offdiag(self, d, phi):
         f_cutoff = np.heaviside(self.r - d, 1) * np.exp(-d + 1)
@@ -285,13 +293,22 @@ class InfiniteNanowire_FuBerg:
             for n in self.neighbours[i]:
                 loger_wire.trace(f'site: {i}, neighbour: {n}')
                 d, phi = displacement2D(self.x[i], self.y[i], self.x[n], self.y[n])
-                H_offdiag[i * 4: i * 4 + 4, n * 4: n * 4 + 4] = self.H_offdiag(d, phi)
+                peierls_phase = Peierls(self.x[i], self.y[i], self.x[n], self.y[n], self.flux / self.area)
+                H_offdiag[i * 4: i * 4 + 4, n * 4: n * 4 + 4] = self.H_offdiag(d, phi) * peierls_phase
         self.H = np.tile(H_offdiag, (len(self.kz), 1, 1))
+
+        # Debug
+        if debug:
+            loger_wire.debug('Checking hermiticity of H...')
+            if not np.allclose(H_offdiag, H_offdiag.T.conj(), atol=1e-15):
+                error = np.abs(np.sum(H_offdiag - H_offdiag.T.conj()))
+                loger_wire.error(f'Off-diagonal Hamiltonian is not hermitian. sum(H - H^\dagger): {error}')
+                raise ValueError('Hamiltonian is not hermitian!')
+
 
         # Onsite terms
         for j, k in enumerate(self.kz):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
-            aux = np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
             self.H[j, :, :] += np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
 
             # Debug
