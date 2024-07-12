@@ -142,12 +142,9 @@ def remove_site(list, site):
     except ValueError:
         return list
 
-def Peierls(x1, y1, x2, y2, B):
-    if x1 != x2:
-        phase = B * ((y2 - y1) / (x2 - x1)) * 0.5 * (x2 ** 2 - x1 ** 2) + B * (y1 * x2 - y2 * x1)
-    else:
-        phase = 0
-    return np.exp(1j * 2 * pi * phase)
+def Peierls(x1, y1, x2, y2, flux, area):
+    deltax, deltay = x2 - x1, y2 - y1
+    return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax) / area)
 
 @dataclass
 class InfiniteNanowire_FuBerg:
@@ -293,7 +290,7 @@ class InfiniteNanowire_FuBerg:
             for n in self.neighbours[i]:
                 loger_wire.trace(f'site: {i}, neighbour: {n}')
                 d, phi = displacement2D(self.x[i], self.y[i], self.x[n], self.y[n])
-                peierls_phase = Peierls(self.x[i], self.y[i], self.x[n], self.y[n], self.flux / self.area)
+                peierls_phase = Peierls(self.x[i], self.y[i], self.x[n], self.y[n], self.flux, self.area)
                 H_offdiag[i * 4: i * 4 + 4, n * 4: n * 4 + 4] = self.H_offdiag(d, phi) * peierls_phase
         self.H = np.tile(H_offdiag, (len(self.kz), 1, 1))
 
@@ -307,6 +304,7 @@ class InfiniteNanowire_FuBerg:
 
 
         # Onsite terms
+        loger_wire.info('Generating onsite Hamiltonian')
         for j, k in enumerate(self.kz):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
             self.H[j, :, :] += np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
