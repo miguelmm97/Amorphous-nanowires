@@ -143,8 +143,15 @@ def remove_site(list, site):
         return list
 
 def Peierls(x1, y1, x2, y2, flux, area):
-    deltax, deltay = x2 - x1, y2 - y1
-    return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax) / area)
+    if x2 > x1:
+        deltax, deltay = x2 - x1, y2 - y1
+        return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
+    else:
+        deltax, deltay = x1 - x2, y1 - y2
+        return np.exp(- 1j * pi * flux * (deltax * deltay + 2 * y2 * deltax - 2 * x2 * deltay) / area)
+
+    # return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax) / area)
+    # return np.exp(1j * pi * flux * np.sign(x2 - x1) * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
 
 @dataclass
 class InfiniteNanowire_FuBerg:
@@ -173,15 +180,26 @@ class InfiniteNanowire_FuBerg:
     x:             np.ndarray = field(init=False)    # x position of the sites
     y:             np.ndarray = field(init=False)    # y position of the sites
     kz:            np.ndarray = field(init=False)    # Momentum along z direction
+    energy_bands:  dict = field(init=False)          # Energy bands
+    eigenstates:   dict = field(init=False)          # Eigenstates
 
     # Methods for building the lattice
-    def build_lattice(self):
+    def build_lattice(self, from_x=None, from_y=None):
 
         loger_wire.info('Generating lattice and neighbour tree.')
+
+        # Dimension of the Hilbert space and sites
         self.Nsites = int(self.Nx * self.Ny)
         self.dimH = int(self.Nsites * 4)
         list_sites = np.arange(0, self.Nsites)
-        self.x, self.y = gaussian_point_set_2D(list_sites % self.Nx, list_sites // self.Nx, self.w)
+
+        # Positions of x and y coordinates
+        if from_x is not None and from_y is not None:
+            self.x, self.y = from_x, from_y
+        else:
+            self.x, self.y = gaussian_point_set_2D(list_sites % self.Nx, list_sites // self.Nx, self.w)
+
+        # Neighbour tree and accepting/discarding the configuration
         self.neighbours = KDTree(np.array([self.x, self.y]).T).query_ball_point(np.array([self.x, self.y]).T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
@@ -241,7 +259,7 @@ class InfiniteNanowire_FuBerg:
                 raise OverflowError('Algorithm caught in an infinite loop.')
 
             loger_wire.trace(f'Boundary given by: {self.boundary}')
-        loger_wire.info(f'Boundary given by: {self.boundary}')
+        loger_wire.trace(f'Boundary given by: {self.boundary}')
         self.area = Polygon(boundary_points).area
 
     def plot_lattice(self, ax):
@@ -320,14 +338,25 @@ class InfiniteNanowire_FuBerg:
     def get_bands(self, Nk=1000):
 
         # Calculating Hamiltonian
-        energy_bands, eigenstates = {}, {}
+        self.energy_bands, self.eigenstates = {}, {}
+        aux_bands = np.zeros((Nk, self.dimH))
+        aux_eigenstates = np.zeros((Nk, self.dimH, self.dimH), dtype=np.complex128)
         self.get_Hamiltonian(Nk=Nk)
 
         # Diagonalising Hamiltonian
         loger_wire.info('Diagonalising Hamiltonian...')
         for j in range(len(self.kz)):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
-            energy_bands[j], eigenstates[j] = np.linalg.eigh(self.H[j, :, :])
-        return energy_bands, eigenstates
+            bands_k, eigenstates_k = np.linalg.eigh(self.H[j, :, :])
+            idx = bands_k.argsort()
+            aux_bands[j, :], aux_eigenstates[j, :, :] = bands_k[idx], eigenstates_k[:, idx]
+
+        # Ordering bands
+        for i in range(self.dimH):
+            self.energy_bands[i] = aux_bands[:, i]
+            self.eigenstates[i] = aux_eigenstates[:, :, i]
+
+    def get_gap(self):
+        return np.min(self.energy_bands[int(self.dimH / 2)] - self.energy_bands[int(self.dimH / 2) - 1])
 
 
