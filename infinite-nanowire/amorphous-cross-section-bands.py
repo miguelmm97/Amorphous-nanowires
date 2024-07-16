@@ -45,10 +45,10 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny    = 6, 6       # Number of sites in the cross-section
-width     = 0.01       # Spread of the Gaussian distribution for the lattice sites
+Nx, Ny    = 8, 8       # Number of sites in the cross-section
+width     = 0.000001       # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3        # Nearest-neighbour cutoff distance
-flux      = 0.63        # Flux threaded through the cross-section (in units of flux quantum)
+flux      = 0.6        # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping
 eps       = 4 * t      # Onsite orbital hopping (in units of t)
 lamb      = 0.5 * t    # Spin-orbit coupling in the cross-section (in units of t)
@@ -59,7 +59,6 @@ wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=e
 wire.build_lattice()
 wire.get_boundary()
 wire.get_bands()
-print(wire.area)
 
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }

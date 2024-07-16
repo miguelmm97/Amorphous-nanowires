@@ -7,6 +7,8 @@ from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString, MultiPoint, Polygon
 from shapely import intersects
+from scipy.integrate import quad
+
 
 # Managing classes
 from dataclasses import dataclass, field
@@ -143,12 +145,19 @@ def remove_site(list, site):
         return list
 
 def Peierls(x1, y1, x2, y2, flux, area):
-    if x2 > x1:
-        deltax, deltay = x2 - x1, y2 - y1
-        return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
-    else:
-        deltax, deltay = x1 - x2, y1 - y2
-        return np.exp(- 1j * pi * flux * (deltax * deltay + 2 * y2 * deltax - 2 * x2 * deltay) / area)
+    def integrand(x, m, x0, y0):
+        return m * (x - x0) + y0
+
+    m = (y2 - y1) / (x2 - x1)
+    I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
+    return np.exp(2 * pi * 1j * flux * I / area)
+
+    # if x2 > x1:
+    #     deltax, deltay = x2 - x1, y2 - y1
+    #     return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
+    # else:
+    #     deltax, deltay = x1 - x2, y1 - y2
+    #     return np.exp(- 1j * pi * flux * (deltax * deltay + 2 * y2 * deltax - 2 * x2 * deltay) / area)
 
     # return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax) / area)
     # return np.exp(1j * pi * flux * np.sign(x2 - x1) * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
@@ -165,23 +174,23 @@ class InfiniteNanowire_FuBerg:
     flux: float         # Magnetic flux threaded through the cross-section
 
     # Electronic parameters
-    eps:    float     # Onsite energy coupling different orbitals
-    t:      float     # Isotropic hopping strength
-    lamb:   float     # Spin orbit coupling in the cross-section
-    lamb_z: float     # Spin orbit coupling along z
+    eps:    float      # Onsite energy coupling different orbitals
+    t:      float      # Isotropic hopping strength
+    lamb:   float      # Spin orbit coupling in the cross-section
+    lamb_z: float      # Spin orbit coupling along z
 
     # Class fields
-    dimH:          int = field(init=False)           # Dimension of the single-particle Hilbert Space
-    Nsites:        int = field(init=False)           # Number of sites in the cross-section
+    dimH:                 int = field(init=False)    # Dimension of the single-particle Hilbert Space
+    Nsites:               int = field(init=False)    # Number of sites in the cross-section
     neighbours:    np.ndarray = field(init=False)    # Neighbours list for each site
-    boundary:      list = field(init=False)          # List of sites forming the boundary
-    area:          float = field(init=False)         # Area of the wire's cross-section
+    boundary:            list = field(init=False)    # List of sites forming the boundary
+    area:               float = field(init=False)    # Area of the wire's cross-section
     H:             np.ndarray = field(init=False)    # Hamiltonian
     x:             np.ndarray = field(init=False)    # x position of the sites
     y:             np.ndarray = field(init=False)    # y position of the sites
     kz:            np.ndarray = field(init=False)    # Momentum along z direction
-    energy_bands:  dict = field(init=False)          # Energy bands
-    eigenstates:   dict = field(init=False)          # Eigenstates
+    energy_bands:        dict = field(init=False)    # Energy bands
+    eigenstates:         dict = field(init=False)    # Eigenstates
 
     # Methods for building the lattice
     def build_lattice(self, from_x=None, from_y=None):
