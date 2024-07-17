@@ -32,7 +32,6 @@ def check_blocks(H, len, ax):
     ax.set_yticks([])
     plt.show()
 
-
 def peierls_x(y):
     return np.exp(2 * pi * 1j * flux * y / area)
 
@@ -42,11 +41,11 @@ def peierls_x(y):
 Nx, Ny = 6, 6      # Number of sites in the cross-section
 width = 0.0000001  # Spread of the Gaussian distribution for the lattice sites
 r = 1.3            # Nearest-neighbour cutoff distance
-flux = 0.6         # Flux threaded through the cross-section (in units of flux quantum)
+flux = 0.7         # Flux threaded through the cross-section (in units of flux quantum)
 t = 1              # Hopping
 eps = 4 * t        # Onsite orbital hopping (in units of t)
-lamb = 0.5 * t     # Spin-orbit coupling in the cross-section (in units of t)
-lamb_z = 0.5 * t   # Spin-orbit coupling along z direction
+lamb = 1 * t       # Spin-orbit coupling in the cross-section (in units of t)
+lamb_z = 1.8 * t   # Spin-orbit coupling along z direction
 
 sigma_0 = np.eye(2, dtype=np.complex128)
 sigma_x = np.array([[0, 1], [1, 0]], dtype=np.complex128)
@@ -80,7 +79,7 @@ for n in sites:
 
     # Off-diagonal Hamiltonian
     H_offdiag += -t * np.kron(jump_x, np.kron(sigma_x, tau_0)) - t * np.kron(jump_y, np.kron(sigma_x, tau_0)) + \
-        1j * 0.5 * lamb * (-np.kron(jump_x, np.kron(sigma_z, tau_y)) + np.kron(jump_y, np.kron(sigma_z, tau_x)))
+        1j * 0.5 * lamb * (np.kron(jump_x, np.kron(sigma_z, tau_y)) - np.kron(jump_y, np.kron(sigma_z, tau_x)))
 H_offdiag += H_offdiag.T.conj()
 
 # Full Hamiltonian
@@ -144,7 +143,7 @@ ax2_2.set(xticks=[-pi, -pi / 2, 0, pi / 2, pi], xticklabels=['$-\pi$', '$-\pi/2$
 fig2.suptitle(
     f'$w=$ {width}, $r=$ {r}, $\phi/\phi_0=$ {flux}, $\epsilon=$ {eps}, $\lambda=$ {lamb}, $\lambda_z=$ {lamb_z}')
 
-fig3 = plt.figure(figsize=(6, 6))
-ax3 = fig3.gca()
-check_blocks(H_offdiag, dimH, ax3)
+# fig3 = plt.figure(figsize=(6, 6))
+# ax3 = fig3.gca()
+# check_blocks(H_offdiag, dimH, ax3)
 plt.show()

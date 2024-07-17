@@ -53,7 +53,7 @@ sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 tau_0, tau_x, tau_y, tau_z  = sigma_0, sigma_x, sigma_y, sigma_z
 
-
+# Functions for creating the lattice
 def gaussian_point_set_2D(x, y, width):
 
     x = np.random.normal(x, width, len(x))
@@ -89,17 +89,6 @@ def displacement2D(x1, y1, x2, y2):
     return r, phi
 
 def angle_x(v):
-    """
-    Computes the angle of a vector with respect to axis x
-
-    Params:
-    ------
-    v:   {np.array(2,)} Vector in question
-
-    Returns:
-    -------
-    phi: {float} Angle
-    """
 
     if v[0] == 0:                                  # Pathological case, separated to not divide by 0
         if v[1] > 0:
@@ -115,18 +104,6 @@ def angle_x(v):
     return phi
 
 def angle(v, ax):
-    """
-        Computes the angle of a vector and a particular axis with correct quadrants from 0 to 2pi
-
-        Params:
-        ------
-        v:   {np.array(2, )} Vector in question
-        ax:  {np.array(2, }  Axis to measure angle
-
-        Returns:
-        -------
-        phi: {float} Angle
-        """
 
     alpha = - angle_x(ax)
     R = np.array([[np.cos(alpha), -np.sin(alpha)],
@@ -134,6 +111,8 @@ def angle(v, ax):
     phi = angle_x(R @ v)
     return phi
 
+
+# Functions for calculating the boundary
 def no_intersection(boundary_line, boundary_points, line_neigh):
     inters_point = line_neigh.intersection(boundary_line)
     return boundary_points.contains(inters_point)
@@ -144,6 +123,8 @@ def remove_site(list, site):
     except ValueError:
         return list
 
+
+# Functions for the Hamiltonian
 def Peierls(x1, y1, x2, y2, flux, area):
     def integrand(x, m, x0, y0):
         return m * (x - x0) + y0
@@ -151,16 +132,6 @@ def Peierls(x1, y1, x2, y2, flux, area):
     m = (y2 - y1) / (x2 - x1)
     I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
-
-    # if x2 > x1:
-    #     deltax, deltay = x2 - x1, y2 - y1
-    #     return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
-    # else:
-    #     deltax, deltay = x1 - x2, y1 - y2
-    #     return np.exp(- 1j * pi * flux * (deltax * deltay + 2 * y2 * deltax - 2 * x2 * deltay) / area)
-
-    # return np.exp(1j * pi * flux * (deltax * deltay + 2 * y1 * deltax) / area)
-    # return np.exp(1j * pi * flux * np.sign(x2 - x1) * (deltax * deltay + 2 * y1 * deltax - 2 * x1 * deltay) / area)
 
 @dataclass
 class InfiniteNanowire_FuBerg:
@@ -302,7 +273,7 @@ class InfiniteNanowire_FuBerg:
     def H_offdiag(self, d, phi):
         f_cutoff = np.heaviside(self.r - d, 1) * np.exp(-d + 1)
         return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
-            1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.sin(phi) * tau_x - np.cos(phi) * tau_y)
+            1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.cos(phi) * tau_y - np.sin(phi) * tau_x)
 
     def get_Hamiltonian(self, Nk=1000, debug=True):
 
