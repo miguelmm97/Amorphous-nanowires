@@ -54,3 +54,70 @@ formatter = ColoredFormatter(
 )
 stream_handler.setFormatter(formatter)
 logger_functions.addHandler(stream_handler)
+
+
+#%% # Managing data
+def get_fileID(file_list, common_name='datafile'):
+    expID = 0
+    for file in file_list:
+        if file.startswith(common_name) and file.endswith('.h5'):
+            stringID = file.split(common_name)[1].split('.h5')[0]
+            ID = int(stringID)
+            expID = max(ID, expID)
+    return expID + 1
+
+def store_my_data(file, name, data):
+    try:
+        file.create_dataset(name=name, data=data)
+    except Exception as ex:
+        print(f'Failed to write {name} in {file} because of exception: {ex}')
+
+def attr_my_data(dataset, attr_name, attr):
+    try:
+        dataset.attrs.create(name=attr_name, data=attr)
+    except Exception as ex:
+        print(f'Failed to write {attr_name} in {dataset} because of exception: {ex}')
+
+def load_my_data(file_list, directory):
+    # Generate a dict with 1st key for filenames, 2nd key for datasets in the files
+    data_dict = {}
+
+    # Load desired directory and list files in it
+    for file in file_list:
+        file_path = os.path.join(directory, file)
+        data_dict[file] = {}
+
+        with h5py.File(file_path, 'r') as f:
+            for group in f.keys():
+                try:
+                    data_dict[file][group] = {}
+                    for dataset in f[group].keys():
+                        if isinstance(f[group][dataset][()], bytes):
+                            data_dict[file][group][dataset] = f[group][dataset][()].decode()
+                        else:
+                            data_dict[file][group][dataset] = f[group][dataset][()]
+                except AttributeError:
+                    if isinstance(f[group][()], bytes):
+                        data_dict[file][group] = f[group][()].decode()
+                    else:
+                        data_dict[file][group] = f[group][()]
+
+    return data_dict
+
+def load_my_attr(file_list, directory, dataset):
+    attr_dict = {}
+
+    # Load desired directory and list files in it
+    for file in file_list:
+        file_path = os.path.join(directory, file)
+        attr_dict[file] = {}
+        print(file)
+
+        with h5py.File(file_path, 'r') as f:
+            for att in f[dataset].attrs.keys():
+                attr_dict[file][att] = f[dataset].attrs[att]
+
+    return attr_dict
+
+
+
