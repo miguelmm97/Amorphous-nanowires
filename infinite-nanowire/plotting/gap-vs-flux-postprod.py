@@ -6,10 +6,15 @@ from numpy import pi
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import seaborn
 import itertools
 
-# Managing system, data and config files
+# Managing data
+import h5py
+import os
+import sys
+from datetime import date
+
+# Modules
 from functions import load_my_data, load_my_attr
 
 #%% Loading data
@@ -29,16 +34,18 @@ lamb_z     = data_dict[file_list[0]]['Parameters']['lamb_z']
 
 # Data
 gap        = data_dict[file_list[0]]['Simulation']['gap']
-flux       = data_dict[file_list[0]]['Simulation']['flux']
+# flux       = data_dict[file_list[0]]['Simulation']['flux']
 n_rejected = data_dict[file_list[0]]['Simulation']['n_rejected']
 
 # Preallocation
-gap_mean = np.array((len(flux), ))
-gap_std  = np.array((len(flux), ))
+flux = np.linspace(0., 4., 50)
+gap_mean = np.zeros((len(flux), ))
+gap_std  = np.zeros((len(flux), ))
+
 
 
 #%% Postproduction
-for i in range(len(gap[:, 0])):
+for i in range(len(flux)):
     idx = np.where(np.abs(gap[i, :]) > 1e-14)[0]
     if len(idx) != (Nsamples - n_rejected[i]):
         raise ValueError('Number of 0s in the gap do not coincide with rejected configurations.')
@@ -57,7 +64,7 @@ fig1 = plt.figure(figsize=(6, 6))
 ax1 = fig1.gca()
 ax1.plot(flux, gap_mean, '.', color=color_list[3], markersize=7)
 ax1.plot(flux, gap_mean, color=color_list[8], linewidth=0.5)
-ax1.errorbar(flux, gap_mean, yerr=error_bars, color=axcolour[8])
+ax1.errorbar(flux, gap_mean, yerr=error_bars, color=color_list[3])
 ax1.set_xlabel('$\phi/\phi_0$')
 ax1.set_ylabel('$E_g$')
 ax1.set_xlim(flux[0], flux[-1])

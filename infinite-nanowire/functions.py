@@ -5,6 +5,11 @@ import logging
 import colorlog
 from colorlog import ColoredFormatter
 
+# Managing data
+import h5py
+import os
+import sys
+from datetime import date
 
 # %% Logging setup
 def addLoggingLevel(levelName, levelNum, methodName=None):

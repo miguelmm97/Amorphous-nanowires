@@ -244,9 +244,6 @@ class InfiniteNanowire_FuBerg:
 
     def plot_lattice(self, ax):
 
-        # Lattice sites
-        ax.scatter(self.x, self.y, color='deepskyblue', s=50)
-
         # Neighbour links
         for site in range(self.Nsites):
             for n in self.neighbours[site]:
@@ -264,6 +261,9 @@ class InfiniteNanowire_FuBerg:
         except AttributeError:
             loger_wire.warning('Boundary has not been calculated before plotting')
             pass
+
+        # Lattice sites
+        ax.scatter(self.x, self.y, color='deepskyblue', s=50)
 
     # Methods for calculating the Hamiltonian
     def H_onsite(self, k):

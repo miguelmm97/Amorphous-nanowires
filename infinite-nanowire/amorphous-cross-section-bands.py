@@ -45,9 +45,9 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny    = 8, 8       # Number of sites in the cross-section
-width     = 0.2       # Spread of the Gaussian distribution for the lattice sites
-r         = 2        # Nearest-neighbour cutoff distance
+Nx, Ny    = 10, 10     # Number of sites in the cross-section
+width     = 0.0000001  # Spread of the Gaussian distribution for the lattice sites
+r         = 1.3        # Nearest-neighbour cutoff distance
 flux      = 0.6        # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping
 eps       = 4 * t      # Onsite orbital hopping (in units of t)
