@@ -18,7 +18,7 @@ from datetime import date
 from functions import load_my_data, load_my_attr
 
 #%% Loading data
-file_list = ['flux-gap1.h5']
+file_list = ['flux-gap2.h5']
 data_dict = load_my_data(file_list, '../../../data-flux-gap')
 
 # Parameters

@@ -275,10 +275,10 @@ class InfiniteNanowire_FuBerg:
         return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
             1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.cos(phi) * tau_y - np.sin(phi) * tau_x)
 
-    def get_Hamiltonian(self, Nk=1000, debug=True):
+    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=1001, debug=True):
 
         # Preallocation
-        self.kz   = np.linspace(-pi, pi, Nk)
+        self.kz   = np.linspace(k_0, k_end, Nk)
         H_offdiag = np.zeros((self.dimH, self.dimH), dtype=np.complex128)
         self.H    = np.zeros((len(self.kz), self.dimH, self.dimH), dtype=np.complex128)
 
@@ -315,13 +315,13 @@ class InfiniteNanowire_FuBerg:
                     loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
                     raise ValueError('Hamiltonian is not hermitian!')
 
-    def get_bands(self, Nk=1000):
+    def get_bands(self, k_0=-pi, k_end=pi, Nk=1001):
 
         # Calculating Hamiltonian
         self.energy_bands, self.eigenstates = {}, {}
         aux_bands = np.zeros((Nk, self.dimH))
         aux_eigenstates = np.zeros((Nk, self.dimH, self.dimH), dtype=np.complex128)
-        self.get_Hamiltonian(Nk=Nk)
+        self.get_Hamiltonian(k_0=k_0, k_end=k_end, Nk=Nk)
 
         # Diagonalising Hamiltonian
         loger_wire.info('Diagonalising Hamiltonian...')

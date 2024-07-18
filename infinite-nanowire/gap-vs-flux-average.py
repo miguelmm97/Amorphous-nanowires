@@ -52,7 +52,7 @@ loger_main.addHandler(stream_handler)
 #%% Variables
 
 flux_0, flux_end, Nflux = 0., 4., 50     # Flux array parameters
-Nsamples   = 25                         # Number of amorphous lattice samples
+Nsamples   = 1000                        # Number of amorphous lattice samples
 Nx, Ny     = 6, 6                        # Number of sites in the cross-section
 width      = 0.1                         # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                         # Nearest-neighbour cutoff distance
@@ -73,7 +73,7 @@ for i, phi in enumerate(flux):
         try:
             wire.build_lattice()
             wire.get_boundary()
-            wire.get_bands()
+            wire.get_bands(k_0=0, k_end=0, Nk=1)
             gap[i, sample] = wire.get_gap()
         except ValueError as error:
             loger_main.warning(f'Sample {sample} had an error: {error}')
