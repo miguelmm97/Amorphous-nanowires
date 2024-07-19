@@ -51,9 +51,9 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-flux_0, flux_end, Nflux = 0., 4., 50     # Flux array parameters
+flux_0, flux_end, Nflux = 0., 4., 1000   # Flux array parameters
 Nsamples   = 1000                        # Number of amorphous lattice samples
-Nx, Ny     = 6, 6                        # Number of sites in the cross-section
+Nx, Ny     = 10, 10                      # Number of sites in the cross-section
 width      = 0.1                         # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                         # Nearest-neighbour cutoff distance
 t          = 1                           # Hopping
@@ -69,15 +69,14 @@ n_rejected = np.zeros((len(flux), ))
 for i, phi in enumerate(flux):
     for sample in range(Nsamples):
         loger_main.info(f'flux: {i}/{len(flux) - 1}, Sample: {sample}/{Nsamples - 1}')
-        wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
         try:
+            wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
             wire.build_lattice()
             wire.get_boundary()
             wire.get_bands(k_0=0, k_end=0, Nk=1)
             gap[i, sample] = wire.get_gap()
-        except ValueError as error:
-            loger_main.warning(f'Sample {sample} had an error: {error}')
-            n_rejected[i] += 1
+        except Exception as error:
+            loger_main.error(f'Something went wrong: {error}')
 
 #%% Saving data
 
@@ -91,7 +90,6 @@ with h5py.File(filepath, 'w') as f:
     # Simulation folder
     simulation = f.create_group('Simulation')
     store_my_data(simulation, 'gap', gap)
-    store_my_data(simulation, 'n_rejected', n_rejected)
     store_my_data(simulation, 'flux', flux)
 
 

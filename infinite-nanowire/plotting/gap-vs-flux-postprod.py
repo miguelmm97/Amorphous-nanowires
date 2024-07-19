@@ -18,7 +18,7 @@ from datetime import date
 from functions import load_my_data, load_my_attr
 
 #%% Loading data
-file_list = ['flux-gap2.h5']
+file_list = ['flux-gap3.h5']
 data_dict = load_my_data(file_list, '../../../data-flux-gap')
 
 # Parameters
@@ -35,7 +35,6 @@ lamb_z     = data_dict[file_list[0]]['Parameters']['lamb_z']
 # Data
 gap        = data_dict[file_list[0]]['Simulation']['gap']
 # flux       = data_dict[file_list[0]]['Simulation']['flux']
-n_rejected = data_dict[file_list[0]]['Simulation']['n_rejected']
 
 # Preallocation
 flux = np.linspace(0., 4., 50)
@@ -46,11 +45,8 @@ gap_std  = np.zeros((len(flux), ))
 
 #%% Postproduction
 for i in range(len(flux)):
-    idx = np.where(np.abs(gap[i, :]) > 1e-14)[0]
-    if len(idx) != (Nsamples - n_rejected[i]):
-        raise ValueError('Number of 0s in the gap do not coincide with rejected configurations.')
-    gap_mean[i] = np.mean(np.take(gap[i, :], idx))
-    gap_std[i] = np.std(np.take(gap[i, :], idx))
+    gap_mean[i] = np.mean(gap[i, :])
+    gap_std[i] = np.std(gap[i, :])
 error_bars = np.array([gap_mean + 0.5 * gap_std, gap_mean - 0.5 * gap_std])
 
 

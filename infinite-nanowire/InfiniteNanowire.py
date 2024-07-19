@@ -164,7 +164,7 @@ class InfiniteNanowire_FuBerg:
     eigenstates:         dict = field(init=False)    # Eigenstates
 
     # Methods for building the lattice
-    def build_lattice(self, from_x=None, from_y=None):
+    def generate_configuration(self, from_x=None, from_y=None):
 
         loger_wire.info('Generating lattice and neighbour tree.')
 
@@ -184,7 +184,18 @@ class InfiniteNanowire_FuBerg:
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
             if len(self.neighbours[i]) < 2:
-                raise ValueError('Connectivity of the lattice too low.')
+                raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
+
+    def build_lattice(self, from_x=None, from_y=None, n_tries=0):
+
+        if n_tries > 100:
+            loger_wire.error('Loop. Parameters might not allow an acceptable configuration.')
+
+        try:
+            self.generate_configuration(from_x=from_x, from_y=from_y)
+        except Exception as error:
+            loger_wire.warning(f'{error}')
+            self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
 
     def get_boundary(self):
 

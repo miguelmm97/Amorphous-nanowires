@@ -41,7 +41,7 @@ def peierls_x(y):
 Nx, Ny = 6, 6      # Number of sites in the cross-section
 width = 0.0000001  # Spread of the Gaussian distribution for the lattice sites
 r = 1.3            # Nearest-neighbour cutoff distance
-flux = 0.7         # Flux threaded through the cross-section (in units of flux quantum)
+flux = 0.0         # Flux threaded through the cross-section (in units of flux quantum)
 t = 1              # Hopping
 eps = 4 * t        # Onsite orbital hopping (in units of t)
 lamb = 1 * t       # Spin-orbit coupling in the cross-section (in units of t)
@@ -147,3 +147,4 @@ fig2.suptitle(
 # ax3 = fig3.gca()
 # check_blocks(H_offdiag, dimH, ax3)
 plt.show()
+# fig2.savefig("crystalline-amorphous-comparison-2.pdf")
