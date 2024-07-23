@@ -45,9 +45,9 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny    = 10, 10     # Number of sites in the cross-section
-width     = 0.0000001       # Spread of the Gaussian distribution for the lattice sites
-r         = 1.3        # Nearest-neighbour cutoff distance
+Nx, Ny    = 8, 8     # Number of sites in the cross-section
+width     = 0.2       # Spread of the Gaussian distribution for the lattice sites
+r         = 3        # Nearest-neighbour cutoff distance
 flux      = 0.55       # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping
 eps       = 4 * t      # Onsite orbital hopping (in units of t)
@@ -96,11 +96,11 @@ ax2_1.tick_params(which='major', length=6, labelsize=10)
 ax2_1.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
 
 ax2_2.set_xlabel('$k/a$')
-ax2_2.set_xlim(-pi, pi)
+ax2_2.set_xlim(-pi / 4, pi / 4)
 ax2_2.set_ylim(-0.5, 0.5)
 ax2_2.tick_params(which='major', width=0.75, labelsize=10)
 ax2_2.tick_params(which='major', length=6, labelsize=10)
-ax2_2.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
+ax2_2.set(xticks=[-pi / 4, 0, pi/4], xticklabels=['$-\pi/4$', '$0$', '$\pi/4$'])
 fig2.suptitle(f'$w=$ {width}, $r=$ {r}, $\phi/\phi_0=$ {flux}, $\epsilon=$ {eps}, $\lambda=$ {lamb}, $\lambda_z=$ {lamb_z}')
 plt.show()
 fig2.savefig("kramers-degeneracy-restoration.pdf")
