@@ -23,7 +23,7 @@ from colorlog import ColoredFormatter
 
 #%% Logging setup
 loger_wire = logging.getLogger('nanowire')
-loger_wire.setLevel(logging.DEBUG)
+loger_wire.setLevel(logging.WARNING)
 
 stream_handler = colorlog.StreamHandler()
 formatter = ColoredFormatter(
