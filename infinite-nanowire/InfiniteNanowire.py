@@ -23,7 +23,7 @@ from colorlog import ColoredFormatter
 
 #%% Logging setup
 loger_wire = logging.getLogger('nanowire')
-loger_wire.setLevel(logging.WARNING)
+loger_wire.setLevel(logging.DEBUG)
 
 stream_handler = colorlog.StreamHandler()
 formatter = ColoredFormatter(
@@ -193,9 +193,15 @@ class InfiniteNanowire_FuBerg:
 
         try:
             self.generate_configuration(from_x=from_x, from_y=from_y)
+            self.get_boundary()
         except Exception as error:
             loger_wire.warning(f'{error}')
-            self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
+            try:
+                self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
+            except RecursionError:
+                loger_wire.error('Recursion error. Infinite loop. Terminating...')
+                exit()
+
 
     def get_boundary(self):
 
@@ -220,6 +226,9 @@ class InfiniteNanowire_FuBerg:
 
             # Scan for the neighbour at the boundary
             list_neighbours = remove_site(self.neighbours[site0], avoid_site)
+            if list_neighbours is None:
+                raise TypeError('Boundary too complicated to handle. Trying a different configuration...')
+
             for n in list_neighbours:
                 line_neigh = LineString([current_point, Point(self.x[n], self.y[n])])
                 r, phi = displacement2D(current_x, current_y, self.x[n], self.y[n])
@@ -248,10 +257,16 @@ class InfiniteNanowire_FuBerg:
             # In case we run into an infinite loop
             if len(self.boundary) > self.Nsites:
                 raise OverflowError('Algorithm caught in an infinite loop.')
-
             loger_wire.trace(f'Boundary given by: {self.boundary}')
+
         loger_wire.trace(f'Boundary given by: {self.boundary}')
         self.area = Polygon(boundary_points).area
+        if self.area < 0.5 * (self.Nx * self.Ny):
+            loger_wire.warning('Area too small, this configuration might have an isolated island. Plotting for a check...')
+            fig1 = plt.figure(figsize=(6, 6))
+            ax1 = fig1.gca()
+            self.plot_lattice(ax1)
+            plt.show()
 
     def plot_lattice(self, ax):
 
@@ -276,6 +291,7 @@ class InfiniteNanowire_FuBerg:
         # Lattice sites
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
 
+
     # Methods for calculating the Hamiltonian
     def H_onsite(self, k):
         return (self.eps - 2 * self.t * np.cos(k)) * np.kron(sigma_x, tau_0) + \
@@ -286,7 +302,7 @@ class InfiniteNanowire_FuBerg:
         return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
             1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.cos(phi) * tau_y - np.sin(phi) * tau_x)
 
-    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=1001, debug=True):
+    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=1001, debug=False):
 
         # Preallocation
         self.kz   = np.linspace(k_0, k_end, Nk)

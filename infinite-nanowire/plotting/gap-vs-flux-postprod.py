@@ -46,7 +46,7 @@ gap_std  = np.zeros((len(flux), ))
 #%% Postproduction
 for i in range(len(flux)):
     gap_mean[i] = np.mean(gap[i, :])
-    gap_std[i] = np.std(gap[i, :]) / np.sqrt(Nsamples)
+    gap_std[i] = np.std(gap[i, :])
 error_bar_up = gap_mean + 0.5 * gap_std
 error_bar_down = gap_mean - 0.5 * gap_std
 
