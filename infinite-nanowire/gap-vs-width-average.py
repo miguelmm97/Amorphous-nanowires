@@ -69,7 +69,7 @@ n_rejected = np.zeros((Nw, ))
 for i, w in enumerate(width):
     for sample in range(Nsamples):
         loger_main.info(f'width: {i}/{Nw - 1}, Sample: {sample}/{Nsamples - 1}')
-        wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=w, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
+        wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=w, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
         try:
             wire.build_lattice()
             wire.get_boundary()
