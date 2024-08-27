@@ -7,16 +7,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.gridspec import GridSpec
 
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
 
 # Modules
 import functions
+from AmorphousLattice_2d import AmorphousLattice_2d
 from InfiniteNanowire import InfiniteNanowire_FuBerg
 
 
@@ -37,6 +31,9 @@ def peierls_x(y):
 
 
 # %% Variables
+"""
+We compare the crystalline and amorphous model for an infinite nanowire.
+"""
 
 Nx, Ny = 6, 6      # Number of sites in the cross-section
 width = 0.0000001  # Spread of the Gaussian distribution for the lattice sites
@@ -102,9 +99,13 @@ for i in range(dimH):
     eigenstates[i] = aux_eigenstates[:, :, i]
 
 # %% Main: Amorphous model
-wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-wire.build_lattice()
-wire.get_boundary()
+
+# Amorphous cross-section
+cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section.build_lattice()
+
+# Infinite amorphous nanowire
+wire = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
 wire.get_bands()
 
 # %% Figures

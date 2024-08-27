@@ -22,8 +22,10 @@ import sys
 from datetime import date
 
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
 from functions import get_fileID, store_my_data, attr_my_data
+from AmorphousLattice_2d import AmorphousLattice_2d
+from InfiniteNanowire import InfiniteNanowire_FuBerg
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -50,6 +52,9 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
+"""
+We average the gap vs width of infinite amorphous cross-section nanowires over different samples.
+"""
 
 w_0, w_end, Nw = 0.00000001, 0.15, 100    # Flux array parameters
 Nsamples   = 1000                 # Number of amorphous lattice samples
@@ -69,10 +74,10 @@ n_rejected = np.zeros((Nw, ))
 for i, w in enumerate(width):
     for sample in range(Nsamples):
         loger_main.info(f'width: {i}/{Nw - 1}, Sample: {sample}/{Nsamples - 1}')
-        wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=w, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
         try:
-            wire.build_lattice()
-            wire.get_boundary()
+            cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
+            cross_section.build_lattice()
+            wire = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
             wire.get_bands(k_0=0, k_end=0, Nk=1)
             gap[i, sample] = wire.get_gap()
         except ValueError as error:
@@ -112,3 +117,5 @@ with h5py.File(filepath, 'w') as f:
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))
     attr_my_data(parameters, "Code_path",  sys.argv[0])
+
+loger_main.info('Data stored successfully')

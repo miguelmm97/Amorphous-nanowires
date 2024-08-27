@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
+from AmorphousLattice_2d import AmorphousLattice_2d
 
 #%% Main
 
@@ -22,10 +22,10 @@ for i, w in enumerate(widths):
     for j, r in enumerate(rs):
         n_declined = 0
         for k in range(n_runs):
-            wire = InfiniteNanowire_FuBerg(Nx=6, Ny=6, w=w, r=r, eps=0.1, t=0., lamb=0., lamb_z=0.)
+            lattice = AmorphousLattice_2d(Nx=6, Ny=6, w=w, r=r)
             try:
-                wire.build_lattice()
-                wire.get_boundary()
+                lattice.build_lattice()
+                lattice.get_boundary()
             except Exception as e:
                 n_declined += 1
         accepted_runs[i, j] = n_runs - n_declined

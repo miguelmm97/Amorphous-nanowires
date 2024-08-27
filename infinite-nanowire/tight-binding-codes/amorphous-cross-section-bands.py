@@ -17,6 +17,7 @@ from colorlog import ColoredFormatter
 
 # Modules
 from InfiniteNanowire import InfiniteNanowire_FuBerg
+from AmorphousLattice_2d import AmorphousLattice_2d
 import functions
 
 #%% Logging setup
@@ -44,9 +45,12 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
+"""
+We calculate the bands for an amorphous cross-section infinite wire.
+"""
 
 Nx, Ny    = 8, 8       # Number of sites in the cross-section
-width     = 0.3        # Spread of the Gaussian distribution for the lattice sites
+width     = 0.2        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3        # Nearest-neighbour cutoff distance
 flux      = 2.3        # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping
@@ -55,15 +59,15 @@ lamb      = 1 * t      # Spin-orbit coupling in the cross-section (in units of t
 lamb_z    = 1.8 * t    # Spin-orbit coupling along z direction
 
 #%% Main
-wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-wire.build_lattice()
-wire.get_boundary()
+
+# Amorphous cross-section
+cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section.build_lattice()
+
+# Infinite amorphous nanowire
+wire = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
 wire.get_bands()
 
-# wire2 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-# wire2.build_lattice()
-# wire2.get_boundary()
-# wire2.get_bands(k_0=0, k_end=0, Nk=1)
 
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
@@ -73,7 +77,7 @@ color_list = ['#FF7256', '#00BFFF', '#00C957', '#9A32CD', '#FFC125', '#FF7D66', 
 
 fig1 = plt.figure(figsize=(6, 6))
 ax1 = fig1.gca()
-wire.plot_lattice(ax1)
+cross_section.plot_lattice(ax1)
 ax1.set_title(f'$w=$ {width}, $r=$ {r}')
 
 fig2 = plt.figure(figsize=(6, 6))
