@@ -51,10 +51,10 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-w_0, w_end, Nw = 0., 0.15, 50     # Flux array parameters
-Nsamples   = 25                   # Number of amorphous lattice samples
-Nx, Ny     = 6, 6                 # Number of sites in the cross-section
-flux       = 0.6                  # Spread of the Gaussian distribution for the lattice sites
+w_0, w_end, Nw = 0.00000001, 0.15, 100    # Flux array parameters
+Nsamples   = 1000                 # Number of amorphous lattice samples
+Nx, Ny     = 10, 10               # Number of sites in the cross-section
+flux       = 0.55                 # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                  # Nearest-neighbour cutoff distance
 t          = 1                    # Hopping
 eps        = 4 * t                # Onsite orbital hopping (in units of t)
@@ -73,18 +73,17 @@ for i, w in enumerate(width):
         try:
             wire.build_lattice()
             wire.get_boundary()
-            wire.get_bands()
+            wire.get_bands(k_0=0, k_end=0, Nk=1)
             gap[i, sample] = wire.get_gap()
         except ValueError as error:
-            loger_main.warning(f'Sample {sample} had an error: {error}')
-            n_rejected[i] += 1
+            loger_main.error(f'Something went wrong: {error}')
 
 #%% Saving data
 
 file_list = os.listdir('../../data-width-gap')
 expID = get_fileID(file_list, common_name='width-gap')
 filename = '{}{}{}'.format('width-gap', expID, '.h5')
-filepath = os.path.join('../../width-gap', filename)
+filepath = os.path.join('../../data-width-gap', filename)
 
 with h5py.File(filepath, 'w') as f:
 
