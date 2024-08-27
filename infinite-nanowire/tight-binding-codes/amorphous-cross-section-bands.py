@@ -2,23 +2,14 @@
 
 # Math and plotting
 from numpy import pi
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.gridspec import GridSpec
 
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
-
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
-from AmorphousLattice_2d import AmorphousLattice_2d
-import functions
+from modules.functions import *
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -50,7 +41,7 @@ We calculate the bands for an amorphous cross-section infinite wire.
 """
 
 Nx, Ny    = 8, 8       # Number of sites in the cross-section
-width     = 0.2        # Spread of the Gaussian distribution for the lattice sites
+width     = 0.1        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3        # Nearest-neighbour cutoff distance
 flux      = 2.3        # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping

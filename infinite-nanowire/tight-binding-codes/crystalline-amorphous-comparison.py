@@ -4,14 +4,12 @@
 from numpy import pi
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.gridspec import GridSpec
 
 
 # Modules
-import functions
-from AmorphousLattice_2d import AmorphousLattice_2d
-from InfiniteNanowire import InfiniteNanowire_FuBerg
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
 
 
 # Functions

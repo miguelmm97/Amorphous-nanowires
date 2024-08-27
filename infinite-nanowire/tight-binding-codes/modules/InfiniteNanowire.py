@@ -3,18 +3,11 @@
 # Math and plotting
 from numpy import pi
 import numpy as np
-from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString, MultiPoint, Polygon
-from shapely import intersects
 from scipy.integrate import quad
 
 # Managing classes
 from dataclasses import dataclass, field
-import AmorphousLattice_2d
-
-# Tracking time
-import time
+from .AmorphousLattice_2d import AmorphousLattice_2d
 
 # Managing logging
 import logging
@@ -141,7 +134,7 @@ class InfiniteNanowire_FuBerg:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Underlying lattice
-    lattice: AmorphousLattice_2d # Lattice for the nanowires cross-section
+    lattice: AmorphousLattice_2d  # Lattice for the nanowires cross-section
 
     # Electronic parameters
     eps:    float      # Onsite energy coupling different orbitals

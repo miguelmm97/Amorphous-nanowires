@@ -1,30 +1,12 @@
 #%% Modules setup
 
 # Math and plotting
-from numpy import pi
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.gridspec import GridSpec
-
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
-
-# Managing data
-import h5py
-import os
-import sys
-from datetime import date
 
 # Modules
-from functions import get_fileID, store_my_data, attr_my_data
-from AmorphousLattice_2d import AmorphousLattice_2d
-from InfiniteNanowire import InfiniteNanowire_FuBerg
+from modules.functions import *
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
 
 
 #%% Logging setup
