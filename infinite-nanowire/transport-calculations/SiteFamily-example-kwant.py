@@ -3,6 +3,7 @@
 # Math
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 # Kwant
 import kwant
@@ -66,6 +67,8 @@ for z in range(n_layers - 1):
 
 
 
-fig = plt.figure(figsize=(8, 5))
-ax = fig.gca()
-kwant.plot(syst, hop_color='royalblue', hop_lw=0.05, site_size=0.1, site_color='m', ax=ax)
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+kwant.plot(syst, site_size=0.1, site_lw=0.01, site_color='m', hop_color='royalblue', hop_lw=0.05, ax=ax)
+ax.set_axis_off()
+plt.show()
