@@ -1,29 +1,13 @@
 #%% Modules setup
 
 # Math and plotting
-from numpy import pi
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.gridspec import GridSpec
-
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
-
-# Managing data
-import h5py
-import os
-import sys
-from datetime import date
 
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
-from functions import get_fileID, store_my_data, attr_my_data
+from modules.functions import *
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -50,9 +34,12 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
+"""
+We average the gap vs flux of infinite amorphous cross-section nanowires over different samples.
+"""
 
-flux_0, flux_end, Nflux = 0., 4., 1000   # Flux array parameters
-Nsamples   = 1000                        # Number of amorphous lattice samples
+flux_0, flux_end, Nflux = 0., 4., 10     # Flux array parameters
+Nsamples   = 2                           # Number of amorphous lattice samples
 Nx, Ny     = 10, 10                      # Number of sites in the cross-section
 width      = 0.1                         # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                         # Nearest-neighbour cutoff distance
@@ -70,9 +57,12 @@ for i, phi in enumerate(flux):
     for sample in range(Nsamples):
         loger_main.info(f'flux: {i}/{len(flux) - 1}, Sample: {sample}/{Nsamples - 1}')
         try:
-            wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-            wire.build_lattice()
-            wire.get_boundary()
+            # Amorphous cross-section
+            cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+            cross_section.build_lattice()
+
+            # Infinite amorphous nanowire
+            wire = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
             wire.get_bands(k_0=0, k_end=0, Nk=1)
             gap[i, sample] = wire.get_gap()
         except Exception as error:
@@ -80,10 +70,10 @@ for i, phi in enumerate(flux):
 
 #%% Saving data
 
-file_list = os.listdir('../../data-flux-gap')
+file_list = os.listdir('../../../data-flux-gap')
 expID = get_fileID(file_list, common_name='flux-gap')
 filename = '{}{}{}'.format('flux-gap', expID, '.h5')
-filepath = os.path.join('../../data-flux-gap', filename)
+filepath = os.path.join('../../../data-flux-gap', filename)
 
 with h5py.File(filepath, 'w') as f:
 
@@ -111,3 +101,5 @@ with h5py.File(filepath, 'w') as f:
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))
     attr_my_data(parameters, "Code_path",  sys.argv[0])
+
+loger_main.info('Data saved correctly')

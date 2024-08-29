@@ -2,22 +2,14 @@
 
 # Math and plotting
 from numpy import pi
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.gridspec import GridSpec
 
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
-
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
-import functions
+from modules.functions import *
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -44,26 +36,29 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
+"""
+We calculate the bands for an amorphous cross-section infinite wire.
+"""
 
-Nx, Ny    = 10, 10     # Number of sites in the cross-section
-width     = 0.2        # Spread of the Gaussian distribution for the lattice sites
+Nx, Ny    = 8, 8       # Number of sites in the cross-section
+width     = 0.1        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3        # Nearest-neighbour cutoff distance
-flux      = 0.0          # Flux threaded through the cross-section (in units of flux quantum)
+flux      = 2.3        # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1          # Hopping
 eps       = 4 * t      # Onsite orbital hopping (in units of t)
 lamb      = 1 * t      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z    = 1.8 * t    # Spin-orbit coupling along z direction
 
 #%% Main
-wire = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-wire.build_lattice()
-wire.get_boundary()
+
+# Amorphous cross-section
+cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section.build_lattice()
+
+# Infinite amorphous nanowire
+wire = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
 wire.get_bands()
 
-# wire2 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=flux, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-# wire2.build_lattice()
-# wire2.get_boundary()
-# wire2.get_bands(k_0=0, k_end=0, Nk=1)
 
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
@@ -73,7 +68,7 @@ color_list = ['#FF7256', '#00BFFF', '#00C957', '#9A32CD', '#FFC125', '#FF7D66', 
 
 fig1 = plt.figure(figsize=(6, 6))
 ax1 = fig1.gca()
-wire.plot_lattice(ax1)
+cross_section.plot_lattice(ax1)
 ax1.set_title(f'$w=$ {width}, $r=$ {r}')
 
 fig2 = plt.figure(figsize=(6, 6))
@@ -103,5 +98,4 @@ ax2_2.tick_params(which='major', length=6, labelsize=10)
 ax2_2.set(xticks=[-pi / 8, 0, pi/8], xticklabels=['$-\pi/8$', '$0$', '$\pi/8$'])
 fig2.suptitle(f'$w=$ {width}, $r=$ {r}, $\phi/\phi_0=$ {flux}, $\epsilon=$ {eps}, $\lambda=$ {lamb}, $\lambda_z=$ {lamb_z}')
 plt.show()
-fig1.savefig("lattice2.pdf")
-fig2.savefig("bands2.pdf")
+# fig2.savefig("kramers-degeneracy-restoration.pdf")

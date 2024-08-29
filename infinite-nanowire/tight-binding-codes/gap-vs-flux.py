@@ -1,23 +1,14 @@
 #%% Modules setup
 
 # Math and plotting
-from numpy import pi
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.gridspec import GridSpec
-
-# Tracking time
-import time
-
-# Managing logging
-import logging
-import colorlog
-from colorlog import ColoredFormatter
 
 # Modules
-from InfiniteNanowire import InfiniteNanowire_FuBerg
-import functions
+from modules.functions import *
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -44,6 +35,9 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
+"""
+We take a look at different realisations of amorphous wires and their Aharanov Bohm oscillations.
+"""
 Nx, Ny    = 10, 10     # Number of sites in the cross-section
 width     = 0.1        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3        # Nearest-neighbour cutoff distance
@@ -53,7 +47,7 @@ lamb      = 1 * t      # Spin-orbit coupling in the cross-section (in units of t
 lamb_z    = 1.8 * t    # Spin-orbit coupling along z direction
 
 # Preallocation
-flux  = np.linspace(0., 6, 500, dtype=np.float64)
+flux  = np.linspace(0., 6, 10, dtype=np.float64)
 gap1 = np.zeros((len(flux), ))
 gap2 = np.zeros((len(flux), ))
 gap3 = np.zeros((len(flux), ))
@@ -62,48 +56,39 @@ gap4 = np.zeros((len(flux), ))
 #%% Main
 
 # Different wire configurations
-sample_wire1 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=0., t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-sample_wire1.build_lattice()
-sample_wire1.get_boundary()
-sample_wire2 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=0., t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-sample_wire2.build_lattice()
-sample_wire2.get_boundary()
-sample_wire3 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=0., t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-sample_wire3.build_lattice()
-sample_wire3.get_boundary()
-sample_wire4 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=0., t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-sample_wire4.build_lattice()
-sample_wire4.get_boundary()
+cross_section1 = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section1.build_lattice()
+
+cross_section2 = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section2.build_lattice()
+
+cross_section3 = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section3.build_lattice()
+
+cross_section4 = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+cross_section4.build_lattice()
 
 
 for i, phi in enumerate(flux):
     loger_main.info(f'flux: {i}/{len(flux)-1}')
 
     # Configuration 1
-    wire1 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-    wire1.build_lattice(from_x=sample_wire1.x, from_y=sample_wire1.y)
-    wire1.get_boundary()
+    wire1 = InfiniteNanowire_FuBerg(lattice=cross_section1, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
     wire1.get_bands(k_0=0, k_end=0, Nk=1)
     gap1[i] = wire1.get_gap()
 
     # Configuration 2
-    wire2 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-    wire2.build_lattice(from_x=sample_wire2.x, from_y=sample_wire2.y)
-    wire2.get_boundary()
+    wire2 = InfiniteNanowire_FuBerg(lattice=cross_section2, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
     wire2.get_bands(k_0=0, k_end=0, Nk=1)
     gap2[i] = wire2.get_gap()
 
     # Configuration 3
-    wire3 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-    wire3.build_lattice(from_x=sample_wire3.x, from_y=sample_wire3.y)
-    wire3.get_boundary()
+    wire3 = InfiniteNanowire_FuBerg(lattice=cross_section3, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
     wire3.get_bands(k_0=0, k_end=0, Nk=1)
     gap3[i] = wire3.get_gap()
 
     # Configuration 4
-    wire4 = InfiniteNanowire_FuBerg(Nx=Nx, Ny=Ny, w=width, r=r, flux=phi, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z)
-    wire4.build_lattice(from_x=sample_wire4.x, from_y=sample_wire4.y)
-    wire4.get_boundary()
+    wire4 = InfiniteNanowire_FuBerg(lattice=cross_section4, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
     wire4.get_bands(k_0=0, k_end=0, Nk=1)
     gap4[i] = wire4.get_gap()
 #%% Figures
@@ -115,12 +100,12 @@ color_list = ['#FF7256', '#00BFFF', '#00C957', '#9A32CD', '#FFC125', '#FF7D66', 
 
 fig1 = plt.figure(figsize=(6, 6))
 ax1 = fig1.gca()
-sample_wire1.plot_lattice(ax1)
+cross_section1.plot_lattice(ax1)
 ax1.set_title(f'$w=$ {width}, $r=$ {r}')
 
 fig2 = plt.figure(figsize=(6, 6))
 ax2 = fig2.gca()
-sample_wire2.plot_lattice(ax2)
+cross_section2.plot_lattice(ax2)
 ax2.set_title(f'$w=$ {width}, $r=$ {r}')
 
 fig3 = plt.figure(figsize=(10, 6))

@@ -22,8 +22,8 @@ import colorlog
 from colorlog import ColoredFormatter
 
 #%% Logging setup
-loger_wire = logging.getLogger('nanowire')
-loger_wire.setLevel(logging.WARNING)
+loger_amorphous = logging.getLogger('amorphous')
+loger_amorphous.setLevel(logging.INFO)
 
 stream_handler = colorlog.StreamHandler()
 formatter = ColoredFormatter(
@@ -43,19 +43,16 @@ formatter = ColoredFormatter(
     style='%'
 )
 stream_handler.setFormatter(formatter)
-loger_wire.addHandler(stream_handler)
+loger_amorphous.addHandler(stream_handler)
 
 #%% Module
-
-sigma_0 = np.eye(2, dtype=np.complex128)
-sigma_x = np.array([[0, 1], [1, 0]], dtype=np.complex128)
-sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
-sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
-tau_0, tau_x, tau_y, tau_z  = sigma_0, sigma_x, sigma_y, sigma_z
+"""
+We set up a class to model an amorphous lattice in 2d, with proper connectivity and excluding edge cases
+that are not relevant for nanowire physics.
+"""
 
 # Functions for creating the lattice
 def gaussian_point_set_2D(x, y, width):
-
     x = np.random.normal(x, width, len(x))
     y = np.random.normal(y, width, len(y))
     return x, y
@@ -90,11 +87,11 @@ def displacement2D(x1, y1, x2, y2):
 
 def angle_x(v):
 
-    if v[0] == 0:                                  # Pathological case, separated to not divide by 0
+    if v[0] == 0:                # Pathological case, separated to not divide by 0
         if v[1] > 0:
-            phi = pi / 2                           # Hopping in y
+            phi = pi / 2         # Hopping in y
         else:
-            phi = 3 * pi / 2                       # Hopping in -y
+            phi = 3 * pi / 2     # Hopping in -y
     else:
         if v[1] > 0:
             phi = np.arctan2(v[1], v[0])           # 1st and 2nd quadrants
@@ -124,63 +121,45 @@ def remove_site(list, site):
         return list
 
 
-# Functions for the Hamiltonian
-def Peierls(x1, y1, x2, y2, flux, area):
-    def integrand(x, m, x0, y0):
-        return m * (x - x0) + y0
-
-    m = (y2 - y1) / (x2 - x1)
-    I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
-    return np.exp(2 * pi * 1j * flux * I / area)
-
 @dataclass
-class InfiniteNanowire_FuBerg:
+class AmorphousLattice_2d:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Lattice parameters
-    Nx:   int           # Number of lattice sites along x direction
-    Ny:   int           # Number of lattice sites along y direction
-    w:    float         # Width of the Gaussian distribution
-    r:    float         # Cutoff distance to consider neighbours
-    flux: float         # Magnetic flux threaded through the cross-section
-
-    # Electronic parameters
-    eps:    float      # Onsite energy coupling different orbitals
-    t:      float      # Isotropic hopping strength
-    lamb:   float      # Spin orbit coupling in the cross-section
-    lamb_z: float      # Spin orbit coupling along z
+    Nx: int   # Number of lattice sites along x direction
+    Ny: int   # Number of lattice sites along y direction
+    w: float  # Width of the Gaussian distribution
+    r: float  # Cutoff distance to consider neighbours
 
     # Class fields
-    dimH:                 int = field(init=False)    # Dimension of the single-particle Hilbert Space
-    Nsites:               int = field(init=False)    # Number of sites in the cross-section
-    neighbours:    np.ndarray = field(init=False)    # Neighbours list for each site
-    boundary:            list = field(init=False)    # List of sites forming the boundary
-    area:               float = field(init=False)    # Area of the wire's cross-section
-    H:             np.ndarray = field(init=False)    # Hamiltonian
-    x:             np.ndarray = field(init=False)    # x position of the sites
-    y:             np.ndarray = field(init=False)    # y position of the sites
-    kz:            np.ndarray = field(init=False)    # Momentum along z direction
-    energy_bands:        dict = field(init=False)    # Energy bands
-    eigenstates:         dict = field(init=False)    # Eigenstates
+    Nsites: int = field(init=False)             # Number of sites in the cross-section
+    neighbours: np.ndarray = field(init=False)  # Neighbours list for each site
+    boundary: list = field(init=False)          # List of sites forming the boundary
+    area: float = field(init=False)             # Area of the wire's cross-section
+    x: np.ndarray = field(init=False)           # x position of the sites
+    y: np.ndarray = field(init=False)           # y position of the sites
+
 
     # Methods for building the lattice
     def generate_configuration(self, from_x=None, from_y=None):
 
-        loger_wire.info('Generating lattice and neighbour tree.')
+        loger_amorphous.info('Generating lattice and neighbour tree...')
 
         # Dimension of the Hilbert space and sites
         self.Nsites = int(self.Nx * self.Ny)
-        self.dimH = int(self.Nsites * 4)
         list_sites = np.arange(0, self.Nsites)
+        x_crystal = list_sites % self.Nx
+        y_crystal = list_sites // self.Nx
 
-        # Positions of x and y coordinates
+        # Positions of x and y coordinates on the amorphous lattice
         if from_x is not None and from_y is not None:
             self.x, self.y = from_x, from_y
         else:
-            self.x, self.y = gaussian_point_set_2D(list_sites % self.Nx, list_sites // self.Nx, self.w)
+            self.x, self.y = gaussian_point_set_2D(x_crystal, y_crystal, self.w)
+        coords = np.array([self.x, self.y])
 
         # Neighbour tree and accepting/discarding the configuration
-        self.neighbours = KDTree(np.array([self.x, self.y]).T).query_ball_point(np.array([self.x, self.y]).T, self.r)
+        self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
             if len(self.neighbours[i]) < 2:
@@ -189,19 +168,19 @@ class InfiniteNanowire_FuBerg:
     def build_lattice(self, from_x=None, from_y=None, n_tries=0):
 
         if n_tries > 100:
-            loger_wire.error('Loop. Parameters might not allow an acceptable configuration.')
+            loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
 
         try:
             self.generate_configuration(from_x=from_x, from_y=from_y)
             self.get_boundary()
+            loger_amorphous.info('Configuration accepted!')
         except Exception as error:
-            loger_wire.warning(f'{error}')
+            loger_amorphous.warning(f'{error}')
             try:
                 self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
             except RecursionError:
-                loger_wire.error('Recursion error. Infinite loop. Terminating...')
+                loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
                 exit()
-
 
     def get_boundary(self):
 
@@ -218,7 +197,7 @@ class InfiniteNanowire_FuBerg:
         start_site = site0
 
         # Algorithm to find the boundary
-        loger_wire.info('Constructing the boundary of the lattice...')
+        loger_amorphous.info('Constructing the boundary of the lattice...')
         while site0 != start_site or (site0 == start_site and count == 0):
             dif, return_needed = 2 * pi - 0.01, True
             current_x, current_y = self.x[site0], self.y[site0]
@@ -242,7 +221,7 @@ class InfiniteNanowire_FuBerg:
 
             if return_needed:
                 new_aux_vector = np.array([self.x[self.boundary[-2]] - self.x[self.boundary[-3]],
-                                 self.y[self.boundary[-2]] - self.y[self.boundary[-3]]])
+                                           self.y[self.boundary[-2]] - self.y[self.boundary[-3]]])
                 avoid_site = site0
                 site0 = self.boundary[-2]
 
@@ -257,12 +236,13 @@ class InfiniteNanowire_FuBerg:
             # In case we run into an infinite loop
             if len(self.boundary) > self.Nsites:
                 raise OverflowError('Algorithm caught in an infinite loop.')
-            loger_wire.trace(f'Boundary given by: {self.boundary}')
+            loger_amorphous.trace(f'Boundary given by: {self.boundary}')
 
-        loger_wire.trace(f'Boundary given by: {self.boundary}')
+        loger_amorphous.trace(f'Boundary given by: {self.boundary}')
         self.area = Polygon(boundary_points).area
-        if self.area < 0.5 * (self.Nx * self.Ny):
-            loger_wire.warning('Area too small, this configuration might have an isolated island. Plotting for a check...')
+        if self.area < 0.25 * (self.Nx * self.Ny):
+            loger_amorphous.warning(
+                'Area too small, this configuration might have an isolated island. Plotting for a check...')
             fig1 = plt.figure(figsize=(6, 6))
             ax1 = fig1.gca()
             self.plot_lattice(ax1)
@@ -285,85 +265,8 @@ class InfiniteNanowire_FuBerg:
                     site1, site2 = self.boundary[j], self.boundary[j + 1]
                 plt.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
         except AttributeError:
-            loger_wire.warning('Boundary has not been calculated before plotting')
+            loger_amorphous.warning('Boundary has not been calculated before plotting')
             pass
 
         # Lattice sites
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
-
-
-    # Methods for calculating the Hamiltonian
-    def H_onsite(self, k):
-        return (self.eps - 2 * self.t * np.cos(k)) * np.kron(sigma_x, tau_0) + \
-                 self.lamb_z * np.sin(k) * np.kron(sigma_y, tau_0)
-
-    def H_offdiag(self, d, phi):
-        f_cutoff = np.heaviside(self.r - d, 1) * np.exp(-d + 1)
-        return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
-            1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.cos(phi) * tau_y - np.sin(phi) * tau_x)
-
-    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=1001, debug=False):
-
-        # Preallocation
-        self.kz   = np.linspace(k_0, k_end, Nk)
-        H_offdiag = np.zeros((self.dimH, self.dimH), dtype=np.complex128)
-        self.H    = np.zeros((len(self.kz), self.dimH, self.dimH), dtype=np.complex128)
-
-        # Off-diagonal terms
-        loger_wire.info('Generating off-diagonal Hamiltonian')
-        for i in range(self.Nsites):
-            for n in self.neighbours[i]:
-                loger_wire.trace(f'site: {i}, neighbour: {n}')
-                d, phi = displacement2D(self.x[i], self.y[i], self.x[n], self.y[n])
-                peierls_phase = Peierls(self.x[i], self.y[i], self.x[n], self.y[n], self.flux, self.area)
-                H_offdiag[i * 4: i * 4 + 4, n * 4: n * 4 + 4] = self.H_offdiag(d, phi) * peierls_phase
-        self.H = np.tile(H_offdiag, (len(self.kz), 1, 1))
-
-        # Debug
-        if debug:
-            loger_wire.debug('Checking hermiticity of H...')
-            if not np.allclose(H_offdiag, H_offdiag.T.conj(), atol=1e-15):
-                error = np.abs(np.sum(H_offdiag - H_offdiag.T.conj()))
-                loger_wire.error(f'Off-diagonal Hamiltonian is not hermitian. sum(H - H^\dagger): {error}')
-                raise ValueError('Hamiltonian is not hermitian!')
-
-
-        # Onsite terms
-        loger_wire.info('Generating onsite Hamiltonian')
-        for j, k in enumerate(self.kz):
-            loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
-            self.H[j, :, :] += np.kron(np.eye(self.Nsites, dtype=np.complex128), self.H_onsite(k))
-
-            # Debug
-            if debug:
-                loger_wire.debug('Checking hermiticity of H...')
-                if not np.allclose(self.H[j, :, :], self.H[j, :, :].T.conj(), atol=1e-15):
-                    error = np.abs(np.sum(self.H[j, :, :] - self.H[j, :, :].T.conj()))
-                    loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
-                    raise ValueError('Hamiltonian is not hermitian!')
-
-    def get_bands(self, k_0=-pi, k_end=pi, Nk=1001):
-
-        # Calculating Hamiltonian
-        self.energy_bands, self.eigenstates = {}, {}
-        aux_bands = np.zeros((Nk, self.dimH))
-        aux_eigenstates = np.zeros((Nk, self.dimH, self.dimH), dtype=np.complex128)
-        self.get_Hamiltonian(k_0=k_0, k_end=k_end, Nk=Nk)
-
-        # Diagonalising Hamiltonian
-        loger_wire.info('Diagonalising Hamiltonian...')
-        for j in range(len(self.kz)):
-            loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
-            bands_k, eigenstates_k = np.linalg.eigh(self.H[j, :, :])
-            idx = bands_k.argsort()
-            aux_bands[j, :], aux_eigenstates[j, :, :] = bands_k[idx], eigenstates_k[:, idx]
-
-        # Ordering bands
-        for i in range(self.dimH):
-            self.energy_bands[i] = aux_bands[:, i]
-            self.eigenstates[i] = aux_eigenstates[:, :, i]
-
-    def get_gap(self):
-        return np.min(self.energy_bands[int(self.dimH / 2)] - self.energy_bands[int(self.dimH / 2) - 1])
-
-
