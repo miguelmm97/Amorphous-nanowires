@@ -51,7 +51,7 @@ We now create the amorphous cross section with our usual class and promote it to
 """
 
 Nx, Ny = 5, 5
-n_layers = 10
+n_layers = 100
 cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=0.1, r=1.4)
 cross_section.build_lattice()
 latt = AmorphousCrossSectionWire_ScatteringRegion(norbs=1, cross_section=cross_section, name='wire')
@@ -88,10 +88,10 @@ latt_lead = kwant.lattice.cubic(norbs=1)
 sym_left_lead = kwant.TranslationalSymmetry((0, 0, -1))
 left_lead = kwant.Builder(sym_left_lead)
 left_lead[(latt_lead(i, j, 0) for i in range(Nx) for j in range(Ny))] = 1.
-left_lead[latt_lead.neighbors()] = 5.
+left_lead[latt_lead.neighbors()] = 3.
 
 syst[(latt_lead(i, j, -1) for i in range(Nx) for j in range(Ny))] = 1.
-syst[latt_lead.neighbors()] = 5.
+syst[latt_lead.neighbors()] = 3.
 syst[(((latt_lead(i, j, -1), latt(i + Ny * j, 0)) for i in range(Nx) for j in range(Ny)))] = 2.
 syst.attach_lead(left_lead)
 
@@ -100,10 +100,10 @@ syst.attach_lead(left_lead)
 sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
 right_lead = kwant.Builder(sym_right_lead)
 right_lead[(latt_lead(i, j, 0) for i in range(Nx) for j in range(Ny))] = 1.
-right_lead[latt_lead.neighbors()] = 5.
+right_lead[latt_lead.neighbors()] = 3.
 
 syst[(latt_lead(i, j, n_layers) for i in range(Nx) for j in range(Ny))] = 1.
-syst[latt_lead.neighbors()] = 5.
+syst[latt_lead.neighbors()] = 3.
 syst[(((latt_lead(i, j, n_layers), latt(i + Ny * j, n_layers - 1)) for i in range(Nx) for j in range(Ny)))] = 2.
 syst.attach_lead(right_lead)
 
