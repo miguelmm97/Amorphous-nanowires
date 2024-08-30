@@ -24,9 +24,10 @@ import logging
 import colorlog
 from colorlog import ColoredFormatter
 
+
 # %% Logging setup
 loger_kwant = logging.getLogger('kwant')
-loger_kwant.setLevel(logging.WARNING)
+loger_kwant.setLevel(logging.INFO)
 
 stream_handler = colorlog.StreamHandler()
 formatter = ColoredFormatter(
@@ -97,7 +98,24 @@ def displacement2D(pos0, pos1):
 
     return r, phi
 
+def Peierls(pos0, pos1, flux, area):
+    def integrand(x, m, x0, y0):
+        return m * (x - x0) + y0
 
+    x1, y1 = pos0[0], pos0[1]
+    x2, y2 = pos1[0], pos1[1]
+
+    m = (y2 - y1) / (x2 - x1)
+    I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
+    return np.exp(2 * pi * 1j * flux * I / area)
+
+"""
+Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
+get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
+
+Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
+which we hopp. In the displacement function is the opposite, (pos1, pos2) means we are hopping from 1 to 2.
+"""
 
 class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __init__(self, norbs, cross_section, name=None):
@@ -108,11 +126,12 @@ class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
             norbs = int(norbs)
 
         # Class fields
+        loger_kwant.trace('Initialising cross section as a SiteFamily...')
         self.norbs = norbs
         self.coords = np.array([cross_section.x, cross_section.y]).T
-        self.Nsites = len(self.coords[:, 0])
-        self.Nx = len(cross_section.x)
-        self.Ny = len(cross_section.y)
+        self.Nsites = cross_section.Nsites
+        self.Nx = cross_section.Nx
+        self.Ny = cross_section.Ny
         self.name = name
         self.canonical_repr = "1" if name is None else name
 
@@ -129,10 +148,11 @@ def promote_to_transport_nanowire(cross_section, n_layers, param_dict):
 
     # Load parameters into the builder namespace
     try:
-        t = param_dict[t]
-        eps = param_dict[eps]
-        lamb = param_dict[lamb]
-        lamb_z = param_dict[lamb_z]
+        t      = param_dict['t']
+        eps    = param_dict['eps']
+        lamb   = param_dict['lamb']
+        lamb_z = param_dict['lamb_z']
+        flux   = param_dict['flux']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
@@ -140,6 +160,7 @@ def promote_to_transport_nanowire(cross_section, n_layers, param_dict):
     latt = AmorphousCrossSectionWire_ScatteringRegion(norbs=4, cross_section=cross_section, name='scatt_region')
 
     # Initialise kwant system
+    loger_kwant.info('Creating kwant scattering region...')
     syst = kwant.Builder()
     syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite(eps)
 
@@ -147,19 +168,30 @@ def promote_to_transport_nanowire(cross_section, n_layers, param_dict):
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
     for i in range(latt.Nsites):
         for n in cross_section.neighbours[i]:
+            loger_kwant.trace(f'Defining hopping from site {i} to {n}.')
 
             # In the cross-section
             d, phi = displacement2D(latt(i, 0).pos, latt(n, 0).pos)
+            peierls_phase = Peierls(latt(i, 0).pos, latt(n, 0).pos, flux, cross_section.area)
             syst[((latt(n, z), latt(i, z)) for z in range(n_layers))] = hopping(t, lamb, lamb_z, d, phi,
-                                                                                pi / 2, cross_section.r)
+                                                                             pi / 2, cross_section.r) * peierls_phase
             # Between cross-sections
-            syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers))] = hopp_z_up
+            loger_kwant.trace(f'Defining hopping of site {i} between cross-section layers.')
+            syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
 
-    complete_system = attach_cubic_leads(syst, latt)
+    complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
     return complete_system
 
+def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
 
-def attach_cubic_leads(scatt_region, latt):
+    # Load parameters into the builder namespace
+    try:
+        t      = param_dict['t']
+        eps    = param_dict['eps']
+        lamb   = param_dict['lamb']
+        lamb_z = param_dict['lamb_z']
+    except KeyError as err:
+        raise KeyError(f'Parameter error: {err}')
 
     # Fixed regular lattice hoppings
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
@@ -167,37 +199,45 @@ def attach_cubic_leads(scatt_region, latt):
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cross_section.r)
 
     # Left lead: definition
+    loger_kwant.info('Attaching left lead...')
     sym_left_lead = kwant.TranslationalSymmetry((0, 0, -1))
     left_lead = kwant.Builder(sym_left_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
 
     # Left lead: Hoppings
+    loger_kwant.trace('Defining hoppings in the firs unit cell of the lead...')
     left_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
     left_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     left_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
+    left_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
 
     # Left lead: Attachment
+    loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
-    scatt_region[(((latt(i + Ny * j, 0), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny)))] = hopp_z_up
+    scatt_region[(((latt(i + latt.Ny * j, 0), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny)))] = hopp_z_up
     scatt_region.attach_lead(left_lead)
 
     # Right lead: definition
+    loger_kwant.info('Attaching right lead...')
     sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
     right_lead = kwant.Builder(sym_right_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
 
     # Right lead: Hoppings
+    loger_kwant.trace('Defining hoppings in the firs unit cell of the lead...')
     right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
+    right_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
 
     # Right lead: Attachment
-    scatt_region[(latt_lead(i, j, n_layers) for i in range(Nx) for j in range(Ny))] = onsite(eps)
+    loger_kwant.trace('Defining the way to attach the lead to the system...')
+    scatt_region[(latt_lead(i, j, n_layers) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
-    scatt_region[(((latt_lead(i, j, n_layers), latt(i + Ny * j, n_layers - 1)) for i in range(latt.Nx)
+    scatt_region[(((latt_lead(i, j, n_layers), latt(i + latt.Ny * j, n_layers - 1)) for i in range(latt.Nx)
                                                                 for j in range(latt.Ny)))] = hopp_z_up
     scatt_region.attach_lead(right_lead)
     return scatt_region
