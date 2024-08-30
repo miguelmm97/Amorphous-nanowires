@@ -53,7 +53,7 @@ loger_kwant.addHandler(stream_handler)
 
 #%% Module
 """
-Here we promote the infinite amorphous nanowire defined in class InfiniteNanowire.py 
+Here we promote the infinite amorphous nanowire defined in class InfiniteNanowire_FuBerg.py 
 into a kwant.system where to do transport calculations.
 """
 
@@ -63,46 +63,56 @@ sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 tau_0, tau_x, tau_y, tau_z  = sigma_0, sigma_x, sigma_y, sigma_z
 
-
-# Amorphous site family class from https://zenodo.org/records/4382484
-class AmorphousWire_kwant(kwant.builder.SiteFamily):
-    def __init__(self, norbs, coords, name=None):
+class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
+    def __init__(self, norbs, cross_section, name=None):
 
         if norbs is not None:
             if int(norbs) != norbs or norbs <= 0:
                 raise ValueError("The norbs parameter must be an integer > 0.")
             norbs = int(norbs)
+
+        # Class fields
         self.norbs = norbs
-        self.coords = coords
+        self.coords = np.array([cross_section.x, cross_section.y]).T
+        self.Nsites = len(self.coords[:, 0])
+        self.Nx = len(cross_section.x)
+        self.Ny = len(cross_section.y)
         self.name = name
-        # self.canonical_repr = str(self.__hash__())
         self.canonical_repr = "1" if name is None else name
 
     def pos(self, tag):
-        return self.coords[tag[0], :]
+        return np.concatenate((self.coords[tag[0], :], np.array([tag[1]])))
 
     def normalize_tag(self, tag):
-        if tag[0] >= len(self.coords):
-            raise ValueError
         return ta.array(tag)
 
     def __hash__(self):
         return 1
 
-def AmorphousCrossSection_ScatteringRegion(cross_section, n_layers, norbs=4, bonds=None):
 
-    # Coordinates of the sites in the scattering region
-    z_coords = np.arange(n_layers)
-    coords = np.array([cross_section.x, cross_section.y, z_coords]).T
+def promote_to_transport_nanowire(cross_section, n_layers, eps):
 
-    # Initialise the system in Kwant
+    latt = AmorphousCrossSectionWire_ScatteringRegion(norbs=4, cross_section=cross_section, name='scatt_region')
+
     syst = kwant.Builder()
-    latt = AmorphousWire_kwant(norbs=norbs, coords=coords)
-    syst[latt.neighbors()] = hopping_function
+    syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite(eps)
 
-    def hopping_function(site1, site2):
-        x1, y1, _ = site1.pos
-        x2, y2, _ = site2.pos
+    # Hoppings
+    for z in range(n_layers):
+        # In the cross-section
+
+
+        syst[((latt(i, z), latt(n, z)) for i in range(latt.Nsites) for n in cross_section.neighbours[i])] = \
+
+
+
+
+        # Between cross-sections
+        if z < n_layers - 1:
+            syst[((latt(i, z), latt(i, z + 1)) for i in range(latt.Nsites))] = 2.
+        else:
+            pass
+
 
 def hopping(t, lamb, lamb_z, d, phi, theta, cutoff_dist):
     f_cutoff = np.heaviside(cutoff_dist - d, 1) * np.exp(-d + 1)
@@ -113,4 +123,30 @@ def hopping(t, lamb, lamb_z, d, phi, theta, cutoff_dist):
 
 def onsite(eps):
     return eps * np.kron(sigma_x, tau_0)
+
+def displacement2D(pos0, pos1):
+
+    x1, y1 = pos0[0], pos0[1]
+    x2, y2 = pos1[0], pos1[1]
+
+    v = np.zeros((2,))
+    v[0] = (x2 - x1)
+    v[1] = (y2 - y1)
+
+    # Norm of the vector between sites 2 and 1
+    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
+
+    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
+    if v[0] == 0:                                    # Pathological case, separated to not divide by 0
+        if v[1] > 0:
+            phi = pi / 2                             # Hopping in y
+        else:
+            phi = 3 * pi / 2                         # Hopping in -y
+    else:
+        if v[1] > 0:
+            phi = np.arctan2(v[1], v[0])             # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])    # 3rd and 4th quadrants
+
+    return r, phi
 
