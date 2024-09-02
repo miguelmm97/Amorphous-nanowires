@@ -46,7 +46,7 @@ Nx, Ny    = 5, 5                    # Number of sites in the cross-section
 n_layers  = 10                      # Number of cross-section layers
 width     = 0.1                     # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3                     # Nearest-neighbour cutoff distance
-flux      = 0.5                     # Flux threaded through the cross-section (in units of flux quantum)
+flux      = 0.0                     # Flux threaded through the cross-section (in units of flux quantum)
 t         = 1                       # Hopping
 eps       = 4 * t                   # Onsite orbital hopping (in units of t)
 lamb      = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
@@ -77,7 +77,7 @@ nanowire_kwant = nanowire_kwant.finalized()
 
 
 # Conductance calculation
-fermi = np.linspace(0, 2, 100)
+fermi = np.linspace(0, 2, 50)
 G = np.zeros(fermi.shape)
 G_kwant = np.zeros(fermi.shape)
 for i, Ef in enumerate(fermi):
@@ -127,7 +127,7 @@ ax2.set_axis_off()
 fig3 = plt.figure()
 ax3 = fig3.gca()
 ax3.plot(fermi, G, color='#3F6CFF')
-ax3.plot(fermi, G_kwant, color='#00B5A1', alpha=0.5)
+ax3.plot(fermi, G_kwant, 'o', color='#00B5A1', alpha=0.5, markersize=5)
 ax3.set_xlim(fermi[0], fermi[-1])
 ax3.set_ylim(0, np.max(G))
 ax3.tick_params(which='major', width=0.75, labelsize=10)
