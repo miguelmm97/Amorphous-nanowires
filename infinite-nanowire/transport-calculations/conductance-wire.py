@@ -12,7 +12,7 @@ import tinyarray as ta
 # Modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
-from modules.AmorphousWire_kwant import promote_to_transport_nanowire
+from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -65,7 +65,7 @@ params_dict = {
 loger_main.info('Generating amorphous cross section:')
 cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
 cross_section.build_lattice()
-nanowire_kwant = promote_to_transport_nanowire(cross_section, n_layers, params_dict)
+nanowire_kwant = promote_to_kwant_nanowire(cross_section, n_layers, params_dict)
 nanowire_kwant = nanowire_kwant.finalized()
 loger_main.info('Nanowire promoted to Kwant succesfully.')
 
@@ -92,6 +92,12 @@ hop_color  = 'royalblue'
 hop_lw     = 0.05
 lead_color = 'r'
 
+
+fig0 = plt.figure()
+ax0 = fig0.gca()
+cross_section.plot_lattice(ax0)
+
+
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111, projection='3d')
 kwant.plot(nanowire_kwant, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
@@ -103,6 +109,7 @@ fig2 = plt.figure()
 ax2 = fig2.gca()
 ax2.plot(fermi, G, color='#3F6CFF')
 ax2.set_xlim(fermi[0], fermi[-1])
+ax2.set_ylim(0, np.max(G))
 ax2.tick_params(which='major', width=0.75, labelsize=10)
 ax2.tick_params(which='major', length=6, labelsize=10)
 ax2.set_xlabel("$E_F$ [$t$]", fontsize=10)

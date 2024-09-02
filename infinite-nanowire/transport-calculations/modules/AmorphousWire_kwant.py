@@ -3,17 +3,7 @@
 # Math and plotting
 from numpy import pi
 import numpy as np
-from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString, MultiPoint, Polygon
-from shapely import intersects
 from scipy.integrate import quad
-
-# Managing classes
-from dataclasses import dataclass, field
-
-# Tracking time
-import time
 
 # Kwant
 import kwant
@@ -144,7 +134,7 @@ class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_transport_nanowire(cross_section, n_layers, param_dict):
+def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True):
 
     # Load parameters into the builder namespace
     try:
@@ -179,7 +169,10 @@ def promote_to_transport_nanowire(cross_section, n_layers, param_dict):
             loger_kwant.trace(f'Defining hopping of site {i} between cross-section layers.')
             syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
 
-    complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
+    if attach_leads:
+        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
+    else:
+        complete_system = syst
     return complete_system
 
 def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
@@ -242,5 +235,39 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
     scatt_region.attach_lead(right_lead)
     return scatt_region
 
+def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
 
+    # Load parameters into the builder namespace
+    try:
+        t      = param_dict['t']
+        eps    = param_dict['eps']
+        lamb   = param_dict['lamb']
+        lamb_z = param_dict['lamb_z']
+        flux   = param_dict['flux']
+    except KeyError as err:
+        raise KeyError(f'Parameter error: {err}')
+
+    # Define lattice and initialise system and sites
+    latt = kwant.lattice.cubic(1, norbs=4)
+    syst = kwant.Builder()
+    syst[(latt(i, j, k) for i in range(Nx) for j in range(Ny) for k in range(n_layers))] = onsite(eps)
+
+    # Hoppings
+    cutoff = 1.3
+    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cutoff)
+    hopp_x_up = hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff)
+    hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
+    syst[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
+    syst[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
+    syst[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
+
+    # Lead
+    lead = kwant.Builder(kwant.TranslationalSymmetry((0, 0, -1)))
+    lead[(latt(i, j, 0) for i in range(Nx) for j in range(Ny))] = onsite(eps)
+    lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
+    lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
+    lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
+    syst.attach_lead(lead)
+    syst.attach_lead(lead.reversed())
+    return syst
 
