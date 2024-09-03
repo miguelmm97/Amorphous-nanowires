@@ -95,8 +95,11 @@ def Peierls(pos0, pos1, flux, area):
     x1, y1 = pos0[0], pos0[1]
     x2, y2 = pos1[0], pos1[1]
 
-    m = (y2 - y1) / (x2 - x1)
-    I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
+    if x2 == x1:
+        I = 0
+    else:
+        m = (y2 - y1) / (x2 - x1)
+        I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
 
 def displacement2D_kwant(site1, site0):
@@ -145,7 +148,7 @@ Note that in the following hoppings are always defined down up, that is from x t
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
 
 Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
-which we hopp. In the displacement function is the opposite, (pos1, pos2) means we are hopping from 1 to 2.
+which we hopp.
 """
 
 class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
@@ -338,7 +341,79 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict):
         return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, Nx * Ny)
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cutoff)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
-    lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
-    lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
-    lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
+    # hopp_x_up = hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff)
+    # lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
+    # lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
+    # lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
+
+    # Populate hoppings
+    for i in range(Nx - 1):
+        for j in range(Ny - 1):
+
+            # In the cross-section
+            lead[(latt(i, j, 1), latt(i, j, 0))] = hopp_z_up
+            lead[(latt(i + 1, j, 0), latt(i, j, 0))] = hopp_x_up
+            lead[(latt(i, j + 1, 0), latt(i, j, 0))] = hopp_y_up
+
+
     return lead
+
+def FuBerg_model_bands(Nx, Ny, kz, flux, param_dict):
+
+    # Load parameters into the builder namespace
+    try:
+        t = param_dict['t']
+        eps = param_dict['eps']
+        lamb = param_dict['lamb']
+        lamb_z = param_dict['lamb_z']
+    except KeyError as err:
+        raise KeyError(f'Parameter error: {err}')
+
+    # Lattice parameters
+    Nsites = int(Nx * Ny)
+    area = (Nx - 1) * (Ny - 1)
+    dimH = Nsites * 4
+    sites = np.arange(0, Nsites)
+    x = sites % Nx
+    y = sites // Nx
+
+    # Hamiltonian parameters
+    H_offdiag = np.zeros((dimH, dimH), dtype=np.complex128)
+    H = np.zeros((len(kz), dimH, dimH), dtype=np.complex128)
+    def peierls_x(y):
+        return np.exp(2 * pi * 1j * flux * y / area)
+
+    # Off-diagonal Hamiltonian
+    for n in sites:
+        # Jump operators along x and y direction
+        state_n, state_nx, state_ny = np.zeros((Nsites,)), np.zeros((Nsites,)), np.zeros((Nsites,))
+        state_n[n] = 1
+        if x[n] != Nx - 1: state_nx[n + 1] = 1
+        if y[n] != Ny - 1: state_ny[n + Nx] = 1
+        jump_x, jump_y = np.outer(state_n, state_nx) * peierls_x(y[n]), np.outer(state_n, state_ny)
+
+        # Off-diagonal Hamiltonian
+        H_offdiag += -t * np.kron(jump_x, np.kron(sigma_x, tau_0)) - t * np.kron(jump_y, np.kron(sigma_x, tau_0)) + \
+                     1j * 0.5 * lamb * (np.kron(jump_x, np.kron(sigma_z, tau_y)) - np.kron(jump_y, np.kron(sigma_z, tau_x)))
+    H_offdiag += H_offdiag.T.conj()
+
+    # Full Hamiltonian
+    for i, k in enumerate(kz):
+        H[i, :, :] = (eps - 2 * t * np.cos(k)) * np.kron(np.eye(Nsites), np.kron(sigma_x, tau_0)) + \
+                     + lamb_z * np.sin(k) * np.kron(np.eye(Nsites), np.kron(sigma_y, tau_0)) + H_offdiag
+
+    # Band structure
+    energy_bands, eigenstates = {}, {}
+    aux_bands = np.zeros((len(kz), dimH))
+    aux_eigenstates = np.zeros((len(kz), dimH, dimH), dtype=np.complex128)
+    for j in range(len(kz)):
+        bands_k, eigenstates_k = np.linalg.eigh(H[j, :, :])
+        idx = bands_k.argsort()
+        aux_bands[j, :], aux_eigenstates[j, :, :] = bands_k[idx], eigenstates_k[:, idx]
+
+    # Ordering bands
+    for i in range(dimH):
+        energy_bands[i] = aux_bands[:, i]
+        eigenstates[i] = aux_eigenstates[:, :, i]
+
+    return energy_bands, eigenstates

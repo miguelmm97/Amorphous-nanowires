@@ -13,7 +13,7 @@ import kwant
 # Modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
-from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, crystal_nanowire_kwant, infinite_nanowire_kwant
+from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, crystal_nanowire_kwant, infinite_nanowire_kwant, FuBerg_model_bands
 from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
 
 #%% Logging setup
@@ -48,24 +48,26 @@ We compare the structure and bands of the kwant nanowire and the one generated w
 Nx, Ny     = 5, 5                    # Number of sites in the cross-section
 n_layers   = 10                      # Number of cross-section layers
 cryst_area = Nx * Ny                 # Area of the crystalline cross-section
+flux       = 0.56                    # Flux
 t          = 1                       # Hopping
 eps        = 4 * t                   # Onsite orbital hopping (in units of t)
 lamb       = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z     = 1.8 * t                 # Spin-orbit coupling along z direction
-kz = np.linspace(-pi, pi, 1001)      # Momentum along the regular direction
+kz = np.linspace(-pi, pi, 101)      # Momentum along the regular direction
 
 params_dict = {
     't': t,
     'eps': eps,
     'lamb': lamb,
     'lamb_z': lamb_z,
+    'flux': flux
 }
 
 #%% Comparison of conductance
 
 # Crystalline wire using our Amorphous module
 loger_main.info('Generating amorphous cross section:')
-cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=0.00001, r=1.3)
+cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=0.000000001, r=1.3)
 cross_section.build_lattice()
 nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
@@ -88,14 +90,14 @@ for i, Ef in enumerate(fermi):
     S1 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.))
     G_module_0flux[i] = S1.transmission(1, 0)
 
-    S2 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.56))
+    S2 = kwant.smatrix(nanowire, Ef, params=dict(flux=flux))
     G_module_halfflux[i] = S2.transmission(1, 0)
 
     # Kwant nanowire
     S3 = kwant.smatrix(nanowire_kwant, Ef, params=dict(flux=0.))
     G_kwant_0flux[i] = S3.transmission(1, 0)
 
-    S4 = kwant.smatrix(nanowire_kwant, Ef, params=dict(flux=0.56))
+    S4 = kwant.smatrix(nanowire_kwant, Ef, params=dict(flux=flux))
     G_kwant_halfflux[i] = S4.transmission(1, 0)
 
 
@@ -106,14 +108,19 @@ loger_main.info('Getting band structures of the module nanowires...')
 wire_module_0flux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.)
 wire_module_0flux.get_bands()
 
-wire_module_halfflux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.56)
+wire_module_halfflux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
 wire_module_halfflux.get_bands()
+
+# Infinite wire directly from the Fu Berg Model
+bands_model_0flux = FuBerg_model_bands(Nx, Ny, kz, 0., params_dict)[0]
+bands_model_halfflux = FuBerg_model_bands(Nx, Ny, kz, flux, params_dict)[0]
+
 
 # Infinite crystalline wire using kwant
 loger_main.info('Getting band structures of the kwant nanowires...')
 wire_kwant = infinite_nanowire_kwant(Nx, Ny, params_dict).finalized()
 bands1= kwant.physics.Bands(wire_kwant, params=dict(flux=0.))
-bands2= kwant.physics.Bands(wire_kwant, params=dict(flux=0.56))
+bands2= kwant.physics.Bands(wire_kwant, params=dict(flux=flux))
 bands_kwant_0flux = [bands1(k) for k in kz]
 bands_kwant_halfflux = [bands2(k) for k in kz]
 
@@ -179,12 +186,20 @@ gs = GridSpec(1, 2, figure=fig1)
 ax4_1 = fig4.add_subplot(gs[0, 0])
 ax4_2 = fig4.add_subplot(gs[0, 1])
 
+# Bands for the module
 for i in wire_module_0flux.energy_bands.keys():
     ax4_1.plot(wire_module_0flux.kz, wire_module_0flux.energy_bands[i], color='#3F6CFF', linewidth=0.5)
 for i in wire_module_halfflux.energy_bands.keys():
     ax4_2.plot(wire_module_halfflux.kz, wire_module_halfflux.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+
+# Bands for Kwant
 ax4_1.plot(kz, bands_kwant_0flux, '.', color='#FF7256', markersize=0.5)
 ax4_2.plot(kz, bands_kwant_halfflux, '.', color='#FF7256', markersize=0.5)
+
+# Bands for the Fu Berg model
+for i in bands_model_0flux.keys():
+    ax4_1.plot(kz, bands_model_0flux[i], 's', color='#9A32CD', markersize=1)
+    ax4_2.plot(kz, bands_model_halfflux[i], 's', color='#9A32CD', markersize=1)
 
 ax4_1.set_xlabel('$k/a$')
 ax4_1.set_ylabel('$E(k)/t$')
