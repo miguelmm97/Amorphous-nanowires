@@ -99,6 +99,47 @@ def Peierls(pos0, pos1, flux, area):
     I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
 
+def displacement2D_kwant(site1, site0):
+    x1, y1 = site0.pos[0], site0.pos[1]
+    x2, y2 = site1.pos[0], site1.pos[1]
+
+    v = np.zeros((2,))
+    v[0] = (x2 - x1)
+    v[1] = (y2 - y1)
+
+    # Norm of the vector between sites 2 and 1
+    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
+
+    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
+    if v[0] == 0:  # Pathological case, separated to not divide by 0
+        if v[1] > 0:
+            phi = pi / 2  # Hopping in y
+        else:
+            phi = 3 * pi / 2  # Hopping in -y
+    else:
+        if v[1] > 0:
+            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
+
+    return r, phi
+
+def Peierls_kwant(site1, site0, flux, area):
+    def integrand(x, m, x0, y0):
+        return m * (x - x0) + y0
+
+    x1, y1 = site0.pos[0], site0.pos[1]
+    x2, y2 = site1.pos[0], site1.pos[1]
+
+    if x2 == x1:
+        I = 0
+    else:
+        m = (y2 - y1) / (x2 - x1)
+        I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
+    return np.exp(2 * pi * 1j * flux * I / area)
+
+
+
 """
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
@@ -142,7 +183,6 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
         eps    = param_dict['eps']
         lamb   = param_dict['lamb']
         lamb_z = param_dict['lamb_z']
-        flux   = param_dict['flux']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
@@ -154,17 +194,22 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
     syst = kwant.Builder()
     syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite(eps)
 
-    # Hoppings
+    # Hopping functions
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
+    def hopp_cross_section(site1, site0, flux):
+        d, phi = displacement2D_kwant(site1, site0)
+        return hopping(t, lamb, lamb_z, d, phi, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
+
+    # Populate hoppings
     for i in range(latt.Nsites):
         for n in cross_section.neighbours[i]:
             loger_kwant.trace(f'Defining hopping from site {i} to {n}.')
 
             # In the cross-section
-            d, phi = displacement2D(latt(i, 0).pos, latt(n, 0).pos)
-            peierls_phase = Peierls(latt(i, 0).pos, latt(n, 0).pos, flux, cross_section.area)
-            syst[((latt(n, z), latt(i, z)) for z in range(n_layers))] = hopping(t, lamb, lamb_z, d, phi,
-                                                                             pi / 2, cross_section.r) * peierls_phase
+            # d, phi = displacement2D(latt(i, 0).pos, latt(n, 0).pos)
+            # peierls_phase = Peierls(latt(i, 0).pos, latt(n, 0).pos, flux, cross_section.area)
+            syst[((latt(n, z), latt(i, z)) for z in range(n_layers))] = hopp_cross_section
+
             # Between cross-sections
             loger_kwant.trace(f'Defining hopping of site {i} between cross-section layers.')
             syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
@@ -187,8 +232,9 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
         raise KeyError(f'Parameter error: {err}')
 
     # Fixed regular lattice hoppings
+    def hopp_x_up(site1, site0, flux):
+        return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
-    hopp_x_up = hopping(t, lamb, lamb_z, 1., 0, pi / 2, cross_section.r)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cross_section.r)
 
     # Left lead: definition
@@ -243,7 +289,6 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
         eps    = param_dict['eps']
         lamb   = param_dict['lamb']
         lamb_z = param_dict['lamb_z']
-        flux   = param_dict['flux']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
@@ -254,8 +299,9 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
 
     # Hoppings
     cutoff = 1.3
-    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cutoff)
-    hopp_x_up = hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff)
+    def hopp_x_up(site1, site0, flux):
+        return hopping(t, lamb, lamb_z, 1., 0., pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, Nx * Ny)
+    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0., 0, cutoff)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
     syst[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
     syst[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
@@ -271,3 +317,28 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
     syst.attach_lead(lead.reversed())
     return syst
 
+def infinite_nanowire_kwant(Nx, Ny, param_dict):
+    # Load parameters into the builder namespace
+    try:
+        t = param_dict['t']
+        eps = param_dict['eps']
+        lamb = param_dict['lamb']
+        lamb_z = param_dict['lamb_z']
+    except KeyError as err:
+        raise KeyError(f'Parameter error: {err}')
+
+    # Define lattice and initialise system and sites
+    latt = kwant.lattice.cubic(1, norbs=4)
+    lead = kwant.Builder(kwant.TranslationalSymmetry((0, 0, 1)))
+    lead[(latt(i, j, 0) for i in range(Nx) for j in range(Ny))] = onsite(eps)
+
+    # Hoppings
+    cutoff = 1.3
+    def hopp_x_up(site1, site0, flux):
+        return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, Nx * Ny)
+    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cutoff)
+    hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
+    lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
+    lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
+    lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
+    return lead

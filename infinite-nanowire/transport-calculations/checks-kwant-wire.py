@@ -4,6 +4,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import pi
+from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # Kwant
 import kwant
@@ -11,7 +13,8 @@ import kwant
 # Modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
-from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, crystal_nanowire_kwant
+from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, crystal_nanowire_kwant, infinite_nanowire_kwant
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -42,52 +45,77 @@ loger_main.addHandler(stream_handler)
 We compare the structure and bands of the kwant nanowire and the one generated with our own class.
 """
 
-Nx, Ny    = 5, 5                    # Number of sites in the cross-section
-n_layers  = 10                      # Number of cross-section layers
-width     = 0.1                     # Spread of the Gaussian distribution for the lattice sites
-r         = 1.3                     # Nearest-neighbour cutoff distance
-flux      = 0.0                     # Flux threaded through the cross-section (in units of flux quantum)
-t         = 1                       # Hopping
-eps       = 4 * t                   # Onsite orbital hopping (in units of t)
-lamb      = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
-lamb_z    = 1.8 * t                 # Spin-orbit coupling along z direction
-k = np.linspace(-pi, pi, 10001)     # Momentum along the regular direction
+Nx, Ny     = 5, 5                    # Number of sites in the cross-section
+n_layers   = 10                      # Number of cross-section layers
+cryst_area = Nx * Ny                 # Area of the crystalline cross-section
+t          = 1                       # Hopping
+eps        = 4 * t                   # Onsite orbital hopping (in units of t)
+lamb       = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
+lamb_z     = 1.8 * t                 # Spin-orbit coupling along z direction
+kz = np.linspace(-pi, pi, 1001)      # Momentum along the regular direction
 
 params_dict = {
     't': t,
     'eps': eps,
     'lamb': lamb,
     'lamb_z': lamb_z,
-    'flux': flux
 }
 
-#%% Comparison of two crystalline wires
+#%% Comparison of conductance
 
-# Crystalline wire through the amorphous construction
+# Crystalline wire using our Amorphous module
 loger_main.info('Generating amorphous cross section:')
 cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=0.00001, r=1.3)
 cross_section.build_lattice()
-nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict)
-nanowire = nanowire.finalized()
+nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
-# Crystalline wire directly through kwant
-nanowire_kwant = crystal_nanowire_kwant(Nx, Ny, n_layers + 2, params_dict)
-nanowire_kwant = nanowire_kwant.finalized()
+# Crystalline wire using Kwant
+nanowire_kwant = crystal_nanowire_kwant(Nx, Ny, n_layers + 2, params_dict).finalized()
 
 
 # Conductance calculation
 fermi = np.linspace(0, 2, 50)
-G = np.zeros(fermi.shape)
-G_kwant = np.zeros(fermi.shape)
+G_module_0flux = np.zeros(fermi.shape)
+G_module_halfflux = np.zeros(fermi.shape)
+G_kwant_0flux = np.zeros(fermi.shape)
+G_kwant_halfflux = np.zeros(fermi.shape)
+
 for i, Ef in enumerate(fermi):
     loger_main.info(f'Calculating conductance for Ef: {i} / {fermi.shape[0] - 1}...')
-    S = kwant.smatrix(nanowire, Ef)
-    G[i] = S.transmission(1, 0)
-    S_kwant = kwant.smatrix(nanowire_kwant, Ef)
-    G_kwant[i] = S_kwant.transmission(1, 0)
+
+    # Module nanowire
+    S1 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.))
+    G_module_0flux[i] = S1.transmission(1, 0)
+
+    S2 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.56))
+    G_module_halfflux[i] = S2.transmission(1, 0)
+
+    # Kwant nanowire
+    S3 = kwant.smatrix(nanowire_kwant, Ef, params=dict(flux=0.))
+    G_kwant_0flux[i] = S3.transmission(1, 0)
+
+    S4 = kwant.smatrix(nanowire_kwant, Ef, params=dict(flux=0.56))
+    G_kwant_halfflux[i] = S4.transmission(1, 0)
 
 
+#%% Comparison of band structures
+
+# Infinite crystalline wire using our Amorphous module
+loger_main.info('Getting band structures of the module nanowires...')
+wire_module_0flux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.)
+wire_module_0flux.get_bands()
+
+wire_module_halfflux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.56)
+wire_module_halfflux.get_bands()
+
+# Infinite crystalline wire using kwant
+loger_main.info('Getting band structures of the kwant nanowires...')
+wire_kwant = infinite_nanowire_kwant(Nx, Ny, params_dict).finalized()
+bands1= kwant.physics.Bands(wire_kwant, params=dict(flux=0.))
+bands2= kwant.physics.Bands(wire_kwant, params=dict(flux=0.56))
+bands_kwant_0flux = [bands1(k) for k in kz]
+bands_kwant_halfflux = [bands2(k) for k in kz]
 
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
@@ -124,14 +152,53 @@ kwant.plot(nanowire_kwant, site_size=site_size, site_lw=site_lw, site_color=site
            ax=ax2)
 ax2.set_axis_off()
 
+
+
+
+
 fig3 = plt.figure()
 ax3 = fig3.gca()
-ax3.plot(fermi, G, color='#3F6CFF')
-ax3.plot(fermi, G_kwant, 'o', color='#00B5A1', alpha=0.5, markersize=5)
+ax3.plot(fermi, G_module_0flux, color='#FF7256', label='module $\phi / \phi_0=0$')
+ax3.plot(fermi, G_module_halfflux, color='#9A32CD', label='module $\phi / \phi_0=0.5$')
+ax3.plot(fermi, G_kwant_0flux, color='#00B5A1', alpha=0.5, label=f'kwant $\phi / \phi_0=0$ ')
+ax3.plot(fermi, G_kwant_halfflux, color='#3F6CFF', alpha=0.5, label=f'kwant $\phi / \phi_0=0.5$ ')
 ax3.set_xlim(fermi[0], fermi[-1])
-ax3.set_ylim(0, np.max(G))
+ax3.set_ylim(0, np.max(G_module_0flux))
 ax3.tick_params(which='major', width=0.75, labelsize=10)
 ax3.tick_params(which='major', length=6, labelsize=10)
 ax3.set_xlabel("$E_F$ [$t$]", fontsize=10)
 ax3.set_ylabel("$G[2e^2/h]$",fontsize=10)
+ax3.legend(ncol=1, frameon=False, fontsize=16)
+
+
+
+
+
+fig4 = plt.figure(figsize=(6, 6))
+gs = GridSpec(1, 2, figure=fig1)
+ax4_1 = fig4.add_subplot(gs[0, 0])
+ax4_2 = fig4.add_subplot(gs[0, 1])
+
+for i in wire_module_0flux.energy_bands.keys():
+    ax4_1.plot(wire_module_0flux.kz, wire_module_0flux.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+for i in wire_module_halfflux.energy_bands.keys():
+    ax4_2.plot(wire_module_halfflux.kz, wire_module_halfflux.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+ax4_1.plot(kz, bands_kwant_0flux, '.', color='#FF7256', markersize=0.5)
+ax4_2.plot(kz, bands_kwant_halfflux, '.', color='#FF7256', markersize=0.5)
+
+ax4_1.set_xlabel('$k/a$')
+ax4_1.set_ylabel('$E(k)/t$')
+ax4_1.set_xlim(-pi, pi)
+ax4_1.tick_params(which='major', width=0.75, labelsize=10)
+ax4_1.tick_params(which='major', length=6, labelsize=10)
+ax4_1.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
+ax4_1.set_title(f'$\phi / \phi_0=0$')
+
+ax4_2.set_xlabel('$k/a$')
+ax4_2.set_ylabel('$E(k)/t$')
+ax4_2.set_xlim(-pi, pi)
+ax4_2.tick_params(which='major', width=0.75, labelsize=10)
+ax4_2.tick_params(which='major', length=6, labelsize=10)
+ax4_2.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
+ax4_2.set_title(f'$\phi / \phi_0=0.5$')
 plt.show()
