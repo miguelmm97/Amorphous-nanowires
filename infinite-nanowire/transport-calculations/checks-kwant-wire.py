@@ -42,13 +42,13 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 """
-We compare the structure and bands of the kwant nanowire and the one generated with our own class.
+We compare the conductance and bands of the kwant nanowire and the one generated with our own class.
 """
 
-Nx, Ny     = 5, 5                    # Number of sites in the cross-section
-n_layers   = 10                      # Number of cross-section layers
+Nx, Ny     = 10, 10                    # Number of sites in the cross-section
+n_layers   = 20                      # Number of cross-section layers
 cryst_area = Nx * Ny                 # Area of the crystalline cross-section
-flux       = 0.56                    # Flux
+flux       = 0.55                    # Flux
 t          = 1                       # Hopping
 eps        = 4 * t                   # Onsite orbital hopping (in units of t)
 lamb       = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
