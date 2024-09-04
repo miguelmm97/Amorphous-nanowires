@@ -54,7 +54,7 @@ eps        = 4 * t                   # Onsite orbital hopping (in units of t)
 lamb       = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z     = 1.8 * t                 # Spin-orbit coupling along z direction
 kz = np.linspace(-pi, pi, 101)      # Momentum along the regular direction
-fermi = np.linspace(0, 2, 2)
+fermi = np.linspace(0, 2, 50)
 
 params_dict = {
     't': t,
@@ -113,11 +113,9 @@ wire_module_halfflux = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=e
 bottom_bands_halfflux = wire_module_halfflux.get_bands(k_0=0, k_end=0, Nk=1, extract=True)[0]
 wire_module_halfflux.get_bands()
 
-
 # Infinite wire directly from the Fu Berg Model
 bands_model_0flux = FuBerg_model_bands(Nx, Ny, kz, 0., params_dict)[0]
 bands_model_halfflux = FuBerg_model_bands(Nx, Ny, kz, flux, params_dict)[0]
-
 
 # Infinite crystalline wire using kwant
 loger_main.info('Getting band structures of the kwant nanowires...')
@@ -161,8 +159,6 @@ kwant.plot(nanowire_kwant, site_size=site_size, site_lw=site_lw, site_color=site
            lead_site_size=site_size, lead_color=lead_color, lead_site_lw=site_lw, lead_hop_lw=hop_lw,
            ax=ax2)
 ax2.set_axis_off()
-
-
 
 
 fig3 = plt.figure(figsize=(4, 6))
@@ -237,8 +233,8 @@ ax4_2.plot(kz, bands_kwant_halfflux, '.', color='#FF7256', markersize=0.5)
 
 # Bands for the Fu Berg model
 for i in bands_model_0flux.keys():
-    ax4_1.plot(kz, bands_model_0flux[i], 's', color='#9A32CD', markersize=1)
-    ax4_2.plot(kz, bands_model_halfflux[i], 's', color='#9A32CD', markersize=1)
+    ax4_1.plot(kz, bands_model_0flux[i], 'o', color='#9A32CD', markersize=1)
+    ax4_2.plot(kz, bands_model_halfflux[i], 'o', color='#9A32CD', markersize=1)
 
 ax4_1.set_xlabel('$k/a$')
 ax4_1.set_ylabel('$E(k)/t$')

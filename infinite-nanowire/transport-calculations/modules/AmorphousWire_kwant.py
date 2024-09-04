@@ -63,45 +63,6 @@ def hopping(t, lamb, lamb_z, d, phi, theta, cutoff_dist):
 def onsite(eps):
     return eps * np.kron(sigma_x, tau_0)
 
-def displacement2D(pos0, pos1):
-    x1, y1 = pos0[0], pos0[1]
-    x2, y2 = pos1[0], pos1[1]
-
-    v = np.zeros((2,))
-    v[0] = (x2 - x1)
-    v[1] = (y2 - y1)
-
-    # Norm of the vector between sites 2 and 1
-    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
-
-    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
-    if v[0] == 0:  # Pathological case, separated to not divide by 0
-        if v[1] > 0:
-            phi = pi / 2  # Hopping in y
-        else:
-            phi = 3 * pi / 2  # Hopping in -y
-    else:
-        if v[1] > 0:
-            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
-        else:
-            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
-
-    return r, phi
-
-def Peierls(pos0, pos1, flux, area):
-    def integrand(x, m, x0, y0):
-        return m * (x - x0) + y0
-
-    x1, y1 = pos0[0], pos0[1]
-    x2, y2 = pos1[0], pos1[1]
-
-    if x2 == x1:
-        I = 0
-    else:
-        m = (y2 - y1) / (x2 - x1)
-        I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
-    return np.exp(2 * pi * 1j * flux * I / area)
-
 def displacement2D_kwant(site1, site0):
     x1, y1 = site0.pos[0], site0.pos[1]
     x2, y2 = site1.pos[0], site1.pos[1]
@@ -301,7 +262,7 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
     # Hoppings
     cutoff = 1.3
     def hopp_x_up(site1, site0, flux):
-        return hopping(t, lamb, lamb_z, 1., 0., pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, Nx * Ny)
+        return hopping(t, lamb, lamb_z, 1., 0., pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, (Nx - 1) * (Ny - 1))
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0., 0, cutoff)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
     syst[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
