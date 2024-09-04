@@ -139,7 +139,7 @@ class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True):
+def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True, mu_leads=0.):
 
     # Load parameters into the builder namespace
     try:
@@ -177,12 +177,12 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
             syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
 
     if attach_leads:
-        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
+        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict, mu_leads=mu_leads)
     else:
         complete_system = syst
     return complete_system
 
-def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
+def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, mu_leads=0.):
 
     # Load parameters into the builder namespace
     try:
@@ -192,6 +192,8 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
         lamb_z = param_dict['lamb_z']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
+
+    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
 
     # Fixed regular lattice hoppings
     def hopp_x_up(site1, site0, flux):
@@ -207,14 +209,14 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
 
     # Left lead: Hoppings
     loger_kwant.trace('Defining hoppings in the firs unit cell of the lead...')
-    left_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
+    left_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     left_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     left_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     left_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
 
     # Left lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
-    scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
+    scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     scatt_region[(((latt(i + latt.Ny * j, 0), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny)))] = hopp_z_up
@@ -228,14 +230,14 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
 
     # Right lead: Hoppings
     loger_kwant.trace('Defining hoppings in the firs unit cell of the lead...')
-    right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
+    right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     right_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
 
     # Right lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
-    scatt_region[(latt_lead(i, j, n_layers) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite(eps)
+    scatt_region[(latt_lead(i, j, n_layers) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     scatt_region[(((latt_lead(i, j, n_layers), latt(i + latt.Ny * j, n_layers - 1)) for i in range(latt.Nx)

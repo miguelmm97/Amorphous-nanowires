@@ -45,7 +45,7 @@ loger_main.addHandler(stream_handler)
 We compare the structure and bands of the kwant nanowire and the one generated with our own class.
 """
 
-Nx, Ny    = 10, 10                # Number of sites in the cross-section
+Nx, Ny    = 10, 10              # Number of sites in the cross-section
 n_layers  = 20                  # Number of cross-section layers
 width     = 0.1                 # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3                 # Nearest-neighbour cutoff distance
@@ -53,6 +53,7 @@ t         = 1                   # Hopping
 eps       = 4 * t               # Onsite orbital hopping (in units of t)
 lamb      = 1 * t               # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z    = 1.8 * t             # Spin-orbit coupling along z direction
+mu_leads  = 3                    # Chemical potential at the leads
 fermi = np.linspace(0, 2, 50)   # Fermi level for calculating the conductance
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
@@ -66,7 +67,7 @@ G_half = np.zeros(fermi.shape)
 loger_main.info('Generating amorphous cross section:')
 cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=1.3)
 cross_section.build_lattice()
-nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict).finalized()
+nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict, mu_leads=mu_leads).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
 # Conductance calculation for different flux values
@@ -128,13 +129,14 @@ for i in bottom_bands_half.keys():
 y_axis_ticks = [i for i in range(0, 100, 2)]
 y_axis_labels = [str(i) for i in range(0, 100, 2)]
 ax2.set_xlim(fermi[0], fermi[-1])
-ax2.set_ylim(0, np.max(G_0))
+ax2.set_ylim(0, 30)
 ax2.tick_params(which='major', width=0.75, labelsize=10)
 ax2.tick_params(which='major', length=6, labelsize=10)
 ax2.set_xlabel("$E_F$ [$t$]", fontsize=10)
 ax2.set_ylabel("$G[2e^2/h]$",fontsize=10)
 ax2.legend(ncol=1, frameon=False, fontsize=16)
 ax2.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
+fig2.savefig('AB-osc.pdf', format='pdf', backend='pgf')
 
 
 fig4 = plt.figure(figsize=(6, 6))
@@ -162,4 +164,6 @@ ax4_2.tick_params(which='major', width=0.75, labelsize=10)
 ax4_2.tick_params(which='major', length=6, labelsize=10)
 ax4_2.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
 ax4_2.set_title(f'$\phi / \phi_0=0.5$')
+
+
 plt.show()
