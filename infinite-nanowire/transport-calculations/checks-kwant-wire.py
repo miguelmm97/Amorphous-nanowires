@@ -54,7 +54,7 @@ eps        = 4 * t                   # Onsite orbital hopping (in units of t)
 lamb       = 1 * t                   # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z     = 1.8 * t                 # Spin-orbit coupling along z direction
 kz = np.linspace(-pi, pi, 101)      # Momentum along the regular direction
-fermi = np.linspace(0, 2, 50)
+fermi = np.linspace(0, 2, 2)
 
 params_dict = {
     't': t,

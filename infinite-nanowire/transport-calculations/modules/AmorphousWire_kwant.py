@@ -209,8 +209,6 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
             loger_kwant.trace(f'Defining hopping from site {i} to {n}.')
 
             # In the cross-section
-            # d, phi = displacement2D(latt(i, 0).pos, latt(n, 0).pos)
-            # peierls_phase = Peierls(latt(i, 0).pos, latt(n, 0).pos, flux, cross_section.area)
             syst[((latt(n, z), latt(i, z)) for z in range(n_layers))] = hopp_cross_section
 
             # Between cross-sections
@@ -338,23 +336,12 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict):
     # Hoppings
     cutoff = 1.3
     def hopp_x_up(site1, site0, flux):
-        return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, Nx * Ny)
+        return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff) * Peierls_kwant(site1, site0, flux, (Nx - 1) * (Ny - 1))
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cutoff)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cutoff)
-    # hopp_x_up = hopping(t, lamb, lamb_z, 1., 0, pi / 2, cutoff)
-    # lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
-    # lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
-    # lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
-
-    # Populate hoppings
-    for i in range(Nx - 1):
-        for j in range(Ny - 1):
-
-            # In the cross-section
-            lead[(latt(i, j, 1), latt(i, j, 0))] = hopp_z_up
-            lead[(latt(i + 1, j, 0), latt(i, j, 0))] = hopp_x_up
-            lead[(latt(i, j + 1, 0), latt(i, j, 0))] = hopp_y_up
-
+    lead[kwant.builder.HoppingKind((1, 0, 0), latt, latt)] = hopp_x_up
+    lead[kwant.builder.HoppingKind((0, 1, 0), latt, latt)] = hopp_y_up
+    lead[kwant.builder.HoppingKind((0, 0, 1), latt, latt)] = hopp_z_up
 
     return lead
 
