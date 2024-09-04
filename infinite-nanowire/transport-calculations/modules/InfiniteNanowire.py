@@ -157,7 +157,7 @@ class InfiniteNanowire_FuBerg:
                     loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
                     raise ValueError('Hamiltonian is not hermitian!')
 
-    def get_bands(self, k_0=-pi, k_end=pi, Nk=1001):
+    def get_bands(self, k_0=-pi, k_end=pi, Nk=1001, extract=False):
 
         # Calculating Hamiltonian
         self.energy_bands, self.eigenstates = {}, {}
@@ -177,6 +177,9 @@ class InfiniteNanowire_FuBerg:
         for i in range(self.dimH):
             self.energy_bands[i] = aux_bands[:, i]
             self.eigenstates[i] = aux_eigenstates[:, :, i]
+
+        if extract:
+            return self.energy_bands, self.eigenstates
 
     def get_gap(self):
         return np.min(self.energy_bands[int(self.dimH / 2)] - self.energy_bands[int(self.dimH / 2) - 1])
