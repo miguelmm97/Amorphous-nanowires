@@ -88,6 +88,46 @@ def displacement2D_kwant(site1, site0):
 
     return r, phi
 
+def displacement3D_kwant(site1, site0):
+    x1, y1, z1 = site0.pos[0], site0.pos[1], site0.pos[2]
+    x2, y2, z2 = site1.pos[0], site1.pos[1], site1.pos[2]
+
+    # Definition of the vector between sites 2 and 1 (from st.1 to st.2)
+    v = np.zeros((3,))
+    v[0] = (x2 - x1)
+    v[1] = (y2 - y1)
+    v[2] = (z2 - z1)
+
+    # Module of the vector between sites 2 and 1
+    r = np.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
+
+    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
+    if v[0] == 0:
+        if v[1] > 0:  # Pathological case, separated to not divide by 0
+            phi = pi / 2
+        else:
+            phi = 3 * pi / 2
+    else:
+        if v[1] > 0:  # We take arctan2 because we have 4 quadrants
+            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
+
+    # Theta angle of the vector between sites 2 and 1 (angle from z)
+    r_plane = np.sqrt(v[0] ** 2 + v[1] ** 2)  # Auxiliary radius for the xy plane
+
+    if r_plane == 0:  # Pathological case, separated to not divide by 0
+        if v[2] > 0:  # Hopping in z
+            theta = 0
+        elif v[2] < 0:  # Hopping in -z
+            theta = pi
+        else:
+            theta = pi / 2  # XY planes
+    else:
+        theta = pi / 2 - np.arctan(v[2] / r_plane)  # 1st and 2nd quadrants
+
+    return r, phi, theta
+
 def Peierls_kwant(site1, site0, flux, area):
     def integrand(x, m, x0, y0):
         return m * (x - x0) + y0
@@ -195,9 +235,12 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
 
     onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
 
-    # Fixed regular lattice hoppings
+    # Hoppings
     def hopp_x_up(site1, site0, flux):
         return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
+    def hopp_lead_wire(site1, site0, flux):
+        d, phi, theta = displacement3D_kwant(site1, site0)
+        return hopping(t, lamb, lamb_z, d, phi, theta, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cross_section.r)
 
@@ -219,7 +262,7 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
     scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
-    scatt_region[(((latt(i + latt.Ny * j, 0), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny)))] = hopp_z_up
+    scatt_region[(((latt(i + latt.Ny * j, 0), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny)))] = hopp_lead_wire
     scatt_region.attach_lead(left_lead)
 
     # Right lead: definition
@@ -241,7 +284,7 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     scatt_region[(((latt_lead(i, j, n_layers), latt(i + latt.Ny * j, n_layers - 1)) for i in range(latt.Nx)
-                                                                for j in range(latt.Ny)))] = hopp_z_up
+                                                                for j in range(latt.Ny)))] = hopp_lead_wire
     scatt_region.attach_lead(right_lead)
     return scatt_region
 

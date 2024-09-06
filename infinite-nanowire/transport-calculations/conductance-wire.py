@@ -4,7 +4,6 @@
 import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.gridspec import GridSpec
 
 # Kwant
@@ -37,8 +36,12 @@ formatter = ColoredFormatter(
     secondary_log_colors={},
     style='%'
 )
+
 stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
+
+
+
 
 #%% Variables
 """
@@ -53,8 +56,8 @@ t         = 1                   # Hopping
 eps       = 4 * t               # Onsite orbital hopping (in units of t)
 lamb      = 1 * t               # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z    = 1.8 * t             # Spin-orbit coupling along z direction
-mu_leads  = 3                    # Chemical potential at the leads
-fermi = np.linspace(0, 2, 50)   # Fermi level for calculating the conductance
+mu_leads  = 0                   # Chemical potential at the leads
+fermi = np.linspace(0, 2, 500)  # Fermi level for calculating the conductance
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
@@ -64,11 +67,12 @@ G_half = np.zeros(fermi.shape)
 #%% Main
 
 # Initiaise amorphous nanowire for transport
-loger_main.info('Generating amorphous cross section:')
+loger_main.info('Generating amorphous cross section...')
 cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=1.3)
 cross_section.build_lattice()
 nanowire = promote_to_kwant_nanowire(cross_section, n_layers, params_dict, mu_leads=mu_leads).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
+
 
 # Conductance calculation for different flux values
 for i, Ef in enumerate(fermi):
@@ -78,16 +82,27 @@ for i, Ef in enumerate(fermi):
     S1 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.56))
     G_half[i] = S1.transmission(1, 0)
 
-# Calculating bottom energy of every band
-loger_main.info(f'Calculating bottom bands...')
-nanowire_infinite_0 = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.)
-bottom_bands_0 = nanowire_infinite_0.get_bands(k_0=0, k_end=0, Nk=1, extract=True)[0]
-nanowire_infinite_0.get_bands()
 
-nanowire_infinite_half = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.56)
-bottom_bands_half = nanowire_infinite_half.get_bands(k_0=0, k_end=0, Nk=1, extract=True)[0]
-nanowire_infinite_half.get_bands()
+# Calculating bands in the scattering region
+loger_main.info(f'Calculating bands for the nanowires...')
+nanowire_0 = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.)
+nanowire_0.get_bands()
+nanowire_half = InfiniteNanowire_FuBerg(lattice=cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.56)
+nanowire_half.get_bands()
 
+
+# Calculating bands in the leads
+loger_main.info('Generating lead cross section...')
+lead_cross_section = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=0.00000000001, r=1.3)
+lead_cross_section.build_lattice()
+
+loger_main.info(f'Calculating bands for the leads...')
+lead0 = InfiniteNanowire_FuBerg(lattice=lead_cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.)
+lead0.get_bands()
+lead_half = InfiniteNanowire_FuBerg(lattice=lead_cross_section, t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=0.56)
+lead_half.get_bands()
+
+index0 = int(np.floor(len(lead0.energy_bands[0]) / 2))
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
 plt.rc('text', usetex=True)
@@ -107,7 +122,7 @@ fig0 = plt.figure()
 ax0 = fig0.gca()
 cross_section.plot_lattice(ax0)
 
-# Nnaowire structure
+# Nanowire structure
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111, projection='3d')
 kwant.plot(nanowire, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
@@ -116,54 +131,71 @@ kwant.plot(nanowire, site_size=site_size, site_lw=site_lw, site_color=site_color
 ax1.set_axis_off()
 
 
+
 # Conductance vs Fermi level
-fig2 = plt.figure()
-ax2 = fig2.gca()
-ax2.plot(fermi, G_0, color='#9A32CD', label='$\phi / \phi_0=0$')
-ax2.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0=0.56$ ')
-for i in bottom_bands_0.keys():
-    ax2.plot(bottom_bands_0[i] * np.ones((10, )), np.linspace(0, 100, 10), '--', color='#9A32CD', alpha=0.1)
-for i in bottom_bands_half.keys():
-    ax2.plot(bottom_bands_half[i] * np.ones((10,)), np.linspace(0, 100, 10), '--', color='#3F6CFF', alpha=0.1)
+fig2 = plt.figure(figsize=(6, 10))
+gs = GridSpec(1, 3, figure=fig2)
+ax2_1 = fig2.add_subplot(gs[0, 0])
+ax2_2 = fig2.add_subplot(gs[0, 1])
+ax2_3 = fig2.add_subplot(gs[0, 2])
 
-y_axis_ticks = [i for i in range(0, 100, 2)]
-y_axis_labels = [str(i) for i in range(0, 100, 2)]
-ax2.set_xlim(fermi[0], fermi[-1])
-ax2.set_ylim(0, 30)
-ax2.tick_params(which='major', width=0.75, labelsize=10)
-ax2.tick_params(which='major', length=6, labelsize=10)
-ax2.set_xlabel("$E_F$ [$t$]", fontsize=10)
-ax2.set_ylabel("$G[2e^2/h]$",fontsize=10)
-ax2.legend(ncol=1, frameon=False, fontsize=16)
-ax2.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
-fig2.savefig('AB-osc.pdf', format='pdf', backend='pgf')
+ax2_1.plot(fermi, G_0, color='#9A32CD', label='$\phi / \phi_0=0$')
+for i in nanowire_0.energy_bands.keys():
+    ax2_1.plot(nanowire_0.energy_bands[i][index0] * np.ones((10, )), np.linspace(0, 100, 10), '--', color='#9A32CD', alpha=0.1)
+    ax2_1.plot(lead0.energy_bands[i][index0] * np.ones((10,)), np.linspace(0, 100, 10), '--', color='#FF7D66', alpha=0.1)
+
+ax2_2.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0=0.56$ ')
+for i in nanowire_half.energy_bands.keys():
+    ax2_2.plot(nanowire_half.energy_bands[i][index0] * np.ones((10, )), np.linspace(0, 100, 10), '--', color='#9A32CD', alpha=0.1)
+    ax2_2.plot(lead_half.energy_bands[i][index0] * np.ones((10,)), np.linspace(0, 100, 10), '--', color='#FF7D66', alpha=0.1)
+
+ax2_3.plot(fermi, G_0, color='#9A32CD', label='$\phi / \phi_0=0$')
+ax2_3.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0=0.56$ ')
+ax2_3.legend(ncol=1, frameon=False, fontsize=16)
+
+y_axis_ticks = [i for i in range(0, 30, 2)]
+y_axis_labels = [str(i) for i in range(0, 30, 2)]
+for ax in [ax2_1, ax2_2, ax2_3]:
+    ax.set_xlim(fermi[0], fermi[-1])
+    ax.set_ylim(0, 30)
+    ax.tick_params(which='major', width=0.75, labelsize=10)
+    ax.tick_params(which='major', length=6, labelsize=10)
+    ax.set_xlabel("$E_F$ [$t$]", fontsize=10)
+    ax.set_ylabel("$G[2e^2/h]$",fontsize=10)
+    ax.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
+
+# fig2.savefig('AB-osc.pdf', format='pdf', backend='pgf')
 
 
-fig4 = plt.figure(figsize=(6, 6))
-gs = GridSpec(1, 2, figure=fig4)
-ax4_1 = fig4.add_subplot(gs[0, 0])
-ax4_2 = fig4.add_subplot(gs[0, 1])
 
 # Bands for the module
-for i in nanowire_infinite_0.energy_bands.keys():
-    ax4_1.plot(nanowire_infinite_0.kz, nanowire_infinite_0.energy_bands[i], color='#3F6CFF', linewidth=0.5)
-    ax4_2.plot(nanowire_infinite_half.kz, nanowire_infinite_half.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+fig4 = plt.figure(figsize=(10, 10))
+gs = GridSpec(2, 2, figure=fig4)
+ax4_1 = fig4.add_subplot(gs[0, 0])
+ax4_2 = fig4.add_subplot(gs[0, 1])
+ax4_3 = fig4.add_subplot(gs[1, 0])
+ax4_4 = fig4.add_subplot(gs[1, 1])
 
-ax4_1.set_xlabel('$k/a$')
-ax4_1.set_ylabel('$E(k)/t$')
-ax4_1.set_xlim(-pi, pi)
-ax4_1.tick_params(which='major', width=0.75, labelsize=10)
-ax4_1.tick_params(which='major', length=6, labelsize=10)
-ax4_1.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
-ax4_1.set_title(f'$\phi / \phi_0=0$')
+for i in nanowire_0.energy_bands.keys():
+    ax4_1.plot(nanowire_0.kz, nanowire_0.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+    ax4_2.plot(nanowire_half.kz, nanowire_half.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+    ax4_3.plot(lead0.kz, lead0.energy_bands[i], color='#3F6CFF', linewidth=0.5)
+    ax4_4.plot(lead_half.kz, lead_half.energy_bands[i], color='#3F6CFF', linewidth=0.5)
 
-ax4_2.set_xlabel('$k/a$')
-ax4_2.set_ylabel('$E(k)/t$')
-ax4_2.set_xlim(-pi, pi)
-ax4_2.tick_params(which='major', width=0.75, labelsize=10)
-ax4_2.tick_params(which='major', length=6, labelsize=10)
-ax4_2.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
-ax4_2.set_title(f'$\phi / \phi_0=0.5$')
+ax4_1.set_title(f'$\phi / \phi_0=0$ wire')
+ax4_2.set_title(f'$\phi / \phi_0=0.56$ wire')
+ax4_3.set_title(f'$\phi / \phi_0=0$ leads')
+ax4_4.set_title(f'$\phi / \phi_0=0.56$ leads')
+
+for ax in [ax4_1, ax4_2, ax4_3, ax4_4]:
+    ax.set_xlabel('$k/a$')
+    ax.set_ylabel('$E(k)/t$')
+    ax.set_xlim(-pi, pi)
+    ax.tick_params(which='major', width=0.75, labelsize=10)
+    ax.tick_params(which='major', length=6, labelsize=10)
+    ax.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
+
+
 
 
 plt.show()

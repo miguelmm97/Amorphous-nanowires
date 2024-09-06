@@ -143,7 +143,7 @@ class AmorphousLattice_2d:
     # Methods for building the lattice
     def generate_configuration(self, from_x=None, from_y=None):
 
-        loger_amorphous.info('Generating lattice and neighbour tree...')
+        loger_amorphous.trace('Generating lattice and neighbour tree...')
 
         # Dimension of the Hilbert space and sites
         self.Nsites = int(self.Nx * self.Ny)
@@ -197,7 +197,7 @@ class AmorphousLattice_2d:
         start_site = site0
 
         # Algorithm to find the boundary
-        loger_amorphous.info('Constructing the boundary of the lattice...')
+        loger_amorphous.trace('Constructing the boundary of the lattice...')
         while site0 != start_site or (site0 == start_site and count == 0):
             dif, return_needed = 2 * pi - 0.01, True
             current_x, current_y = self.x[site0], self.y[site0]

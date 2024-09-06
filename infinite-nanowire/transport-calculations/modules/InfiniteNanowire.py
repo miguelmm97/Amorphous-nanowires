@@ -116,7 +116,7 @@ class InfiniteNanowire_FuBerg:
         return - self.t * f_cutoff * np.kron(sigma_x, tau_0) + \
             1j * 0.5 * self.lamb * f_cutoff * np.kron(sigma_z, np.cos(phi) * tau_y - np.sin(phi) * tau_x)
 
-    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=1001, debug=False):
+    def get_Hamiltonian(self, k_0=-pi, k_end=pi, Nk=101, debug=False):
 
         # Preallocation
         self.kz   = np.linspace(k_0, k_end, Nk)
@@ -124,7 +124,7 @@ class InfiniteNanowire_FuBerg:
         self.H    = np.zeros((len(self.kz), self.dimH, self.dimH), dtype=np.complex128)
 
         # Off-diagonal terms
-        loger_wire.info('Generating off-diagonal Hamiltonian')
+        loger_wire.trace('Generating off-diagonal Hamiltonian')
         for i in range(self.lattice.Nsites):
             for n in self.lattice.neighbours[i]:
                 loger_wire.trace(f'site: {i}, neighbour: {n}')
@@ -144,7 +144,7 @@ class InfiniteNanowire_FuBerg:
 
 
         # Onsite terms
-        loger_wire.info('Generating onsite Hamiltonian')
+        loger_wire.trace('Generating onsite Hamiltonian')
         for j, k in enumerate(self.kz):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
             self.H[j, :, :] += np.kron(np.eye(self.lattice.Nsites, dtype=np.complex128), self.H_onsite(k))
@@ -157,7 +157,7 @@ class InfiniteNanowire_FuBerg:
                     loger_wire.error(f'Hamiltonian is not hermitian. sum(H - H^\dagger): {error}, kz: {j}')
                     raise ValueError('Hamiltonian is not hermitian!')
 
-    def get_bands(self, k_0=-pi, k_end=pi, Nk=1001, extract=False):
+    def get_bands(self, k_0=-pi, k_end=pi, Nk=101, extract=False):
 
         # Calculating Hamiltonian
         self.energy_bands, self.eigenstates = {}, {}
@@ -166,7 +166,7 @@ class InfiniteNanowire_FuBerg:
         self.get_Hamiltonian(k_0=k_0, k_end=k_end, Nk=Nk)
 
         # Diagonalising Hamiltonian
-        loger_wire.info('Diagonalising Hamiltonian...')
+        loger_wire.trace('Diagonalising Hamiltonian...')
         for j in range(len(self.kz)):
             loger_wire.trace(f'kz: {j}/ {len(self.kz)}')
             bands_k, eigenstates_k = np.linalg.eigh(self.H[j, :, :])
