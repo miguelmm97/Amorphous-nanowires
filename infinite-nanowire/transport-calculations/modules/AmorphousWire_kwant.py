@@ -272,7 +272,7 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
     latt_lead = kwant.lattice.cubic(norbs=4)
 
     # Right lead: Hoppings
-    loger_kwant.trace('Defining hoppings in the firs unit cell of the lead...')
+    loger_kwant.trace('Defining hoppings in the first unit cell of the lead...')
     right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
@@ -324,7 +324,7 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict):
     syst.attach_lead(lead.reversed())
     return syst
 
-def infinite_nanowire_kwant(Nx, Ny, param_dict):
+def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     # Load parameters into the builder namespace
     try:
         t = param_dict['t']
@@ -334,10 +334,12 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict):
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
+    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
+
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
     lead = kwant.Builder(kwant.TranslationalSymmetry((0, 0, 1)))
-    lead[(latt(i, j, 0) for i in range(Nx) for j in range(Ny))] = onsite(eps)
+    lead[(latt(i, j, 0) for i in range(Nx) for j in range(Ny))] = onsite_leads
 
     # Hoppings
     cutoff = 1.3
