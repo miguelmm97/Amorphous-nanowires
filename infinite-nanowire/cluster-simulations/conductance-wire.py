@@ -3,8 +3,6 @@
 # Math
 import numpy as np
 from numpy import pi
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 
 # Kwant
 import kwant
@@ -14,6 +12,21 @@ from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, infinite_nanowire_kwant
 from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
+
+# Cluster managing
+import argparse
+import h5py
+import os
+
+
+# Arguments to submit to the cluster
+parser = argparse.ArgumentParser(description='Argument parser for the XYZ model simulation')
+parser.add_argument('-l', '--line', type=int, help='Select line number', default=None)
+parser.add_argument('-f', '--file', type=str, help='Select file name', default='params.txt')
+parser.add_argument('-M', '--outdir', type=str, help='Select the base name of the output file', default='outdir')
+parser.add_argument('-o', '--outbase', type=str, help='Select the base name of the output file', default='outXYZ')
+args = parser.parse_args()
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -122,12 +135,8 @@ bottom_lead_half = bands(0)
 
 
 #%% Saving data
-
-
-file_list = os.listdir('/home/mfmm/Projects/amorphous-nanowires/data_gap/data_oscillations_amorphous_cross_section')
-expID = get_fileID(file_list, common_name='Exp')
-filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join('/home/mfmm/Projects/amorphous-nanowires/data_gap/data_oscillations_amorphous_cross_section', filename)
+outfile = '{}-{}.h5'.format(args.outbase, args.line)
+filepath = os.path.join(args.outdir, outfile)
 
 with h5py.File(filepath, 'w') as f:
 
@@ -147,7 +156,6 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'bottom_lead_half',    bottom_lead_half)
     store_my_data(simulation, 'x_pos',               cross_section.x)
     store_my_data(simulation, 'y_pos',               cross_section.y)
-
 
 
     # Parameters folder

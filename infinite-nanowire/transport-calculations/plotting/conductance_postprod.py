@@ -23,7 +23,7 @@ from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
 
 #%% Loading data
-file_list = ['Exp5.h5']
+file_list = ['Exp6.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data_gap/data_oscillations_amorphous_cross_section')
 
 # Parameters
@@ -116,11 +116,11 @@ ax1_3.plot(fermi, G0, color='#9A32CD', label='$\phi / \phi_0=0$')
 ax1_3.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0=0.56$ ')
 ax1_3.legend(ncol=1, frameon=False, fontsize=16)
 
-y_axis_ticks = [i for i in range(0, 30, 2)]
-y_axis_labels = [str(i) for i in range(0, 30, 2)]
+y_axis_ticks = [i for i in range(0, 18, 2)]
+y_axis_labels = [str(i) for i in range(0, 18, 2)]
 for ax in [ax1_1, ax1_2, ax1_3]:
     ax.set_xlim(fermi[0], fermi[-1])
-    ax.set_ylim(0, 30)
+    ax.set_ylim(0, 18)
     ax.tick_params(which='major', width=0.75, labelsize=10)
     ax.tick_params(which='major', length=6, labelsize=10)
     ax.set_xlabel("$E_F$ [$t$]", fontsize=10)
