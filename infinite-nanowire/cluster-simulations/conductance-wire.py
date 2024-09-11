@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description='Argument parser for the XYZ model 
 parser.add_argument('-l', '--line', type=int, help='Select line number', default=None)
 parser.add_argument('-f', '--file', type=str, help='Select file name', default='params.txt')
 parser.add_argument('-M', '--outdir', type=str, help='Select the base name of the output file', default='outdir')
-parser.add_argument('-o', '--outbase', type=str, help='Select the base name of the output file', default='outXYZ')
+parser.add_argument('-o', '--outbase', type=str, help='Select the base name of the output file', default='exp')
 args = parser.parse_args()
 
 
@@ -61,7 +61,7 @@ loger_main.addHandler(stream_handler)
 We calculate the conductance and bands for an amorphous cross-section wire.
 """
 
-Nx, Ny    = 5, 5                     # Number of sites in the cross-section
+Nx, Ny    = 10, 10                     # Number of sites in the cross-section
 n_layers  = 120                        # Number of cross-section layers
 width     = 0.1                        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3                        # Nearest-neighbour cutoff distance
@@ -72,7 +72,7 @@ lamb_z    = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads  = -1 * t                     # Chemical potential at the leads
 flux0     = 0.                         # O flux
 flux_half = 0.56                       # Close to half flux
-fermi     = np.linspace(0, 1, 2)     # Fermi level for calculating the conductance
+fermi     = np.linspace(0, 1, 500)     # Fermi level for calculating the conductance
 kz        = np.linspace(-pi, pi, 101)  # Transversal momentum to the wire
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 

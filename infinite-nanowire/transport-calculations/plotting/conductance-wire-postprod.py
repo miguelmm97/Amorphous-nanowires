@@ -168,5 +168,3 @@ for ax in [ax3_1, ax3_2, ax3_3, ax3_4]:
 plt.show()
 
 
-
-
