@@ -48,7 +48,7 @@ loger_main.addHandler(stream_handler)
 We calculate the conductance and bands for an amorphous cross-section wire.
 """
 
-Nx, Ny    = 5, 5                     # Number of sites in the cross-section
+Nx, Ny    = 10, 10                     # Number of sites in the cross-section
 n_layers  = 120                        # Number of cross-section layers
 width     = 0.1                        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3                        # Nearest-neighbour cutoff distance
@@ -56,10 +56,10 @@ t         = 1                          # Hopping
 eps       = 4 * t                      # Onsite orbital hopping (in units of t)
 lamb      = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z    = 1.8 * t                    # Spin-orbit coupling along z direction
-mu_leads  = -1 * t                     # Chemical potential at the leads
+mu_leads  = 0 * t                      # Chemical potential at the leads
 flux0     = 0.                         # O flux
 flux_half = 0.56                       # Close to half flux
-fermi     = np.linspace(0, 1, 2)     # Fermi level for calculating the conductance
+fermi     = np.linspace(0, 1, 500)     # Fermi level for calculating the conductance
 kz        = np.linspace(-pi, pi, 101)  # Transversal momentum to the wire
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
@@ -123,11 +123,11 @@ bottom_lead_half = bands(0)
 
 #%% Saving data
 
-
-file_list = os.listdir('/home/mfmm/Projects/amorphous-nanowires/data_gap/data_oscillations_amorphous_cross_section')
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data_oscillations_amorphous_cross_section'
+file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join('/home/mfmm/Projects/amorphous-nanowires/data_gap/data_oscillations_amorphous_cross_section', filename)
+filepath = os.path.join(data_dir, filename)
 
 with h5py.File(filepath, 'w') as f:
 

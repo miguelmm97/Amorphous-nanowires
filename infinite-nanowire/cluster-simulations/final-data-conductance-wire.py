@@ -6,7 +6,7 @@ from modules.functions import *
 """
 Generate final data file from the raw data.
 """
-
+print('Opening files...')
 #%% Loading raw data
 data_dir = 'data'
 Nsamples = len(os.listdir(data_dir))
@@ -35,11 +35,13 @@ with h5py.File(sample_file_path, 'r') as f:
     G0         = np.zeros((len(fermi), Nsamples))
     G_half     = np.zeros((len(fermi), Nsamples))
 
+print('loaded...')
 
 # Data from the simulation
 n = 0
 for file in os.listdir(data_dir):
     file_path = os.path.join(data_dir, file)
+    print('file:', file)
 
     with h5py.File(file_path, 'r') as f:
         G0[:, n]      = f['Simulation/G0'][()]
@@ -55,7 +57,7 @@ std_G_half  = np.std(G_half, axis=1)
 
 #%% Saving data
 outfile = 'final-data-conductance-wire.h5'
-filepath = os.path.join('..', outfile)
+filepath = outfile
 
 with h5py.File(filepath, 'w') as f:
 
@@ -88,3 +90,4 @@ with h5py.File(filepath, 'w') as f:
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))
     attr_my_data(parameters, "Code_path",  sys.argv[0])
+print('Done...')
