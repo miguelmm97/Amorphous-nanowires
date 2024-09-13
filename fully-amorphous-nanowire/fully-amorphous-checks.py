@@ -89,8 +89,7 @@ fig1 = plt.figure(figsize=(6, 6))
 gs = GridSpec(1, 1, figure=fig1)
 ax1 = fig1.add_subplot(gs[0, 0], projection='3d')
 kwant.plot(nanowire, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
-           lead_site_size=site_size, lead_color=lead_color, lead_site_lw=site_lw, lead_hop_lw=hop_lw,
-           ax=ax1)
+           lead_site_size=site_size, lead_color=lead_color, lead_site_lw=site_lw, lead_hop_lw=hop_lw, ax=ax1)
 ax1.set_axis_off()
 ax1.margins(-0.49, -0.49, -0.49)
 

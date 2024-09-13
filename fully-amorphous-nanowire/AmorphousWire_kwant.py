@@ -227,6 +227,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     # Left lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
+    scatt_region[(latt_lead(i, j, -2) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
 
@@ -237,6 +238,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     for site in interface_left:
         scatt_region[((latt(site), latt_lead(i, j, -1)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_lead_wire
+    scatt_region[((latt_lead(i, j, -1), latt_lead(i, j, 0)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_z_up
     scatt_region.attach_lead(left_lead)
 
 
@@ -256,6 +258,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     # Right lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, latt.Nz - 1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
+    scatt_region[(latt_lead(i, j, latt.Nz) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
 
@@ -266,6 +269,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     for site in interface_right:
         scatt_region[((latt(site), latt_lead(i, j, latt.Nz - 1)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_lead_wire
+    scatt_region[((latt_lead(i, j, latt.Nz), latt_lead(i, j, latt.Nz - 1)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_z_up
     scatt_region.attach_lead(right_lead)
 
     return scatt_region
