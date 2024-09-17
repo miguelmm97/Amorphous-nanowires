@@ -46,7 +46,7 @@ loger_main.addHandler(stream_handler)
 We calculate the conductance and bands for an amorphous cross-section wire.
 """
 
-Nx, Ny, Nz = 5, 5, 10                    # Number of sites in the cross-section
+Nx, Ny, Nz = 3, 3, 3                    # Number of sites in the cross-section
 width      = 0.1                        # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                        # Nearest-neighbour cutoff distance
 t          = 1                          # Hopping
@@ -65,6 +65,7 @@ lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=1.3)
 lattice.build_lattice()
 nanowire = promote_to_kwant_nanowire(lattice, params_dict, mu_leads=mu_leads).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
+
 
 
 

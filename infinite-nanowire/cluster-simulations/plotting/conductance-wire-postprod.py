@@ -17,7 +17,7 @@ from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
 
 #%% Loading data
-file_list = ['final-data-conductance-wire.h5']
+file_list = ['final-data-conductance-wire-002.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cluster')
 
 # Parameters
@@ -71,17 +71,17 @@ ax0.fill_between(fermi, error_0_down, error_0_up, color='#9A32CD', alpha=0.3)
 ax0.fill_between(fermi, error_half_down, error_half_up,  color='#3F6CFF', alpha=0.3)
 ax0.legend(ncol=1, frameon=False, fontsize=fontsize)
 
-y_axis_ticks = [i for i in range(0, 6, 2)]
-y_axis_labels = [str(i) for i in range(0, 6, 2)]
-ax0.set_xlim(fermi[0], 0.4)
-ax0.set_ylim(0, 6)
+y_axis_ticks = [i for i in range(0, 10, 2)]
+y_axis_labels = [str(i) for i in range(0, 10, 2)]
+ax0.set_xlim(fermi[0], 0.8)
+ax0.set_ylim(0, 10)
 ax0.tick_params(which='major', width=major_width, labelsize=labelsize)
 ax0.tick_params(which='major', length=major_length, labelsize=labelsize)
 ax0.set_xlabel("$E_F$ [$t$]", fontsize=fontsize)
 ax0.set_ylabel("$G[2e^2/h]$",fontsize=fontsize)
 ax0.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
-fig0.suptitle(f'Average over ${Nsamples}$ samples with $\mu_l= {mu_leads}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {n_layers}$', y=0.93, fontsize=fontsize)
-fig0.savefig(f'AB-osc.pdf', format='pdf', backend='pgf')
+fig0.suptitle(f'$N_s= {Nsamples}$, $\mu_l= {mu_leads}$, $w= {width}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {n_layers}$', y=0.93, fontsize=fontsize)
+fig0.savefig(f'AB-osc-002.pdf', format='pdf', backend='pgf')
 plt.show()
 
 
