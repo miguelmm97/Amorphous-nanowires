@@ -223,12 +223,10 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     left_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     left_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     left_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
-    print(latt(3).pos)
 
     # Left lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, -1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
-    # scatt_region[(latt_lead(i, j, -2) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
 
@@ -240,8 +238,8 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     for site in interface_left:
         for i in range(latt.Nx):
             for j in range(latt.Ny):
-                scatt_region[(latt(site), latt_lead(i, j, -1))] = hopp_lead_wire
-    # # scatt_region[((latt_lead(i, j, -1), latt_lead(i, j, -2)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_z_up
+                if displacement3D_kwant(latt_lead(i, j, -1), latt(site))[0] < lattice_tree.r:
+                    scatt_region[(latt(site), latt_lead(i, j, -1))] = hopp_lead_wire
     scatt_region.attach_lead(left_lead)
 
 
@@ -273,8 +271,8 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     for site in interface_right:
         for i in range(latt.Nx):
             for j in range(latt.Ny):
-                scatt_region[(latt(site), latt_lead(i, j, latt.Nz))] = hopp_lead_wire
-    # scatt_region[((latt_lead(i, j, latt.Nz + 1), latt_lead(i, j, latt.Nz)) for i in range(latt.Nx) for j in range(latt.Ny))] = hopp_z_up
+                if displacement3D_kwant(latt_lead(i, j, latt.Nz), latt(site))[0] < lattice_tree.r:
+                    scatt_region[(latt(site), latt_lead(i, j, latt.Nz))] = hopp_lead_wire
     scatt_region.attach_lead(right_lead)
 
     return scatt_region

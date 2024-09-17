@@ -46,7 +46,7 @@ loger_main.addHandler(stream_handler)
 We calculate the conductance and bands for an amorphous cross-section wire.
 """
 
-Nx, Ny, Nz = 3, 3, 3                    # Number of sites in the cross-section
+Nx, Ny, Nz = 5, 5, 20                    # Number of sites in the cross-section
 width      = 0.1                        # Spread of the Gaussian distribution for the lattice sites
 r          = 1.3                        # Nearest-neighbour cutoff distance
 t          = 1                          # Hopping
