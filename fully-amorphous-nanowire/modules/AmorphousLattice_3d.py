@@ -52,15 +52,11 @@ that are not relevant for nanowire physics.
 """
 
 # Functions for creating the lattice
-def gaussian_point_set_2D(x, y, width):
+def gaussian_point_set_3D(x, y, z, width):
     x = np.random.normal(x, width, len(x))
     y = np.random.normal(y, width, len(y))
-    return x, y
-
-def random_point_set_2D(x, y, d):
-    x = x + d * (2 * np.random.rand(x.shape[0]) - 1)
-    y = y + d * (2 * np.random.rand(y.shape[0]) - 1)
-    return x, y
+    z = np.random.normal(z, width, len(z))
+    return x, y, z
 
 def displacement2D(x1, y1, x2, y2):
 
@@ -84,6 +80,41 @@ def displacement2D(x1, y1, x2, y2):
             phi = 2 * pi + np.arctan2(v[1], v[0])    # 3rd and 4th quadrants
 
     return r, phi
+
+def displacement(x1, y1, z1, x2, y2, z2, L_x, L_y, L_z):
+    # Definition of the vector between sites 2 and 1 (from st.1 to st.2)
+    v = np.zeros((3,))
+    v[0] = (x2 - x1)
+    v[1] = (y2 - y1)
+    v[2] = (z2 - z1)
+    r = np.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
+
+    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
+    if v[0] == 0:
+        if v[1] > 0:  # Pathological case, separated to not divide by 0
+            phi = pi / 2
+        else:
+            phi = 3 * pi / 2
+    else:
+        if v[1] > 0:  # We take arctan2 because we have 4 quadrants
+            phi = np.arctan2(v[1], v[0])  # 1st and 2nd quadrants
+        else:
+            phi = 2 * pi + np.arctan2(v[1], v[0])  # 3rd and 4th quadrants
+
+    # Theta angle of the vector between sites 2 and 1 (angle from z)
+    r_plane = np.sqrt(v[0] ** 2 + v[1] ** 2)  # Auxiliary radius for the xy plane
+
+    if r_plane == 0:  # Pathological case, separated to not divide by 0
+        if v[2] > 0:  # Hopping in z
+            theta = 0
+        elif v[2] < 0:  # Hopping in -z
+            theta = pi
+        else:
+            theta = pi / 2  # XY planes
+    else:
+        theta = pi / 2 - np.arctan(v[2] / r_plane)  # 1st and 2nd quadrants
+
+    return r, phi, theta
 
 def angle_x(v):
 
@@ -122,41 +153,45 @@ def remove_site(list, site):
 
 
 @dataclass
-class AmorphousLattice_2d:
+class AmorphousLattice_3d:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Lattice parameters
     Nx: int   # Number of lattice sites along x direction
     Ny: int   # Number of lattice sites along y direction
+    Nz: int  # Number of lattice sites along y direction
     w: float  # Width of the Gaussian distribution
     r: float  # Cutoff distance to consider neighbours
 
     # Class fields
-    Nsites: int = field(init=False)             # Number of sites in the cross-section
-    neighbours: np.ndarray = field(init=False)  # Neighbours list for each site
-    boundary: list = field(init=False)          # List of sites forming the boundary
-    area: float = field(init=False)             # Area of the wire's cross-section
-    x: np.ndarray = field(init=False)           # x position of the sites
-    y: np.ndarray = field(init=False)           # y position of the sites
+    Nsites: int = field(init=False)                         # Number of sites in the cross-section
+    neighbours: np.ndarray = field(init=False)              # Neighbours list for each site
+    neighbours_projection: np.ndarray = field(init=False)   # Neighbours list for each site on the 2d projection
+    boundary: list = field(init=False)                      # List of sites forming the boundary
+    area: float = field(init=False)                         # Area of the wire's cross-section
+    x: np.ndarray = field(init=False)                       # x position of the sites
+    y: np.ndarray = field(init=False)                       # y position of the sites
+    z: np.ndarray = field(init=False)                       # z position of the sites
 
 
     # Methods for building the lattice
-    def generate_configuration(self, from_x=None, from_y=None):
+    def generate_configuration(self, from_x=None, from_y=None, from_z=None):
 
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
         # Dimension of the Hilbert space and sites
-        self.Nsites = int(self.Nx * self.Ny)
+        self.Nsites = int(self.Nx * self.Ny * self.Nz)
         list_sites = np.arange(0, self.Nsites)
         x_crystal = list_sites % self.Nx
-        y_crystal = list_sites // self.Nx
+        y_crystal = (list_sites // self.Nx) % self.Ny
+        z_crystal = list_sites // (self.Nx * self.Ny)
 
         # Positions of x and y coordinates on the amorphous lattice
-        if from_x is not None and from_y is not None:
-            self.x, self.y = from_x, from_y
+        if from_x is not None and from_y is not None and from_z is not None:
+            self.x, self.y, self.z = from_x, from_y, from_z
         else:
-            self.x, self.y = gaussian_point_set_2D(x_crystal, y_crystal, self.w)
-        coords = np.array([self.x, self.y])
+            self.x, self.y, self.z = gaussian_point_set_3D(x_crystal, y_crystal, z_crystal, self.w)
+        coords = np.array([self.x, self.y, self.z])
 
         # Neighbour tree and accepting/discarding the configuration
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
@@ -165,24 +200,32 @@ class AmorphousLattice_2d:
             if len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def build_lattice(self, from_x=None, from_y=None, n_tries=0):
+    def build_lattice(self, from_x=None, from_y=None, from_z=None, n_tries=0):
 
         if n_tries > 100:
             loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
 
         try:
-            self.generate_configuration(from_x=from_x, from_y=from_y)
+            self.generate_configuration(from_x=from_x, from_y=from_y, from_z=from_z)
             self.get_boundary()
             loger_amorphous.info('Configuration accepted!')
         except Exception as error:
             loger_amorphous.warning(f'{error}')
             try:
-                self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
+                self.build_lattice(from_x=None, from_y=None, from_z=None, n_tries=n_tries + 1)
             except RecursionError:
                 loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
                 exit()
 
     def get_boundary(self):
+
+        # Collapse of the full lattice into a 2d plane
+        coords = np.array([self.x, self.y])
+        self.neighbours_projection = KDTree(coords.T).query_ball_point(coords.T, self.r)
+        for i in range(self.Nsites):
+            self.neighbours_projection[i].remove(i)
+            if len(self.neighbours_projection[i]) < 2:
+                raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
         # Initial parameters of the algorithm
         aux_vector = np.array([1, 0])
@@ -204,9 +247,9 @@ class AmorphousLattice_2d:
             current_point = Point(current_x, current_y)
 
             # Scan for the neighbour at the boundary
-            list_neighbours = remove_site(self.neighbours[site0], avoid_site)
+            list_neighbours = remove_site(self.neighbours_projection[site0], avoid_site)
             if list_neighbours is None:
-                raise TypeError('Boundary too complicated to handle. Trying a different configuration...')
+                raise TypeError('2d boundary too complicated to handle. Trying a different configuration...')
 
             for n in list_neighbours:
                 line_neigh = LineString([current_point, Point(self.x[n], self.y[n])])
@@ -248,7 +291,112 @@ class AmorphousLattice_2d:
             self.plot_lattice(ax1)
             plt.show()
 
-    def plot_lattice(self, ax):
+    def plot_lattice(self, ax, numbering=False):
+
+        # Neighbour links
+        for site in range(self.Nsites):
+            for n in self.neighbours[site]:
+                ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], [self.z[site], self.z[n]], 'royalblue', linewidth=1, alpha=0.2)
+                if numbering:
+                    ax.text(self.x[n] + 0.1, self.y[n] + 0.1, self.z[n] + 0.1, str(n))
+
+        # Lattice sites
+        ax.scatter(self.x, self.y, self.z, color='deepskyblue', s=50)
+        ax.set_axis_off()
+
+    def plot_lattice_projection(self, ax, numbering=False):
+
+        # Neighbour links
+        for site in range(self.Nsites):
+            for n in self.neighbours_projection[site]:
+                ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], 'royalblue', linewidth=1, alpha=0.2)
+                if numbering:
+                    ax.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
+
+        # Boundary
+        try:
+            for j in range(0, len(self.boundary)):
+                if j == len(self.boundary) - 1:
+                    site1, site2 = self.boundary[j], self.boundary[0]
+                else:
+                    site1, site2 = self.boundary[j], self.boundary[j + 1]
+                ax.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
+        except AttributeError:
+            loger_amorphous.warning('Boundary has not been calculated before plotting')
+            pass
+
+        # Lattice sites
+        ax.scatter(self.x, self.y, color='deepskyblue', s=50)
+        ax.set_axis_off()
+
+    # Alternative way of getting the boundary
+    def get_boundary2(self):
+
+        # Initial parameters of the algorithm
+        aux_vector = np.array([1, 0])
+        count, loop, avoid_site = 0, 0, None
+
+        # Initial site of the boundary
+        site0 = np.where(self.x == min(self.x))[0][0]
+        boundary_points = [Point(self.x[site0], self.y[site0])]
+        multipts_boundary = MultiPoint(boundary_points)
+        boundary_line = LineString([])
+        self.boundary = [site0]
+        start_site = site0
+
+        # Algorithm to find the boundary
+        loger_amorphous.trace('Constructing the boundary of the lattice...')
+        while site0 != start_site or (site0 == start_site and count == 0):
+            dif, return_needed = 2 * pi - 0.01, True
+            current_x, current_y = self.x[site0], self.y[site0]
+            current_point = Point(current_x, current_y)
+
+            # Scan for the neighbour at the boundary
+            list_neighbours = remove_site(self.neighbours[site0], avoid_site)
+            if list_neighbours is None:
+                raise TypeError('2d boundary too complicated to handle. Trying a different configuration...')
+
+            for n in list_neighbours:
+                line_neigh = LineString([current_point, Point(self.x[n], self.y[n])])
+                r, phi = displacement2D(current_x, current_y, self.x[n], self.y[n])
+                vector_neigh = np.array([np.cos(phi), np.sin(phi)])
+                ang = angle(vector_neigh, -aux_vector)
+                if ang < dif:
+                    if count == 0:
+                        dif, new_aux_vector, site0, return_needed = ang, vector_neigh, n, False
+                    elif no_intersection(boundary_line, multipts_boundary, line_neigh):
+                        dif, new_aux_vector, site0, return_needed = ang, vector_neigh, n, False
+
+            if return_needed:
+                new_aux_vector = np.array([self.x[self.boundary[-2]] - self.x[self.boundary[-3]],
+                                           self.y[self.boundary[-2]] - self.y[self.boundary[-3]]])
+                avoid_site = site0
+                site0 = self.boundary[-2]
+
+            # New point at the boundary
+            boundary_points.append(Point(self.x[site0], self.y[site0]))
+            multipts_boundary = MultiPoint(boundary_points)
+            boundary_line = LineString(boundary_points)
+            self.boundary.append(site0)
+            count += 1
+            aux_vector = new_aux_vector
+
+            # In case we run into an infinite loop
+            if len(self.boundary) > self.Nsites:
+                raise OverflowError('Algorithm caught in an infinite loop.')
+            loger_amorphous.trace(f'Boundary given by: {self.boundary}')
+
+        loger_amorphous.trace(f'Boundary given by: {self.boundary}')
+        self.area = Polygon(boundary_points).area
+        if self.area < 0.25 * (self.Nx * self.Ny):
+            loger_amorphous.warning(
+                'Area too small, this configuration might have an isolated island. Plotting for a check...')
+            fig1 = plt.figure(figsize=(6, 6))
+            ax1 = fig1.gca()
+            self.plot_lattice(ax1)
+            plt.show()
+
+    def plot_lattice_projection2(self, ax):
 
         # Neighbour links
         for site in range(self.Nsites):
@@ -270,3 +418,4 @@ class AmorphousLattice_2d:
 
         # Lattice sites
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
+        ax.set_axis_off()

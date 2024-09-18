@@ -1,4 +1,4 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 import numpy as np
@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import date
 
-# Modules
+# modules
 from functions import load_my_data, load_my_attr
 
 #%% Loading data

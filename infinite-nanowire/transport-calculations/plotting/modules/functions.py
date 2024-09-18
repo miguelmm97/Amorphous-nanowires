@@ -1,4 +1,4 @@
- #%% Modules setup
+ #%% modules setup
 
 # Managing logging
 import logging

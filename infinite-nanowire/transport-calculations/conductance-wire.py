@@ -1,4 +1,4 @@
-#%% Modules set up
+#%% modules set up
 
 # Math
 import numpy as np
@@ -9,7 +9,7 @@ from matplotlib.gridspec import GridSpec
 # Kwant
 import kwant
 
-# Modules
+# modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, infinite_nanowire_kwant

@@ -1,4 +1,4 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 import numpy as np
@@ -11,7 +11,7 @@ import kwant
 
 import h5py
 
-# Modules
+# modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire

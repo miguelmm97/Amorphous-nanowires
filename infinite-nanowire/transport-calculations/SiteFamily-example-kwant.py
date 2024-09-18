@@ -1,4 +1,4 @@
-#%% Modules set up
+#%% modules set up
 
 # Math
 import numpy as np
@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import kwant
 import tinyarray as ta
 
-# Modules
+# modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 

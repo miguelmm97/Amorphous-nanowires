@@ -1,4 +1,4 @@
-# %% Modules setup
+# %% modules setup
 
 # Math and plotting
 from numpy import pi
@@ -153,7 +153,7 @@ class FullyAmorphousWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire(lattice_tree, param_dict, attach_leads=True, mu_leads=0.):
+def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_leads=0.):
 
     # Load parameters into the builder namespace
     try:

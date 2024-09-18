@@ -1,4 +1,4 @@
-# %% Modules setup
+# %% modules setup
 
 # Math and plotting
 from numpy import pi

@@ -1,9 +1,9 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 import numpy as np
 
-# Modules
+# modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.InfiniteNanowire import InfiniteNanowire_FuBerg

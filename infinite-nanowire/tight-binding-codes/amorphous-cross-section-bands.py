@@ -1,11 +1,11 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 from numpy import pi
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-# Modules
+# modules
 from modules.functions import *
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.InfiniteNanowire import InfiniteNanowire_FuBerg

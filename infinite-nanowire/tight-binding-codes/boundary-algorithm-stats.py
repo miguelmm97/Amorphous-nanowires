@@ -1,11 +1,11 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-# Modules
+# modules
 from modules.AmorphousLattice_2d import AmorphousLattice_2d
 
 #%% Main
