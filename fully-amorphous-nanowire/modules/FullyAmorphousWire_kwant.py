@@ -276,3 +276,22 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     scatt_region.attach_lead(right_lead)
 
     return scatt_region
+
+def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=200):
+
+    loger_kwant.info(f'Calculating flux that gives perfect conductance for this sample...')
+    flux = np.linspace(flux0, flux_end, Nflux)
+
+    Gmax = 0.
+    flux_max = flux0
+    for i, phi in enumerate(flux):
+        S0 = kwant.smatrix(nanowire, 0.1, params=dict(flux=phi))
+        G = S0.transmission(1, 0)
+        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G}')
+        if G > Gmax:
+            Gmax = G
+            flux_max = phi
+        else:
+            pass
+
+    return flux_max, Gmax

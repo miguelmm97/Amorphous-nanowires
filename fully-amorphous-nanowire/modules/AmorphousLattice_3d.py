@@ -47,7 +47,7 @@ loger_amorphous.addHandler(stream_handler)
 
 #%% Module
 """
-We set up a class to model an amorphous lattice in 2d, with proper connectivity and excluding edge cases
+We set up a class to model an amorphous lattice in 3d, with proper connectivity and excluding edge cases
 that are not relevant for nanowire physics.
 """
 
