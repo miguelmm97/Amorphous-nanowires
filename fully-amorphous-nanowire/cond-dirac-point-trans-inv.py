@@ -11,8 +11,9 @@ import kwant
 
 # modules
 from modules.functions import *
-from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
+from modules.InfiniteNanowire import InfiniteNanowire_FuBerg
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -47,18 +48,17 @@ loger_main.addHandler(stream_handler)
 We check that the fully amorphous wire reduces to the translation invariant one.
 """
 
-Nx, Ny, Nz       = 5, 5, 20                   # Number of sites in the cross-section
+Nx, Ny, Nz       = 5, 5, 50                   # Number of sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
-mu_leads         = 0 * t                      # Chemical potential at the leads
-flux             = np.linspace(0, 5, 2000)    # Magnetic flux
+mu_leads         = 1 * t                      # Chemical potential at the leads
+flux             = np.linspace(0, 3, 500)     # Magnetic flux
 width            = [0.0001, 0.02, 0.05, 0.1]  # Amorphous width
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
-# Preallocation
 kwant_nw_dict = {}
 lattice_dict = {}
 G_array = np.zeros((len(width), len(flux)), dtype=np.float64)
@@ -68,10 +68,10 @@ gap_array = np.zeros((len(width), len(flux)), dtype=np.float64)
 # Generate nanowires
 for i, w in enumerate(width):
     loger_main.info('Generating translation invariance amorphous lattice...')
-    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
+    lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
     lattice.build_lattice()
     lattice_dict[i] = lattice
-    kwant_nw_dict[i] = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+    kwant_nw_dict[i] = promote_to_kwant_nanowire(lattice, Nz, params_dict, mu_leads=mu_leads).finalized()
     loger_main.info('Nanowire promoted to Kwant successfully.')
 
 
@@ -82,7 +82,14 @@ for key in kwant_nw_dict.keys():
         # Conductance
         S = kwant.smatrix(kwant_nw_dict[key], dirac_point, params=dict(flux=phi))
         G_array[key, j] = S.transmission(1, 0)
-        loger_main.info(f'Width: {key} / {len(width) - 1}, flux: {j} / {len(flux)} || G: {G_array[key, j] :.2e}')
+
+        # Gap
+        nanowire = InfiniteNanowire_FuBerg(lattice=lattice_dict[key], t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
+        nanowire.get_bands(k_0=0, k_end=0, Nk=1)
+        gap_array[key, j] = nanowire.get_gap()
+
+        loger_main.info(f'Width: {key} / {len(width) - 1}, flux: {j} / {len(flux)} || G: {G_array[key, j] :.2e}, '
+                        f'gap: {gap_array[key, j] :.4e}')
 
 
 #%% Figures
@@ -101,6 +108,7 @@ ax1 = fig1.add_subplot(gs[0, 0])
 # Figure 1: Plots
 for key in kwant_nw_dict.keys():
     ax1.plot(flux, G_array[key, :], color=color_list[key], label=f'$w= {width[key]}$')
+    ax1.plot(flux, gap_array[key, :], color=color_list[key], linestyle='dashed', alpha=0.2)
 ax1.plot(flux, 1 * np.ones(flux.shape),  color='Black', alpha=0.5)
 
 # Figure 1: Format
@@ -115,7 +123,8 @@ for ax in [ax1]:
     ax.set_xlabel("$\phi$", fontsize=10)
     ax.set_ylabel("$G[2e^2/h]$", fontsize=10)
 
-fig1.savefig('conductance-dirac-point-fully-amorphous.pdf', format='pdf', backend='pgf')
+fig1.savefig('conductance-dirac-point_try.pdf', format='pdf', backend='pgf')
 plt.show()
+
 
 
