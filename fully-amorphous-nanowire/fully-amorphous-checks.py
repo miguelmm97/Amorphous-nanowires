@@ -57,7 +57,7 @@ eps        = 4 * t                      # Onsite orbital hopping (in units of t)
 lamb       = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z     = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads   = 0 * t                      # Chemical potential at the leads
-fermi = np.linspace(0, 1, 300)
+fermi = np.linspace(0, 1, 2)
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 

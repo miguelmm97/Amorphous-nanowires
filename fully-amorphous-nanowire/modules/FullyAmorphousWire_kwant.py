@@ -117,6 +117,8 @@ def Peierls_kwant(site1, site0, flux, area):
         I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
 
+
+#%% Kwant classes
 """
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
@@ -277,6 +279,9 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     return scatt_region
 
+
+#%% Transport functions
+
 def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=200):
 
     loger_kwant.info(f'Calculating flux that gives perfect conductance for this sample...')
@@ -295,3 +300,27 @@ def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=20
             pass
 
     return flux_max, Gmax
+
+def thermal_average(G0, Ef0, T, thermal_interval= None):
+
+   # Definitions
+    energy_factor = 150                  # t=150 meV in Bi2Se3
+    k_B           = 8.617333262e-2       # [meV/K]
+    beta          = 1 / (k_B * T)
+    G_avg         = np.zeros(G0.shape)
+    if thermal_interval is None:
+        thermal_interval = int((1.5 * (k_B * T) * len(Ef0)) / (Ef0[:-1] - Ef0[0]))
+
+    def df_FD(E, Ef, T):
+        if T != 0:
+            return - beta * np.exp(beta * (E - Ef) * energy_factor) / (np.exp(beta * (E - Ef)* energy_factor) + 1) ** 2
+        else:
+            raise ValueError("T=0 limit undefined unless inside an integral!")
+
+    for i, Ef in enumerate(Ef0):
+        delta_E = Ef0[i - thermal_interval: i + thermal_interval]
+        delta_G = G0[i - thermal_interval: i + thermal_interval]
+        integrand = - delta_G * df_FD(delta_E, Ef, T)
+        G_avg[i] = np.trapezoid(integrand, delta_E)
+
+    return G_avg
