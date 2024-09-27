@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp2.h5']
+file_list = ['Exp4.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-L')
 
 # Parameters
@@ -64,6 +64,7 @@ ax1.legend(ncol=2, frameon=False, fontsize=10)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $E_f= {Ef}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$', y=0.93, fontsize=20)
 for ax in ax_vec:
     ax.set_xlim(Nz[-1], Nz[0])
+    ax.set_ylim(0, np.max(G_array))
     ax.tick_params(which='major', width=0.75, labelsize=10)
     ax.tick_params(which='major', length=6, labelsize=10)
     ax.set_xlabel("$L$", fontsize=fontsize)

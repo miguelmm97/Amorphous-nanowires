@@ -45,7 +45,7 @@ loger_main.addHandler(stream_handler)
 We check that the fully amorphous wire reduces to the translation invariant one.
 """
 
-Nx, Ny           = 3, 3                                       # Number of sites in the cross-section
+Nx, Ny           = 10, 10                                     # Number of sites in the cross-section
 r                = 1.3                                        # Nearest-neighbour cutoff distance
 t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
@@ -64,11 +64,16 @@ G_array = np.zeros((len(width), len(Nz), len(flux)), dtype=np.float64)
 
 # Generate nanowires
 for i, w in enumerate(width):
-    for j, L in enumerate(Nz):
 
-        # Generating wire
+    # Generating wire
+    full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
+    full_lattice.build_lattice()
+
+    for j, L in enumerate(Nz):
+        # Selecting different cuts of the wire
+        Nsites = int(Nx * Ny * L)
         lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
-        lattice.build_lattice()
+        lattice.build_lattice(from_x=full_lattice.x[:Nsites], from_y=full_lattice.y[:Nsites], from_z=full_lattice.z[:Nsites])
         nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
         # Calculating conductance
