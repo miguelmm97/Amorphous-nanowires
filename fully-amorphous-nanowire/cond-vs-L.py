@@ -54,8 +54,8 @@ lamb_z           = 1.8 * t                                    # Spin-orbit coupl
 mu_leads         = 1 * t                                      # Chemical potential at the leads
 Ef               = 0.04                                       # Fermi energy
 width            = [0.0001, 0.02, 0.05, 0.1]                  # Amorphous width 0.0001, 0.02, 0.05,
-Nz               = np.linspace(200, 30, 20, dtype=np.int32)   # Length of the wire
-flux             = np.linspace(0, 2, 9)                       # Flux
+Nz               = np.linspace(200, 30, 9, dtype=np.int32)    # Length of the wire
+flux             = np.linspace(0, 1.5, 300)                   # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
