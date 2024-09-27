@@ -208,7 +208,7 @@ class AmorphousLattice_3d:
         try:
             self.generate_configuration(from_x=from_x, from_y=from_y, from_z=from_z)
             self.get_boundary()
-            loger_amorphous.info('Configuration accepted!')
+            loger_amorphous.trace('Configuration accepted!')
         except Exception as error:
             loger_amorphous.warning(f'{error}')
             try:

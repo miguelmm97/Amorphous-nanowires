@@ -1,10 +1,7 @@
 #%% modules set up
 
 # Math and plotting
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import numpy as np
-from numpy import pi
 
 # Kwant
 import kwant

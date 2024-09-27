@@ -170,7 +170,7 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
     latt = FullyAmorphousWire_ScatteringRegion(norbs=4, lattice=lattice_tree, name='scatt_region')
 
     # Initialise kwant system
-    loger_kwant.info('Creating kwant scattering region...')
+    loger_kwant.trace('Creating kwant scattering region...')
     syst = kwant.Builder()
     syst[(latt(i) for i in range(latt.Nsites))] = onsite(eps)
 
@@ -214,7 +214,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, lattice_tree.r)
 
     # Left lead: definition
-    loger_kwant.info('Attaching left lead...')
+    loger_kwant.trace('Attaching left lead...')
     sym_left_lead = kwant.TranslationalSymmetry((0, 0, -1))
     left_lead = kwant.Builder(sym_left_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
@@ -246,7 +246,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
 
     # # Right lead: definition
-    loger_kwant.info('Attaching right lead...')
+    loger_kwant.trace('Attaching right lead...')
     sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
     right_lead = kwant.Builder(sym_right_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
@@ -282,9 +282,9 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=200):
+def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200):
 
-    loger_kwant.info(f'Calculating flux that gives perfect conductance for this sample...')
+    loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
 
     Gmax = 0.
@@ -292,7 +292,7 @@ def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=20
     for i, phi in enumerate(flux):
         S0 = kwant.smatrix(nanowire, 0.1, params=dict(flux=phi))
         G = S0.transmission(1, 0)
-        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G}')
+        loger_kwant.trace(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2e}')
         if G > Gmax:
             Gmax = G
             flux_max = phi
@@ -300,6 +300,25 @@ def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=0.7, Nflux=20
             pass
 
     return flux_max, Gmax
+
+def select_minimal_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200):
+
+    loger_kwant.trace(f'Calculating flux that gives minimal conductance for this sample...')
+    flux = np.linspace(flux0, flux_end, Nflux)
+
+    Gmin = 100
+    flux_min = flux0
+    for i, phi in enumerate(flux):
+        S0 = kwant.smatrix(nanowire, 0.1, params=dict(flux=phi))
+        G = S0.transmission(1, 0)
+        loger_kwant.trace(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2e}')
+        if G < Gmin:
+            Gmin = G
+            flux_min = phi
+        else:
+            pass
+
+    return flux_min, Gmin
 
 def thermal_average(G0, Ef0, T, thermal_interval= None):
 
