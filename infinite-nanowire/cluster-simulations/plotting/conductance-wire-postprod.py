@@ -13,8 +13,7 @@ import h5py
 
 # modules
 from modules.functions import *
-from modules.AmorphousLattice_2d import AmorphousLattice_2d
-from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
+from modules.AmorphousWire_kwant import thermal_average
 
 #%% Loading data
 file_list = ['final-data-conductance-wire-002.h5']
@@ -43,6 +42,13 @@ avg_G0       = data_dict[file_list[0]]['Simulation']['avg_G0']
 avg_G_half   = data_dict[file_list[0]]['Simulation']['avg_G_half']
 std_G0       = data_dict[file_list[0]]['Simulation']['std_G0']
 std_G_half   = data_dict[file_list[0]]['Simulation']['std_G_half']
+
+
+# Thermal average
+T = 1
+avg_G0 = thermal_average(avg_G0, fermi, 1)
+avg_G_half = thermal_average(avg_G_half, fermi, 1)
+
 
 
 #%% Figures
@@ -81,7 +87,7 @@ ax0.set_xlabel("$E_F$ [$t$]", fontsize=fontsize)
 ax0.set_ylabel("$G[2e^2/h]$",fontsize=fontsize)
 ax0.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 fig0.suptitle(f'$N_s= {Nsamples}$, $\mu_l= {mu_leads}$, $w= {width}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {n_layers}$', y=0.93, fontsize=fontsize)
-fig0.savefig(f'AB-osc-002.pdf', format='pdf', backend='pgf')
+fig0.savefig(f'AB-osc-002-thermal-average.pdf', format='pdf', backend='pgf')
 plt.show()
 
 

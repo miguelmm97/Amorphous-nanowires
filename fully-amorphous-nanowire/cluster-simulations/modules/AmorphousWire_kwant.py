@@ -3,7 +3,7 @@
 # Math and plotting
 from numpy import pi
 import numpy as np
-from scipy.integrate import quad, trapezoid
+from scipy.integrate import quad
 
 # Kwant
 import kwant
@@ -412,27 +412,3 @@ def FuBerg_model_bands(Nx, Ny, kz, flux, param_dict):
         eigenstates[i] = aux_eigenstates[:, :, i]
 
     return energy_bands, eigenstates
-
-def thermal_average(G0, Ef0, T, thermal_interval= None):
-
-   # Definitions
-    energy_factor = 150                    # t=150 meV in Bi2Se3
-    k_B           = 8.617333262e-2       # [meV/K]
-    beta          = 1 / (k_B * T)
-    G_avg         = np.zeros(G0.shape)
-    if thermal_interval is None:
-        thermal_interval = int((1.5 * (k_B * T) * len(Ef0)) / (Ef0[-1] - Ef0[0]))
-
-    def df_FD(E, Ef, T):
-        if T != 0:
-            return - beta * np.exp(beta * (E - Ef) * energy_factor) / (np.exp(beta * (E - Ef)* energy_factor) + 1) ** 2
-        else:
-            raise ValueError("T=0 limit undefined unless inside an integral!")
-
-    for i, Ef in enumerate(Ef0):
-        delta_E = Ef0[i - thermal_interval: i + thermal_interval]
-        delta_G = G0[i - thermal_interval: i + thermal_interval]
-        integrand = - delta_G * df_FD(delta_E, Ef, T)
-        G_avg[i] = trapezoid(integrand, delta_E)
-
-    return G_avg
