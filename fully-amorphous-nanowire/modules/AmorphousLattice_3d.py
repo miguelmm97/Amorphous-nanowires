@@ -157,16 +157,20 @@ class AmorphousLattice_3d:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Lattice parameters
-    Nx: int   # Number of lattice sites along x direction
-    Ny: int   # Number of lattice sites along y direction
-    Nz: int  # Number of lattice sites along y direction
-    w: float  # Width of the Gaussian distribution
-    r: float  # Cutoff distance to consider neighbours
+    Nx:       int   # Number of lattice sites along x direction
+    Ny:       int   # Number of lattice sites along y direction
+    Nz:       int   # Number of lattice sites along y direction
+    w:        float  # Width of the Gaussian distribution
+    K_onsite: float  # Strength of the onsite disorder distribution
+    K_hopp:   float  # Strength of the hopping disorder distribution
+    r:        float  # Cutoff distance to consider neighbours
 
     # Class fields
     Nsites: int = field(init=False)                         # Number of sites in the cross-section
     neighbours: np.ndarray = field(init=False)              # Neighbours list for each site
     neighbours_projection: np.ndarray = field(init=False)   # Neighbours list for each site on the 2d projection
+    onsite_disorder:  np.ndarray = field(init=False)        # Onsite disorder for each site
+    hopping_disorder:  list = field(init=False)             # Hopping disorder for each link
     boundary: list = field(init=False)                      # List of sites forming the boundary
     area: float = field(init=False)                         # Area of the wire's cross-section
     x: np.ndarray = field(init=False)                       # x position of the sites
@@ -175,44 +179,56 @@ class AmorphousLattice_3d:
 
 
     # Methods for building the lattice
-    def generate_configuration(self, from_x=None, from_y=None, from_z=None):
+    def generate_configuration(self, from_x=None, from_y=None, from_z=None, from_dis_onsite=None, from_dis_hopp=None):
 
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
-        # Dimension of the Hilbert space and sites
+        # Preallocation
+        self.x, self.y, self.z = from_x, from_y, from_z
+        self.onsite_disorder = from_dis_onsite
+        self.hopping_disorder = from_dis_hopp
         self.Nsites = int(self.Nx * self.Ny * self.Nz)
-        list_sites = np.arange(0, self.Nsites)
-        x_crystal = list_sites % self.Nx
-        y_crystal = (list_sites // self.Nx) % self.Ny
-        z_crystal = list_sites // (self.Nx * self.Ny)
 
         # Positions of x and y coordinates on the amorphous lattice
-        if from_x is not None and from_y is not None and from_z is not None:
-            self.x, self.y, self.z = from_x, from_y, from_z
-        else:
+        if self.x is None and self.y is None and self.z is None:
+            list_sites = np.arange(0, self.Nsites)
+            x_crystal = list_sites % self.Nx
+            y_crystal = (list_sites // self.Nx) % self.Ny
+            z_crystal = list_sites // (self.Nx * self.Ny)
             self.x, self.y, self.z = gaussian_point_set_3D(x_crystal, y_crystal, z_crystal, self.w)
         coords = np.array([self.x, self.y, self.z])
+
+        # Disorder realisations
+        if self.onsite_disorder is None:
+            self.onsite_disorder = np.random.uniform(-self.K_onsite, self.K_onsite, self.Nsites)
+        if self.hopping_disorder is None:
+            self.hopping_disorder = []
 
         # Neighbour tree and accepting/discarding the configuration
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
+            self.hopping_disorder.append(np.random.uniform(-self.K_hopp, self.K_hopp, len(self.neighbours[i])))
             if len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def build_lattice(self, from_x=None, from_y=None, from_z=None, n_tries=0):
+    def build_lattice(self, from_x=None, from_y=None, from_z=None, from_dis_onsite=None, from_dis_hopp=None, n_tries=0):
 
         if n_tries > 100:
             loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
+        if self.w  < 1e-10:
+            loger_amorphous.error('The amorphicity cannot be strictly 0')
+            exit()
 
         try:
-            self.generate_configuration(from_x=from_x, from_y=from_y, from_z=from_z)
+            self.generate_configuration(from_x=from_x, from_y=from_y, from_z=from_z,
+                                        from_dis_onsite=from_dis_onsite, from_dis_hopp=from_dis_hopp)
             self.get_boundary()
             loger_amorphous.trace('Configuration accepted!')
         except Exception as error:
             loger_amorphous.warning(f'{error}')
             try:
-                self.build_lattice(from_x=None, from_y=None, from_z=None, n_tries=n_tries + 1)
+                self.build_lattice(n_tries=n_tries + 1)
             except RecursionError:
                 loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
                 exit()

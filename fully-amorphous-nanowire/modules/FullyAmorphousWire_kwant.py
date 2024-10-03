@@ -166,18 +166,24 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    # Create lattice structure for the scattering region from the amorphous cross-section
+    # Create SiteFamily for the scattering region from the amorphous lattice
     latt = FullyAmorphousWire_ScatteringRegion(norbs=4, lattice=lattice_tree, name='scatt_region')
+
+    # Hopping and onsite functions
+    def onsite_potential(site):
+        index = site.tag()
+        return onsite(eps) + np.kron(sigma_0, tau_0) * lattice_tree.onsite_disorder[index]
+    def hopp(site1, site0, flux):
+        index0, index1 = site0.tag(), site1.tag()
+        index_neigh = np.where(lattice_tree.neighbours[index1] == index1)[0]
+        d, phi, theta = displacement3D_kwant(site1, site0)
+        return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
+                lattice_tree.hopping_disorder[index0, index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
 
     # Initialise kwant system
     loger_kwant.trace('Creating kwant scattering region...')
     syst = kwant.Builder()
-    syst[(latt(i) for i in range(latt.Nsites))] = onsite(eps)
-
-    # Hopping functions
-    def hopp(site1, site0, flux):
-        d, phi, theta = displacement3D_kwant(site1, site0)
-        return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+    syst[(latt(i) for i in range(latt.Nsites))] = onsite_potential
 
     # Populate hoppings
     for i in range(latt.Nsites):
@@ -279,7 +285,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     return scatt_region
 
-def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, K=0., mu_leads=0., from_disorder=None):
+def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0., from_disorder=None):
 
     # Load parameters into the builder namespace
     try:
@@ -296,11 +302,8 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, K=0., mu_leads=0., from
     for i in range(Nx):
         for j in range(Ny):
             for k in range(n_layers):
-                if from_disorder is None:
-                    syst[latt(i, j, k)] = onsite(eps) + np.random.uniform(-K, K) * np.kron(sigma_0, tau_0)
-                else:
-                    index_site = i + Nx * j + (Nx * Ny) * k
-                    syst[latt(i, j, k)] = onsite(eps) + from_disorder[index_site] * np.kron(sigma_0, tau_0)
+                index_site = i + Nx * j + (Nx * Ny) * k
+                syst[latt(i, j, k)] = onsite(eps) + from_disorder[index_site] * np.kron(sigma_0, tau_0)
 
     # Hoppings
     cutoff = 1.3

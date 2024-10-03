@@ -65,7 +65,7 @@ params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Fully amorphous wire
 loger_main.info('Generating fully amorphous lattice...')
-lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=1.3)
+lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=1.3, K_onsite=0., K_hopp=0.)
 lattice.build_lattice()
 nanowire1 = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
