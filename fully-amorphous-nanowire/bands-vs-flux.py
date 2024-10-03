@@ -49,7 +49,7 @@ t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
-mu_leads         = 1 * t                                      # Chemical potential at the leads
+mu_leads         = 0 * t                                      # Chemical potential at the leads
 width            = 0                                          # Amorphous width 0.0001, 0.02, 0.05,
 Nz               = 100                                        # Length of the wire
 flux             = np.linspace(0, 1, 9)                      # Flux
@@ -103,6 +103,6 @@ for i, phi in enumerate(flux):
     # ax.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
     ax.set_title(f'$\phi / \phi_0={phi :.2f}$')
 
-fig1.savefig(f'../figures/bands-vs-flux.pdf', format='pdf', backend='pgf')
+fig1.savefig(f'figures/bands-vs-flux.pdf', format='pdf', backend='pgf')
 plt.show()
 

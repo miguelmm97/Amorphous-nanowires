@@ -44,45 +44,48 @@ loger_main.addHandler(stream_handler)
 We check that the fully amorphous wire reduces to the translation invariant one.
 """
 
-Nx, Ny           = 5, 5                                       # Number of sites in the cross-section
+Nx, Ny           = 10, 10                                     # Number of sites in the cross-section
 r                = 1.3                                        # Nearest-neighbour cutoff distance
 t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
 mu_leads         = 1 * t                                      # Chemical potential at the leads
-Ef               = 0.04                                       # Fermi energy
+Ef               = 0.06                                       # Fermi energy
 width            = [0]                                        # Amorphous width 0.0001, 0.02, 0.05,
-Nz               = np.linspace(10000, 100, 10, dtype=np.int32) # Length of the wire
-flux             = np.linspace(0, 2, 200)                     # Flux
+disorder         = [0]
+Nz               = np.linspace(200, 100, 5, dtype=np.int32)   # Length of the wire
+flux             = np.linspace(0, 1, 100)                     # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
-G_array = np.zeros((len(width), len(Nz), len(flux)), dtype=np.float64)
+G_array = np.zeros((len(width), len(Nz), len(flux), len(disorder)), dtype=np.float64)
 #%% Main
 
 # Generate nanowires
 for i, w in enumerate(width):
+    for d, K in enumerate(disorder):
 
-    # Generating wire
-    # full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
-    # full_lattice.build_lattice()
+        # Generating wire
+        disorder_realisation = np.random.uniform(-K, K, size=int(Nx * Ny * np.max(Nz)))
+        # full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
+        # full_lattice.build_lattice()
 
-    for j, L in enumerate(Nz):
-        # Selecting different cuts of the wire
-        # Nsites = int(Nx * Ny * L)
-        # lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
-        # lattice.build_lattice(from_x=full_lattice.x[:Nsites], from_y=full_lattice.y[:Nsites], from_z=full_lattice.z[:Nsites])
-        # nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
-        nanowire = crystal_nanowire_kwant(Nx=Nx, Ny=Ny, n_layers=L, param_dict=params_dict, mu_leads=mu_leads).finalized()
+        for j, L in enumerate(Nz):
+            # Selecting different cuts of the wire
+            Nsites = int(Nx * Ny * L)
+            # lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
+            # lattice.build_lattice(from_x=full_lattice.x[:Nsites], from_y=full_lattice.y[:Nsites], from_z=full_lattice.z[:Nsites])
+            # nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+            nanowire = crystal_nanowire_kwant(Nx=Nx, Ny=Ny, n_layers=L, param_dict=params_dict,
+                                              from_disorder=disorder_realisation[:Nsites], mu_leads=mu_leads).finalized()
 
-
-        # Calculating conductance
-        for k, phi in enumerate(flux):
-            S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
-            G_array[i, j, k] = S.transmission(1, 0)
-            loger_main.info(f'Width: {i} / {len(width) - 1}, L: {j} / {len(Nz) - 1}, flux: {k} / {len(flux) - 1} '
-                            f'|| G: {G_array[i, j, k] :.2e}')
+            # Calculating conductance
+            for k, phi in enumerate(flux):
+                S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
+                G_array[i, j, k, d] = S.transmission(1, 0)
+                loger_main.info(f'Width: {i} / {len(width) - 1}, Disorder: {d} / {len(disorder) - 1}, L: {j} /'
+                                f'{len(Nz) - 1}, flux: {k} / {len(flux) - 1} || G: {G_array[i, j, k, d] :.2f}')
 
 
 #%% Saving data
@@ -100,6 +103,7 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'Nz',            Nz)
     store_my_data(simulation, 'flux',          flux)
     store_my_data(simulation, 'width',         width)
+    store_my_data(simulation, 'disorder',      disorder)
     store_my_data(simulation, 'G_array',       G_array)
 
     # Parameters folder

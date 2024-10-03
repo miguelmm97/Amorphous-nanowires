@@ -279,7 +279,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     return scatt_region
 
-def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0.):
+def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, K=0., mu_leads=0., from_disorder=None):
 
     # Load parameters into the builder namespace
     try:
@@ -293,7 +293,14 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0.):
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
     syst = kwant.Builder()
-    syst[(latt(i, j, k) for i in range(Nx) for j in range(Ny) for k in range(n_layers))] = onsite(eps)
+    for i in range(Nx):
+        for j in range(Ny):
+            for k in range(n_layers):
+                if from_disorder is None:
+                    syst[latt(i, j, k)] = onsite(eps) + np.random.uniform(-K, K) * np.kron(sigma_0, tau_0)
+                else:
+                    index_site = i + Nx * j + (Nx * Ny) * k
+                    syst[latt(i, j, k)] = onsite(eps) + from_disorder[index_site] * np.kron(sigma_0, tau_0)
 
     # Hoppings
     cutoff = 1.3
@@ -326,7 +333,8 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
+    def onsite_leads(K):
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) + np.random.normal(-K, K)
 
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
