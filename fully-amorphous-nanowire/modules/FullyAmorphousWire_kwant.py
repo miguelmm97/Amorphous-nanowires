@@ -171,14 +171,14 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
 
     # Hopping and onsite functions
     def onsite_potential(site):
-        index = site.tag()
+        index = site.tag[0]
         return onsite(eps) + np.kron(sigma_0, tau_0) * lattice_tree.onsite_disorder[index]
     def hopp(site1, site0, flux):
-        index0, index1 = site0.tag(), site1.tag()
-        index_neigh = np.where(lattice_tree.neighbours[index1] == index1)[0]
+        index0, index1 = site0.tag[0], site1.tag[0]
+        index_neigh = lattice_tree.neighbours[index0].index(index1)
         d, phi, theta = displacement3D_kwant(site1, site0)
         return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
-                lattice_tree.hopping_disorder[index0, index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+                lattice_tree.hopping_disorder[index0][index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
 
     # Initialise kwant system
     loger_kwant.trace('Creating kwant scattering region...')
