@@ -207,7 +207,7 @@ class AmorphousLattice_3d:
 
 
     # Methods for building the lattice
-    def generate_configuration(self):
+    def generate_configuration(self, restrict_connectivity=False):
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
         # Positions of x and y coordinates on the amorphous lattice
@@ -232,12 +232,12 @@ class AmorphousLattice_3d:
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
-            if len(self.neighbours[i]) < 2:
+            if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
             if gen_hopp_disorder:
                 self.hopping_disorder.append(np.random.uniform(-self.K_hopp, self.K_hopp, len(self.neighbours[i])))
 
-    def build_lattice(self, n_tries=0):
+    def build_lattice(self, n_tries=0, restrict_connectivity=False):
 
         if n_tries > 100:
             loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
@@ -245,18 +245,24 @@ class AmorphousLattice_3d:
             loger_amorphous.error('The amorphicity cannot be strictly 0')
             exit()
 
-        try:
-            self.generate_configuration()
-            self.get_boundary()
-            loger_amorphous.trace('Configuration accepted!')
-        except Exception as error:
-            loger_amorphous.warning(f'{error}')
+        # Restricting to only connected lattice configurations
+        if restrict_connectivity:
             try:
-                self.x, self.y, self.z, self.onsite_disorder, self.hopping_disorder = None, None, None, None, None
-                self.build_lattice(n_tries=n_tries + 1)
-            except RecursionError:
-                loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
-                exit()
+                self.generate_configuration(restrict_connectivity=True)
+                self.get_boundary()
+                loger_amorphous.trace('Configuration accepted!')
+            except Exception as error:
+                loger_amorphous.warning(f'{error}')
+                try:
+                    self.x, self.y, self.z, self.onsite_disorder, self.hopping_disorder = None, None, None, None, None
+                    self.build_lattice(n_tries=n_tries + 1, restrict_connectivity=True)
+                except RecursionError:
+                    loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
+                    exit()
+        else:
+            # Accepting literally anything
+            self.generate_configuration()
+            self.area = (self.Nx - 1) * (self.Ny - 1)
 
     def get_boundary(self):
 

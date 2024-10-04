@@ -76,6 +76,9 @@ for i, w in enumerate(width):
             lattice = build_from_parent_lattice(full_lattice, L, K_hopp=K)
             nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
+            # onsite_h5py = h5py.vlen_dtype(np.dtype(np.float64))
+            # onsite_disorder = f.create_dataset('onsite_disorder', ())
+
             # Calculating conductance
             for k, phi in enumerate(flux):
                 S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
@@ -91,6 +94,14 @@ file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')
 filepath = os.path.join(data_dir, filename)
+
+
+
+
+
+
+
+
 
 with h5py.File(filepath, 'w') as f:
 
