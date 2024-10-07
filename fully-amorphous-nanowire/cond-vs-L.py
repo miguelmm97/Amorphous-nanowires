@@ -8,7 +8,7 @@ import kwant
 
 # modules
 from modules.functions import *
-from modules.AmorphousLattice_3d import AmorphousLattice_3d, build_from_parent_lattice
+from modules.AmorphousLattice_3d import AmorphousLattice_3d, take_cut_from_parent_wire
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, crystal_nanowire_kwant
 
 #%% Logging setup
@@ -53,7 +53,7 @@ lamb_z           = 1.8 * t                                    # Spin-orbit coupl
 mu_leads         = 1 * t                                      # Chemical potential at the leads
 Ef               = 0.04                                       # Fermi energy
 width            = [0.0000000001]                             # Amorphous width 0.0001, 0.02, 0.05,
-disorder         = [0]
+disorder         = [0.2, 0.5, 1, 2]
 Nz               = np.linspace(200, 100, 5, dtype=np.int32)     # Length of the wire
 flux             = np.linspace(0, 1, 100)                     # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
@@ -65,15 +65,19 @@ G_array = np.zeros((len(width), len(Nz), len(flux), len(disorder)), dtype=np.flo
 # Generate nanowires
 for i, w in enumerate(width):
 
-    # Generating wire
-    full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r, K_hopp=0., K_onsite=0.)
+    # Generating lattice structure of the wire
+    full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
     full_lattice.build_lattice()
 
     for d, K in enumerate(disorder):
+
+        # Generating disorder realisation of the wire
+        full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
+
         for j, L in enumerate(Nz):
 
-            # Selecting different cuts of the wire
-            lattice = build_from_parent_lattice(full_lattice, L, K_hopp=K)
+            # Selecting different cuts of the wire for each disorder realisation
+            lattice = take_cut_from_parent_wire(full_lattice, L, keep_disorder=True)
             nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
             # onsite_h5py = h5py.vlen_dtype(np.dtype(np.float64))
