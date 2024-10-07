@@ -123,9 +123,9 @@ def load_my_attr(file_list, directory, dataset):
 
     return attr_dict
 
-def store_disorder_realisation(filepath, length, onsite_disorder, tag='sample'):
+def store_disorder_realisation(filepath, length, hopping_disorder, tag='sample'):
     with h5py.File(filepath, 'w') as f:
-        onsite_h5py = h5py.vlen_dtype(np.dtype(np.float64))
-        dataset = f.create_dataset(f'onsite_disorder_{tag}', (length, ), dtype=onsite_h5py)
+        disorder_h5py = h5py.vlen_dtype(np.dtype(np.float64))
+        dataset = f.create_dataset(f'onsite_disorder_{tag}', (length, ), dtype=disorder_h5py)
         for i in range(length):
-            dataset[i] = onsite_disorder[i]
+            dataset[i] = hopping_disorder[i]

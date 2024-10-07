@@ -61,7 +61,7 @@ mu_leads         = 1 * t                                      # Chemical potenti
 Ef               = 0.04                                       # Fermi energy
 width            = [0.0000000001]                             # Amorphous width 0.0001, 0.02, 0.05,
 disorder         = [0.2, 0.5, 1, 2]
-Nz               = np.linspace(200, 100, 5, dtype=np.int32)     # Length of the wire
+Nz               = np.linspace(200, 100, 5, dtype=np.int32)   # Length of the wire
 flux             = np.linspace(0, 1, 100)                     # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
@@ -80,7 +80,7 @@ for i, w in enumerate(width):
 
         # Generating disorder realisation of the wire
         full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
-        store_disorder_realisation(filepath, full_lattice.Nsites, full_lattice.onsite_disorder, tag=d)
+        store_disorder_realisation(filepath, full_lattice.Nsites, full_lattice.hopping_disorder, tag=d)
 
         for j, L in enumerate(Nz):
 
