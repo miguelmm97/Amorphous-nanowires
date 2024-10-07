@@ -10,7 +10,8 @@ import kwant
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d, take_cut_from_parent_wire
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, crystal_nanowire_kwant
-
+import sys
+from datetime import date
 #%% Logging setup
 loger_main = logging.getLogger('main')
 loger_main.setLevel(logging.INFO)
@@ -36,7 +37,13 @@ formatter = ColoredFormatter(
 stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
+#%% Data managing
 
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-L'
+file_list = os.listdir(data_dir)
+expID = get_fileID(file_list, common_name='Exp')
+filename = '{}{}{}'.format('Exp', expID, '.h5')
+filepath = os.path.join(data_dir, filename)
 
 
 #%% Variables
@@ -73,15 +80,13 @@ for i, w in enumerate(width):
 
         # Generating disorder realisation of the wire
         full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
+        store_disorder_realisation(filepath, full_lattice.Nsites, full_lattice.onsite_disorder, tag=d)
 
         for j, L in enumerate(Nz):
 
             # Selecting different cuts of the wire for each disorder realisation
             lattice = take_cut_from_parent_wire(full_lattice, L, keep_disorder=True)
             nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
-
-            # onsite_h5py = h5py.vlen_dtype(np.dtype(np.float64))
-            # onsite_disorder = f.create_dataset('onsite_disorder', ())
 
             # Calculating conductance
             for k, phi in enumerate(flux):
@@ -92,20 +97,6 @@ for i, w in enumerate(width):
 
 
 #%% Saving data
-
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-L'
-file_list = os.listdir(data_dir)
-expID = get_fileID(file_list, common_name='Exp')
-filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join(data_dir, filename)
-
-
-
-
-
-
-
-
 
 with h5py.File(filepath, 'w') as f:
 
