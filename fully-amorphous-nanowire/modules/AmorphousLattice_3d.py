@@ -165,7 +165,7 @@ def take_cut_from_parent_wire(parent, Nz, keep_disorder=True):
     lattice.build_lattice()
     if keep_disorder:
         lattice.K_hopp, lattice.K_onsite = parent.K_hopp, parent.K_onsite
-        lattice.set_disorder(onsite_disorder=parent.onsite_disorder, hopping_disorder=parent.hopping_disorder)
+        lattice.set_disorder(disorder=parent.disorder)
     return lattice
 
 @dataclass
@@ -185,8 +185,7 @@ class AmorphousLattice_3d:
     z: np.ndarray               = None                      # z position of the sites
     K_onsite: float             = None                      # Strength of the onsite disorder distribution
     K_hopp:   float             = None                      # Strength of the hopping disorder distribution
-    onsite_disorder: np.ndarray = None                      # Onsite disorder for each site
-    hopping_disorder: list = None                           # Hopping disorder for each link
+    disorder: np.ndarray        = None                      # Disorder matrix
 
     # Class fields that can only be set internally
     Nsites: int = field(init=False)                         # Number of sites in the cross-section
@@ -245,13 +244,17 @@ class AmorphousLattice_3d:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
     def generate_disorder(self, K_onsite, K_hopp):
-        loger_amorphous.trace('Generating disorder configuration...')
 
+        loger_amorphous.trace('Generating disorder configuration...')
         self.K_onsite, self.K_hopp = K_onsite, K_hopp
-        self.onsite_disorder = np.random.uniform(-self.K_onsite, self.K_onsite, self.Nsites)
-        self.hopping_disorder= []
-        for i in range(self.Nsites):
-            self.hopping_disorder.append(np.random.uniform(-self.K_hopp, self.K_hopp, len(self.neighbours[i])))
+
+        # Generate a matrix with diagonal onsite disorder and symmetric (hermitian) hopping disorder
+        aux_diag = np.random.uniform(-self.K_onsite, self.K_onsite, self.Nsites)
+        aux_matrix = np.random.uniform(-self.K_hopp, self.K_hopp, (self.Nsites, self.Nsites))
+        disorder_matrix = np.tril(aux_matrix, k=-1)
+        disorder_matrix = disorder_matrix + disorder_matrix.T
+        disorder_matrix = disorder_matrix + np.diag(aux_diag)
+        self.disorder = disorder_matrix
 
     def get_boundary(self):
 
@@ -370,15 +373,14 @@ class AmorphousLattice_3d:
     def set_configuration(self, x, y, z):
         self.x, self.y, self.z = x, y, z
 
-    def set_disorder(self, onsite_disorder, hopping_disorder):
-        self.onsite_disorder = onsite_disorder
-        self.hopping_disorder = hopping_disorder
+    def set_disorder(self, disorder):
+        self.disorder = disorder
 
     def erase_configuration(self):
         self.x, self.y, self.z = None, None, None
 
     def erase_disorder(self):
-        self.onsite_disorder, self.hopping_disorder = None, None
+        self.disorder= None
 
 
      # Alternative way of getting the boundary

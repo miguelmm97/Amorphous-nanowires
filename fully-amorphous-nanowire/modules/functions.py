@@ -7,6 +7,7 @@ from colorlog import ColoredFormatter
 
 # Managing data
 import h5py
+from tables import *
 import os
 import numpy as np
 
@@ -123,9 +124,11 @@ def load_my_attr(file_list, directory, dataset):
 
     return attr_dict
 
-def store_disorder_realisation(filepath, length, hopping_disorder, tag='sample'):
-    with h5py.File(filepath, 'w') as f:
-        disorder_h5py = h5py.vlen_dtype(np.dtype(np.float64))
-        dataset = f.create_dataset(f'onsite_disorder_{tag}', (length, ), dtype=disorder_h5py)
-        for i in range(length):
-            dataset[i] = hopping_disorder[i]
+def store_my_dict(file, dict):
+    for key in dict.keys():
+        try:
+            file.create_dataset(name=f'{key}', data=dict[key])
+        except Exception as ex:
+            logger_functions.warning(f'Failed to write key {key} in {file} because of exception: {ex}')
+
+

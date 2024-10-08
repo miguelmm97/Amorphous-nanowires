@@ -51,7 +51,7 @@ filepath = os.path.join(data_dir, filename)
 We check that the fully amorphous wire reduces to the translation invariant one.
 """
 
-Nx, Ny           = 10, 10                                     # Number of sites in the cross-section
+Nx, Ny           = 3, 3                                     # Number of sites in the cross-section
 r                = 1.3                                        # Nearest-neighbour cutoff distance
 t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
@@ -60,13 +60,14 @@ lamb_z           = 1.8 * t                                    # Spin-orbit coupl
 mu_leads         = 1 * t                                      # Chemical potential at the leads
 Ef               = 0.04                                       # Fermi energy
 width            = [0.0000000001]                             # Amorphous width 0.0001, 0.02, 0.05,
-disorder         = [0.2, 0.5, 1, 2]
-Nz               = np.linspace(200, 100, 5, dtype=np.int32)   # Length of the wire
-flux             = np.linspace(0, 1, 100)                     # Flux
+disorder         = [0.2, 0.5]
+Nz               = [10] #np.linspace(200, 100, 5, dtype=np.int32)   # Length of the wire
+flux             = np.linspace(0, 1, 10)                     # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
 G_array = np.zeros((len(width), len(Nz), len(flux), len(disorder)), dtype=np.float64)
+disorder_dict = {}
 #%% Main
 
 # Generate nanowires
@@ -80,7 +81,7 @@ for i, w in enumerate(width):
 
         # Generating disorder realisation of the wire
         full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
-        store_disorder_realisation(filepath, full_lattice.Nsites, full_lattice.hopping_disorder, tag=d)
+        disorder_dict[d] = full_lattice.disorder
 
         for j, L in enumerate(Nz):
 
@@ -102,11 +103,13 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'Nz',            Nz)
-    store_my_data(simulation, 'flux',          flux)
-    store_my_data(simulation, 'width',         width)
-    store_my_data(simulation, 'disorder',      disorder)
-    store_my_data(simulation, 'G_array',       G_array)
+    disorder = simulation.create_group('Disorder')
+    store_my_data(simulation, 'Nz',       Nz)
+    store_my_data(simulation, 'flux',     flux)
+    store_my_data(simulation, 'width',    width)
+    store_my_data(simulation, 'disorder', disorder)
+    store_my_data(simulation, 'G_array',  G_array)
+    store_my_dict(simulation['Disorder'], disorder_dict)
 
     # Parameters folder
     parameters = f.create_group('Parameters')
