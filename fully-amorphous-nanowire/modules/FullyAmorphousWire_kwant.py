@@ -178,7 +178,10 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
         index0, index1 = site0.tag[0], site1.tag[0]
         index_neigh = lattice_tree.neighbours[index0].index(index1)
         d, phi, theta = displacement3D_kwant(site1, site0)
-        return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
+        if lattice_tree.K_hopp < 1e-12:
+            return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+        else:
+            return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
                 lattice_tree.disorder[index0, index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
 
     # Initialise kwant system

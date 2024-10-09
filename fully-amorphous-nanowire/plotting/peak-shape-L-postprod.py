@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp22.h5']
+file_list = ['Exp36.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-L')
 
 # Parameters
@@ -28,7 +28,7 @@ mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
 # Simulation data
 flux          = data_dict[file_list[0]]['Simulation']['flux']
 width         = data_dict[file_list[0]]['Simulation']['width']
-disorder      = data_dict[file_list[0]]['Simulation']['disorder']
+disorder      = [0.2, 0.5, 1, 3] # data_dict[file_list[0]]['Simulation']['disorder']
 Nz            = data_dict[file_list[0]]['Simulation']['Nz']
 G_array       = data_dict[file_list[0]]['Simulation']['G_array']
 
