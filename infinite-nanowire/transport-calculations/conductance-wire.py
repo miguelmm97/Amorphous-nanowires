@@ -49,7 +49,7 @@ We calculate the conductance and bands for an amorphous cross-section wire.
 """
 
 Nx, Ny    = 10, 10                     # Number of sites in the cross-section
-n_layers  = 120                        # Number of cross-section layers
+n_layers  = 100                        # Number of cross-section layers
 width     = 0.1                        # Spread of the Gaussian distribution for the lattice sites
 r         = 1.3                        # Nearest-neighbour cutoff distance
 t         = 1                          # Hopping
