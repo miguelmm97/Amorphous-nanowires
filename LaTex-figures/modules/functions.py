@@ -82,7 +82,7 @@ def attr_my_data(dataset, attr_name, attr):
     except Exception as ex:
         logger_functions.warning(f'Failed to write {attr_name} in {dataset} because of exception: {ex}')
 
-def load_my_data(file_list, directory):
+def load_my_data(file_list, directory, avoid_field=None):
     # Generate a dict with 1st key for filenames, 2nd key for datasets in the files
     data_dict = {}
 
@@ -97,27 +97,28 @@ def load_my_data(file_list, directory):
                 # Reading subgroups/datasets from the group
                 data_dict[file][group] = {}
                 for subgroup in f[group].keys():
-                    try:
-                        # Reading datasets in the subgroup
-                        data_dict[file][group][subgroup] = {}
-                        for dataset in f[group][subgroup].keys():
-                            if isinstance(f[group][subgroup][dataset][()], bytes):
-                                data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()].decode()
-                            else:
-                                data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()]
-                    except AttributeError:
+                    if subgroup != avoid_field:
                         try:
-                            # Reading datasets from the group
-                            if isinstance(f[group][subgroup][()], bytes):
-                                data_dict[file][group][subgroup] = f[group][subgroup][()].decode()
-                            else:
-                                data_dict[file][group][subgroup] = f[group][subgroup][()]
-                        # Case when there is no group
+                            # Reading datasets in the subgroup
+                            data_dict[file][group][subgroup] = {}
+                            for dataset in f[group][subgroup].keys():
+                                if isinstance(f[group][subgroup][dataset][()], bytes):
+                                    data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()].decode()
+                                else:
+                                    data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()]
                         except AttributeError:
-                            if isinstance(f[group][()], bytes):
-                                data_dict[file][group] = f[group][()].decode()
-                            else:
-                                data_dict[file][group] = f[group][()]
+                            try:
+                                # Reading datasets from the group
+                                if isinstance(f[group][subgroup][()], bytes):
+                                    data_dict[file][group][subgroup] = f[group][subgroup][()].decode()
+                                else:
+                                    data_dict[file][group][subgroup] = f[group][subgroup][()]
+                            # Case when there is no group
+                            except AttributeError:
+                                if isinstance(f[group][()], bytes):
+                                    data_dict[file][group] = f[group][()].decode()
+                                else:
+                                    data_dict[file][group] = f[group][()]
     return data_dict
 
 def load_my_attr(file_list, directory, dataset):
