@@ -361,7 +361,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     return lead
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200):
+def select_perfect_transmission_flux(nanowire, flux0=0.3, flux_end=1, Nflux=200):
 
     loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
@@ -369,9 +369,9 @@ def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200)
     Gmax = 0.
     flux_max = flux0
     for i, phi in enumerate(flux):
-        S0 = kwant.smatrix(nanowire, 0, params=dict(flux=phi))
+        S0 = kwant.smatrix(nanowire, 0., params=dict(flux=phi))
         G = S0.transmission(1, 0)
-        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2e}')
+        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
         if G > Gmax:
             Gmax = G
             flux_max = phi
