@@ -83,17 +83,20 @@ params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 # Input data from SLURM
 loger_main.info('Loading variables from parameter file')
 if args.line is not None:
-    print("Line number:", args.line)
+    loger_main.info(f'Line number:{args.line}, File: {args.file}')
     with open(args.file, 'r') as f:
         for i, line in enumerate(f.readlines()):
             if i == args.line:
+                loger_main.info(f'Here')
                 params = line.split()
-                width = params[0]
-                L = params[1]
-                sample = params[2]
+                width = float(params[0])
+                L = float(params[1])
+                sample = int(params[2])
 else:
     raise IOError("No line number was given")
-if width or sample or L is None:
+
+
+if (width is None) or (sample is None) or (L is None):
     raise ValueError("Not loading input parameters")
 
 
@@ -131,13 +134,13 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'width', width)
     store_my_data(simulation, 'G_array', G_array)
     store_my_data(simulation, 'sample', sample)
-    store_my_dict(simulation['Disorder'], lattice.disorder)
+    store_my_data(simulation, 'disorder', lattice.disorder)
 
     # Parameters folder
     parameters = f.create_group('Parameters')
     store_my_data(parameters, 'Nx', Nx)
     store_my_data(parameters, 'Ny', Ny)
-    store_my_data(simulation, 'Nz', L)
+    store_my_data(parameters, 'Nz', L)
     store_my_data(parameters, 'K_hopp', K_hopp)
     store_my_data(parameters, 'K_onsite', K_onsite)
     store_my_data(parameters, 'r', r)
