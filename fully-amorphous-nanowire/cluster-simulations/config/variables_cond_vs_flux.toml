@@ -5,12 +5,14 @@ Nx          = 5           # Number of sites along x
 Ny          = 5           # Number of sites along y
 Nz          = 100         # NUmber of sites along z
 r           = 1.3         # Nearest-neighbour cutoff distance
-t           = 1           # Hopping
-mu_leads    = 1           # Chemical potential at the leads
+t           = 1.0         # Hopping
+mu_leads    = 1.0         # Chemical potential at the leads
 flux_max    = 1.0         # Max flux
 flux_min    = 0.0         # Min flux
 flux_L      = 100         # NUmber of flux points
 Ef         = [0.0, 0.04]  # Fermi energy
+K_onsite    = 0.0      # Onsite disorder
+K_hopp      = 0.0      # Hopping disorder
 
 
 # Changing variables for the simulation batch

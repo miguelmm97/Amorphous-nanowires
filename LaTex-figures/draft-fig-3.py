@@ -43,7 +43,7 @@ lead_color = 'r'
 
 
 # Figure 1: Definition
-fig1 = plt.figure(figsize=(10, 6))
+fig1 = plt.figure(figsize=(10, 7))
 gs = GridSpec(2, 1, figure=fig1, wspace=0.2, hspace=0.1)
 ax1 = fig1.add_subplot(gs[0, 0])
 ax2 = fig1.add_subplot(gs[1, 0])
@@ -62,7 +62,7 @@ ax2.text(0.8, 0.8, f'$E_f= {Ef[1]}$', fontsize=fontsize)
 
 
 # Figure 1: Format
-# ax1.legend(loc='upper center', ncol=3, alignment='center', frameon=False, fontsize=fontsize, bbox_to_anchor=(0.5, 1.5))
+ax1.legend(loc='upper center', ncol=3, alignment='center', frameon=False, fontsize=fontsize, bbox_to_anchor=(0.5, 1.4))
 ax2.set_xlabel("$\phi$", fontsize=fontsize)
 ylim = 1.1
 ax1.set(xticks=[0, 1, 2, 3, 4, 5], xticklabels=[])

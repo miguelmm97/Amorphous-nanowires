@@ -180,12 +180,12 @@ class AmorphousLattice_3d:
     r:   float                                              # Cutoff distance to consider neighbours
 
     # Class fields that can be set externally
-    x: np.ndarray               = None                      # x position of the sites
-    y: np.ndarray               = None                      # y position of the sites
-    z: np.ndarray               = None                      # z position of the sites
-    K_onsite: float             = None                      # Strength of the onsite disorder distribution
-    K_hopp:   float             = None                      # Strength of the hopping disorder distribution
-    disorder: np.ndarray        = None                      # Disorder matrix
+    x: np.ndarray         = None                      # x position of the sites
+    y: np.ndarray         = None                      # y position of the sites
+    z: np.ndarray         = None                      # z position of the sites
+    K_onsite: float       = None                      # Strength of the onsite disorder distribution
+    K_hopp:   float       = None                      # Strength of the hopping disorder distribution
+    disorder: np.ndarray  = None                      # Disorder matrix
 
     # Class fields that can only be set internally
     Nsites: int = field(init=False)                         # Number of sites in the cross-section

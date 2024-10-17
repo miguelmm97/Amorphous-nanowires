@@ -41,8 +41,7 @@ loger_kwant.addHandler(stream_handler)
 
 # %% Module
 """
-Here we promote the infinite amorphous nanowire defined in class InfiniteNanowire_FuBerg.py 
-into a kwant.system where to do transport calculations.
+Here we promote the infinite amorphous nanowire defined into a kwant.system where to do transport calculations.
 """
 
 sigma_0 = np.eye(2, dtype=np.complex128)
@@ -123,7 +122,7 @@ def Peierls_kwant(site1, site0, flux, area):
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
 
-Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
+Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refers to the site from 
 which we hopp.
 """
 
@@ -166,18 +165,28 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    # Create lattice structure for the scattering region from the amorphous cross-section
+    # Create SiteFamily for the scattering region from the amorphous lattice
     latt = FullyAmorphousWire_ScatteringRegion(norbs=4, lattice=lattice_tree, name='scatt_region')
+
+    # Hopping and onsite functions
+    def onsite_potential(site):
+        index = site.tag[0]
+        return onsite(eps) + np.kron(sigma_0, tau_0) * lattice_tree.disorder[index, index]
+
+    def hopp(site1, site0, flux):
+        index0, index1 = site0.tag[0], site1.tag[0]
+        index_neigh = lattice_tree.neighbours[index0].index(index1)
+        d, phi, theta = displacement3D_kwant(site1, site0)
+        if lattice_tree.K_hopp < 1e-12:
+            return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+        else:
+            return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
+                lattice_tree.disorder[index0, index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
 
     # Initialise kwant system
     loger_kwant.trace('Creating kwant scattering region...')
     syst = kwant.Builder()
-    syst[(latt(i) for i in range(latt.Nsites))] = onsite(eps)
-
-    # Hopping functions
-    def hopp(site1, site0, flux):
-        d, phi, theta = displacement3D_kwant(site1, site0)
-        return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+    syst[(latt(i) for i in range(latt.Nsites))] = onsite_potential
 
     # Populate hoppings
     for i in range(latt.Nsites):
@@ -245,23 +254,22 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     scatt_region.attach_lead(left_lead)
 
 
-    # # Right lead: definition
+    # Right lead: definition
     loger_kwant.trace('Attaching right lead...')
     sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
     right_lead = kwant.Builder(sym_right_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
-    #
-    # # Right lead: Hoppings
+
+    # Right lead: Hoppings
     loger_kwant.trace('Defining hoppings in the first unit cell of the lead...')
     right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     right_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
-    #
-    # # Right lead: Attachment
+
+    # Right lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, latt.Nz) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
-    # scatt_region[(latt_lead(i, j, latt.Nz + 1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
 
@@ -279,7 +287,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     return scatt_region
 
-def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0.):
+def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0., from_disorder=None):
 
     # Load parameters into the builder namespace
     try:
@@ -293,7 +301,11 @@ def crystal_nanowire_kwant(Nx, Ny, n_layers, param_dict, mu_leads=0.):
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
     syst = kwant.Builder()
-    syst[(latt(i, j, k) for i in range(Nx) for j in range(Ny) for k in range(n_layers))] = onsite(eps)
+    for i in range(Nx):
+        for j in range(Ny):
+            for k in range(n_layers):
+                index_site = i + Nx * j + (Nx * Ny) * k
+                syst[latt(i, j, k)] = onsite(eps) + from_disorder[index_site] * np.kron(sigma_0, tau_0)
 
     # Hoppings
     cutoff = 1.3
@@ -326,7 +338,8 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
+    def onsite_leads(K):
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) + np.random.normal(-K, K)
 
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)

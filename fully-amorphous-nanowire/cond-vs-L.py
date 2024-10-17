@@ -1,8 +1,5 @@
 #%% modules set up
 
-# Math and plotting
-import numpy as np
-
 # Kwant
 import kwant
 

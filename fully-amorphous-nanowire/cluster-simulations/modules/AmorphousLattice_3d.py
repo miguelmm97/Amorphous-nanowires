@@ -1,4 +1,4 @@
-#%% modules setup
+#%% Modules setup
 
 # Math and plotting
 from numpy import pi
@@ -9,12 +9,8 @@ from shapely.geometry import Point, LineString, MultiPoint, Polygon
 from shapely import intersects
 from scipy.integrate import quad
 
-
 # Managing classes
 from dataclasses import dataclass, field
-
-# Tracking time
-import time
 
 # Managing logging
 import logging
@@ -152,44 +148,86 @@ def remove_site(list, site):
         return list
 
 
+# Functions for generating instances of the amorphous class
+def take_cut_from_parent_wire(parent, Nz, keep_disorder=True):
+
+    # Select sites in the cut of the parent lattice
+    Nsites = int(parent.Nx * parent.Ny * Nz)
+    x, y, z = parent.x[:Nsites], parent.y[:Nsites], parent.z[:Nsites]
+
+    # Generate child lattice
+    lattice = AmorphousLattice_3d(Nx=parent.Nx, Ny=parent.Ny, Nz=Nz, w=parent.w, r=parent.r)
+    lattice.set_configuration(x, y, z)
+    lattice.build_lattice()
+    if keep_disorder:
+        lattice.K_hopp, lattice.K_onsite = parent.K_hopp, parent.K_onsite
+        lattice.set_disorder(disorder=parent.disorder)
+    return lattice
+
 @dataclass
 class AmorphousLattice_3d:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
-    # Lattice parameters
-    Nx: int   # Number of lattice sites along x direction
-    Ny: int   # Number of lattice sites along y direction
-    Nz: int  # Number of lattice sites along y direction
-    w: float  # Width of the Gaussian distribution
-    r: float  # Cutoff distance to consider neighbours
+    # Class fields set upon instantiation
+    Nx:  int                                                # Number of lattice sites along x direction
+    Ny:  int                                                # Number of lattice sites along y direction
+    Nz:  int                                                # Number of lattice sites along y direction
+    w:   float                                              # Width of the Gaussian distribution
+    r:   float                                              # Cutoff distance to consider neighbours
 
-    # Class fields
+    # Class fields that can be set externally
+    x: np.ndarray         = None                            # x position of the sites
+    y: np.ndarray         = None                            # y position of the sites
+    z: np.ndarray         = None                            # z position of the sites
+    K_onsite: float       = None                            # Strength of the onsite disorder distribution
+    K_hopp:   float       = None                            # Strength of the hopping disorder distribution
+    disorder: np.ndarray  = None                            # Disorder matrix
+
+    # Class fields that can only be set internally
     Nsites: int = field(init=False)                         # Number of sites in the cross-section
     neighbours: np.ndarray = field(init=False)              # Neighbours list for each site
     neighbours_projection: np.ndarray = field(init=False)   # Neighbours list for each site on the 2d projection
     boundary: list = field(init=False)                      # List of sites forming the boundary
     area: float = field(init=False)                         # Area of the wire's cross-section
-    x: np.ndarray = field(init=False)                       # x position of the sites
-    y: np.ndarray = field(init=False)                       # y position of the sites
-    z: np.ndarray = field(init=False)                       # z position of the sites
 
 
     # Methods for building the lattice
-    def generate_configuration(self, from_x=None, from_y=None, from_z=None):
+    def build_lattice(self, n_tries=0, restrict_connectivity=False):
 
+        if n_tries > 100:
+            loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
+        if self.w  < 1e-10:
+            loger_amorphous.error('The amorphicity cannot be strictly 0')
+            exit()
+
+        # Restricting to only connected lattice configurations
+        if restrict_connectivity:
+            try:
+                self.generate_configuration(restrict_connectivity=True)
+                self.get_boundary()
+                loger_amorphous.trace('Configuration accepted!')
+            except Exception as error:
+                loger_amorphous.warning(f'{error}')
+                try:
+                    self.erase_configuration()
+                    self.erase_disorder()
+                    self.build_lattice(n_tries=n_tries + 1, restrict_connectivity=True)
+                except RecursionError:
+                    loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
+                    exit()
+        else:
+            # Accepting literally anything
+            self.generate_configuration()
+            self.area = (self.Nx - 1) * (self.Ny - 1)
+
+    def generate_configuration(self, restrict_connectivity=False):
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
-        # Dimension of the Hilbert space and sites
-        self.Nsites = int(self.Nx * self.Ny * self.Nz)
-        list_sites = np.arange(0, self.Nsites)
-        x_crystal = list_sites % self.Nx
-        y_crystal = (list_sites // self.Nx) % self.Ny
-        z_crystal = list_sites // (self.Nx * self.Ny)
-
         # Positions of x and y coordinates on the amorphous lattice
-        if from_x is not None and from_y is not None and from_z is not None:
-            self.x, self.y, self.z = from_x, from_y, from_z
-        else:
+        self.Nsites = int(self.Nx * self.Ny * self.Nz)
+        if self.x is None and self.y is None and self.z is None:
+            list_sites = np.arange(0, self.Nsites)
+            x_crystal, y_crystal, z_crystal = list_sites % self.Nx, (list_sites // self.Nx) % self.Ny, list_sites // (self.Nx * self.Ny)
             self.x, self.y, self.z = gaussian_point_set_3D(x_crystal, y_crystal, z_crystal, self.w)
         coords = np.array([self.x, self.y, self.z])
 
@@ -197,25 +235,21 @@ class AmorphousLattice_3d:
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
-            if len(self.neighbours[i]) < 2:
+            if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def build_lattice(self, from_x=None, from_y=None, from_z=None, n_tries=0):
+    def generate_disorder(self, K_onsite, K_hopp):
 
-        if n_tries > 100:
-            loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
+        loger_amorphous.trace('Generating disorder configuration...')
+        self.K_onsite, self.K_hopp = K_onsite, K_hopp
 
-        try:
-            self.generate_configuration(from_x=from_x, from_y=from_y, from_z=from_z)
-            self.get_boundary()
-            loger_amorphous.trace('Configuration accepted!')
-        except Exception as error:
-            loger_amorphous.warning(f'{error}')
-            try:
-                self.build_lattice(from_x=None, from_y=None, from_z=None, n_tries=n_tries + 1)
-            except RecursionError:
-                loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
-                exit()
+        # Generate a matrix with diagonal onsite disorder and symmetric (hermitian) hopping disorder
+        aux_diag = np.random.uniform(-self.K_onsite, self.K_onsite, self.Nsites)
+        aux_matrix = np.random.uniform(-self.K_hopp, self.K_hopp, (self.Nsites, self.Nsites))
+        disorder_matrix = np.tril(aux_matrix, k=-1)
+        disorder_matrix = disorder_matrix + disorder_matrix.T
+        disorder_matrix = disorder_matrix + np.diag(aux_diag)
+        self.disorder = disorder_matrix
 
     def get_boundary(self):
 
@@ -329,7 +363,22 @@ class AmorphousLattice_3d:
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
         ax.set_axis_off()
 
-    # Alternative way of getting the boundary
+
+    # Setters and erasers
+    def set_configuration(self, x, y, z):
+        self.x, self.y, self.z = x, y, z
+
+    def set_disorder(self, disorder):
+        self.disorder = disorder
+
+    def erase_configuration(self):
+        self.x, self.y, self.z = None, None, None
+
+    def erase_disorder(self):
+        self.disorder= None
+
+
+     # Alternative way of getting the boundary
     def get_boundary2(self):
 
         # Initial parameters of the algorithm

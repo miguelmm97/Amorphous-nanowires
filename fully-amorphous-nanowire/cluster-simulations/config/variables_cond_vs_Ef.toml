@@ -11,6 +11,8 @@ Ef_max      = 0.0      # Max flux
 Ef_min      = 2.0      # Min flux
 Ef_L        = 100      # Number of flux points
 flux        = [0.0, 0.5, 0.75]  # Flux values
+K_onsite    = 0.0      # Onsite disorder
+K_hopp      = 0.0      # Hopping disorder
 
 
 # Changing variables for the simulation batch

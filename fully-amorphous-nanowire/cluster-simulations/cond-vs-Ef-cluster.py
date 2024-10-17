@@ -1,8 +1,5 @@
 #%% modules set up
 
-# Math and plotting
-import numpy as np
-
 # Kwant
 import kwant
 
@@ -11,6 +8,8 @@ from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, crystal_nanowire_kwant
 import config
+import sys
+from datetime import date
 
 # Cluster managing
 import argparse
@@ -69,6 +68,8 @@ Ef_max      = variables['Ef_max']
 Ef_min      = variables['Ef_min']
 Ef_L        = variables['Ef_L']
 flux        = variables['flux']
+K_onsite    = variables['K_onsite']
+K_hopp      = variables['K_hopp']
 Ef          = np.linspace(Ef_min, Ef_max, Ef_L)
 eps         = 4 * t
 lamb        = 1 * t
@@ -100,6 +101,7 @@ G_array = np.zeros((len(Ef), len(flux)), dtype=np.float64)
 loger_main.info('Generating amorphous lattice...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
 lattice.build_lattice()
+lattice.generate_disorder(K_onsite=K_onsite, K_hopp=K_hopp)
 nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
 # Calculate conductance
@@ -123,15 +125,18 @@ with h5py.File(filepath, 'w') as f:
     simulation = f.create_group('Simulation')
     store_my_data(simulation, 'Ef',            Ef)
     store_my_data(simulation, 'flux',          flux)
-    store_my_data(simulation, 'width',         width)
     store_my_data(simulation, 'G_array',       G_array)
     store_my_data(simulation, 'sample',        sample)
+    store_my_dict(simulation['Disorder'],      lattice.disorder)
 
     # Parameters folder
     parameters = f.create_group('Parameters')
+    store_my_data(parameters, 'width',         width)
     store_my_data(parameters, 'Nx',            Nx)
     store_my_data(parameters, 'Ny',            Ny)
     store_my_data(parameters, 'Nz',            Nz)
+    store_my_data(parameters, 'K_hopp',        K_hopp)
+    store_my_data(parameters, 'K_onsite',      K_onsite)
     store_my_data(parameters, 'r',             r)
     store_my_data(parameters, 't',             t)
     store_my_data(parameters, 'eps',           eps)

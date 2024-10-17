@@ -11,6 +11,8 @@ from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, crystal_nanowire_kwant
 import config
+import sys
+from datetime import date
 
 # Cluster managing
 import argparse
@@ -65,18 +67,16 @@ r           = variables['r']
 t           = variables['t']
 mu_leads    = variables['mu_leads']
 Ef          = variables['Ef']
-Nz_max      = variables['Nz_max']
-Nz_min      = variables['Nz_min']
-Nz_L        = variables['Nz_L']
 flux_max    = variables['flux_max']
 flux_min    = variables['flux_min']
 flux_L      = variables['flux_L']
-eps              = 4 * t
-lamb             = 1 * t
-lamb_z           = 1.8 * t
-mu_leads         = mu_leads * t
-Nz               = np.linspace(Nz_max, Nz_min, Nz_L, dtype=np.int32)
-flux             = np.linspace(flux_min, flux_max, flux_L)
+K_onsite    = variables['K_onsite']
+K_hopp      = variables['K_hopp']
+eps         = 4 * t
+lamb        = 1 * t
+lamb_z      = 1.8 * t
+mu_leads    = mu_leads * t
+flux        = np.linspace(flux_min, flux_max, flux_L)
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 
@@ -89,35 +89,31 @@ if args.line is not None:
             if i == args.line:
                 params = line.split()
                 width = params[0]
-                sample = params[1]
+                L = params[1]
+                sample = params[2]
 else:
     raise IOError("No line number was given")
-if width or sample is None:
+if width or sample or L is None:
     raise ValueError("Not loading input parameters")
 
 
 # Preallocation
-G_array = np.zeros((len(Nz), len(flux)), dtype=np.float64)
+G_array = np.zeros((len(Ef), len(flux)), dtype=np.float64)
 #%% Main
 
 # Generating wire
 loger_main.info('Generating amorphous wire')
-full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=width, r=r)
-full_lattice.build_lattice()
+lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
+lattice.build_lattice()
+lattice.generate_disorder(K_onsite=K_onsite, K_hopp=K_hopp)
+nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
-for j, L in enumerate(Nz):
-    # Selecting different cuts of the wire
-    Nsites = int(Nx * Ny * L)
-    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
-    lattice.build_lattice(from_x=full_lattice.x[:Nsites], from_y=full_lattice.y[:Nsites], from_z=full_lattice.z[:Nsites])
-    nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
-    # nanowire = crystal_nanowire_kwant(Nx=Nx, Ny=Ny, n_layers=L, param_dict=params_dict, mu_leads=mu_leads).finalized()
-
-    # Calculating conductance
-    for k, phi in enumerate(flux):
-        S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
-        G_array[j, k] = S.transmission(1, 0)
-        loger_main.info(f'L: {j} / {len(Nz) - 1}, flux: {k} / {len(flux) - 1} 'f'|| G: {G_array[j, k] :.2e}')
+# Calculating conductance
+for i, phi in enumerate(flux):
+    for k, E in enumerate(Ef):
+        S = kwant.smatrix(nanowire, Ef[k], params=dict(flux=phi))
+        G_array[k, i] = S.transmission(1, 0)
+        loger_main.info(f' flux: {i} / {len(flux)}, Ef: {Ef[k]} || G: {G_array[k, i] :.2e}')
 
 
 #%% Saving data
@@ -128,30 +124,31 @@ filepath = os.path.join(args.outdir, outfile)
 loger_main.info('Saving data...')
 
 with h5py.File(filepath, 'w') as f:
-
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'Nz',            Nz)
-    store_my_data(simulation, 'flux',          flux)
-    store_my_data(simulation, 'width',         width)
-    store_my_data(simulation, 'G_array',       G_array)
-    store_my_data(simulation, 'sample',        sample)
+    store_my_data(simulation, 'Ef', Ef)
+    store_my_data(simulation, 'flux', flux)
+    store_my_data(simulation, 'width', width)
+    store_my_data(simulation, 'G_array', G_array)
+    store_my_data(simulation, 'sample', sample)
+    store_my_dict(simulation['Disorder'], lattice.disorder)
 
     # Parameters folder
     parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'Ef',            Ef)
-    store_my_data(parameters, 'Nx',            Nx)
-    store_my_data(parameters, 'Ny',            Ny)
-    store_my_data(parameters, 'r',             r)
-    store_my_data(parameters, 't',             t)
-    store_my_data(parameters, 'eps',           eps)
-    store_my_data(parameters, 'lamb',          lamb)
-    store_my_data(parameters, 'lamb_z',        lamb_z)
-    store_my_data(parameters, 'mu_leads',      mu_leads)
+    store_my_data(parameters, 'Nx', Nx)
+    store_my_data(parameters, 'Ny', Ny)
+    store_my_data(simulation, 'Nz', L)
+    store_my_data(parameters, 'K_hopp', K_hopp)
+    store_my_data(parameters, 'K_onsite', K_onsite)
+    store_my_data(parameters, 'r', r)
+    store_my_data(parameters, 't', t)
+    store_my_data(parameters, 'eps', eps)
+    store_my_data(parameters, 'lamb', lamb)
+    store_my_data(parameters, 'lamb_z', lamb_z)
+    store_my_data(parameters, 'mu_leads', mu_leads)
 
     # Attributes
-    attr_my_data(parameters, "Date",       str(date.today()))
-    attr_my_data(parameters, "Code_path",  sys.argv[0])
+    attr_my_data(parameters, "Date", str(date.today()))
+    attr_my_data(parameters, "Code_path", sys.argv[0])
 
 loger_main.info('Data saved correctly')
-
