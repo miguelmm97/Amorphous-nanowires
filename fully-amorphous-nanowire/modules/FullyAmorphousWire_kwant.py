@@ -341,7 +341,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
         raise KeyError(f'Parameter error: {err}')
 
     def onsite_leads(K):
-        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) + np.random.normal(-K, K)
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) # + np.random.normal(-K, K)
 
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
@@ -361,7 +361,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     return lead
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.4, flux_end=1, Nflux=100):
+def select_perfect_transmission_flux(nanowire, flux0=0.4, flux_end=1.5, Nflux=100, Ef=0.):
 
     loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
@@ -369,7 +369,7 @@ def select_perfect_transmission_flux(nanowire, flux0=0.4, flux_end=1, Nflux=100)
     Gmax = 0.
     flux_max = flux0
     for i, phi in enumerate(flux):
-        S0 = kwant.smatrix(nanowire, 0., params=dict(flux=phi))
+        S0 = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
         G = S0.transmission(1, 0)
         loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
         if G > Gmax:

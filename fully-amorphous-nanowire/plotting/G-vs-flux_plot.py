@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp7.h5', 'Exp8.h5']
+file_list = ['Exp12.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
@@ -29,7 +29,7 @@ mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
 # Simulation data
 flux          = data_dict[file_list[0]]['Simulation']['flux']
 G_array       = data_dict[file_list[0]]['Simulation']['G_array']
-G_array_typo  = data_dict[file_list[1]]['Simulation']['G_array']
+# G_array_typo  = data_dict[file_list[1]]['Simulation']['G_array']
 width         = data_dict[file_list[0]]['Simulation']['width']
 
 # Solve typo in the data for Exp7 and 8
@@ -39,16 +39,16 @@ except TypeError:
     Ef = [Ef]
     G_array = np.array([G_array])
 
-G_aux = np.ones((len(Ef), len(width), len(flux)))
-for i in range(len(width)):
-    if i < 2:
-        G_aux[:, i, :] = G_array[:, i, :]
-    elif i > 2:
-        G_aux[:, i, :] = G_array[:, i - 1, :]
-    else:
-        G_aux[:, i, :] = G_array_typo[:, 0, :]
-G_array = G_aux
-width = [0.001, 0.002, 0.02, 0.05, 0.1]
+# G_aux = np.ones((len(Ef), len(width), len(flux)))
+# for i in range(len(width)):
+#     if i < 2:
+#         G_aux[:, i, :] = G_array[:, i, :]
+#     elif i > 2:
+#         G_aux[:, i, :] = G_array[:, i - 1, :]
+#     else:
+#         G_aux[:, i, :] = G_array_typo[:, 0, :]
+# G_array = G_aux
+# width = [0.001, 0.002, 0.02, 0.05, 0.1]
 #%% Figures
 
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }

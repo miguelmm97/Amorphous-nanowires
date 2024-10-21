@@ -43,15 +43,15 @@ loger_main.addHandler(stream_handler)
 We calculate the conductance of the nanowire vs Fermi energy.
 """
 
-Nx, Ny, Nz       = 10, 10, 100                # Number of sites in the cross-section
-width            = [0.00001, 0.02, 0.05, 0.1] # Spread of the Gaussian distribution for the lattice sites
+Nx, Ny, Nz       = 5, 5, 50                   # Number of sites in the cross-section
+width            = [0.1]                      # Spread of the Gaussian distribution for the lattice sites
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
-mu_leads         = 1 * t                      # Chemical potential at the leads
-fermi            = np.linspace(0, 1, 300)     # Fermi energy
+mu_leads         = - 0 * t                      # Chemical potential at the leads
+fermi            = np.linspace(0, 0.7, 100)     # Fermi energy
 K_hopp           = 0.
 K_onsite         = 0.
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
@@ -74,7 +74,7 @@ for j, w in enumerate(width):
     loger_main.info('Nanowire promoted to Kwant successfully.')
 
     # Scanning for flux that gives perfect transmission at the Dirac point
-    flux_max[j], Gmax = select_perfect_transmission_flux(nanowire)
+    flux_max[j], Gmax = select_perfect_transmission_flux(nanowire, Ef=0.04)
     loger_main.info(f'Flux for perfect transmission: {flux_max[j]}, Conductance at the Dirac point: {Gmax}')
     # flux_max = 0.7
 
@@ -82,7 +82,7 @@ for j, w in enumerate(width):
     for i, Ef in enumerate(fermi):
         S0 = kwant.smatrix(nanowire, Ef, params=dict(flux=0.))
         G_0[i, j] = S0.transmission(1, 0)
-        S1 = kwant.smatrix(nanowire, Ef, params=dict(flux=flux_max))
+        S1 = kwant.smatrix(nanowire, Ef, params=dict(flux=flux_max[j]))
         G_half[i, j] = S1.transmission(1, 0)
         loger_main.info(f'Ef: {i} / {len(fermi) - 1}, width: {j} / {len(width) - 1} || G0: {G_0[i, j] :.2f} || Ghalf: {G_half[i, j] :.2f}')
 
@@ -104,6 +104,9 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'flux_max',      flux_max)
     store_my_data(simulation, 'G_0',           G_0)
     store_my_data(simulation, 'G_half',        G_half)
+    store_my_data(simulation, 'x',             lattice.x)
+    store_my_data(simulation, 'y',             lattice.y)
+    store_my_data(simulation, 'z',             lattice.z)
     # store_my_data(simulation, 'disorder',      lattice.disorder)
 
     # Parameters folder

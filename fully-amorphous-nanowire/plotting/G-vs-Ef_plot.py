@@ -5,14 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
+# Kwant
+import kwant
+
 # modules
 from modules.functions import *
-
+from modules.AmorphousLattice_3d import AmorphousLattice_3d
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
 
 #%% Loading data
-file_list = ['Exp3.h5']
-# data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
-data_dict = load_my_data(file_list, '.')
+file_list = ['Exp8.h5']
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
+# data_dict = load_my_data(file_list, '.')
 
 # Parameters
 Nx           = data_dict[file_list[0]]['Parameters']['Nx']
@@ -24,6 +28,7 @@ eps          = data_dict[file_list[0]]['Parameters']['eps']
 lamb         = data_dict[file_list[0]]['Parameters']['lamb']
 lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z']
 mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
+params_dict  = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Simulation data
 flux_half     = data_dict[file_list[0]]['Simulation']['flux_max']
@@ -31,6 +36,9 @@ G_0           = data_dict[file_list[0]]['Simulation']['G_0']
 G_half        = data_dict[file_list[0]]['Simulation']['G_half']
 fermi         = data_dict[file_list[0]]['Simulation']['fermi']
 width         = data_dict[file_list[0]]['Simulation']['width']
+# x             = data_dict[file_list[0]]['Simulation']['x']
+# y             = data_dict[file_list[0]]['Simulation']['y']
+# z             = data_dict[file_list[0]]['Simulation']['z']
 
 #%% Figures
 
@@ -42,6 +50,12 @@ marker_list=['o', 's', 'd', 'p', '*', 'h', '>', '<', 'X']
 line_list = ['solid', 'dashed', 'dashdot', 'dotted']
 markersize = 5
 fontsize=20
+site_size  = 0.1
+site_lw    = 0.01
+site_color = 'm'
+hop_color  = 'royalblue'
+hop_lw     = 0.05
+lead_color = 'r'
 
 # Figure 1: Definition
 fig1 = plt.figure(figsize=(20, 10))
@@ -50,8 +64,8 @@ ax1 = fig1.add_subplot(gs[0, 0])
 
 # Figure 1: Plots
 for i in range(len(G_0[0, :])):
-    ax1.plot(fermi, G_0[:, i], color='#9A32CD', label=f'$\phi / \phi_0=0$', linestyle=line_list[i])
-    ax1.plot(fermi, G_half[:, i], color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0= {flux_half[i] :.2f}$', linestyle=line_list[i])
+    ax1.plot(fermi, G_0[:, i], color='#9A32CD', label=f'$w= {width[i]}$', linestyle=line_list[i])
+    ax1.plot(fermi, G_half[:, i], color='#3F6CFF', alpha=0.5, linestyle=line_list[i])
 ax1.legend(ncol=1, frameon=False, fontsize=16)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {Nz}$', y=0.93, fontsize=20)
 
@@ -66,5 +80,26 @@ ax1.set_xlabel("$E_F / t$", fontsize=fontsize)
 ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize)
 ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 
-# fig1.savefig(f'../figures/{file_list[0]}-cond-vs-Ef.pdf', format='pdf', backend='pgf')
+
+# # Nanowire structure
+# lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width[0], r=r)
+# lattice.set_configuration(x, y, z)
+# lattice.build_lattice()
+# nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+#
+# fig2 = plt.figure()
+# gs = GridSpec(1, 1, figure=fig2)
+# ax1 = fig1.add_subplot(gs[0, 0], projection='3d')
+# kwant.plot(nanowire, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
+#            lead_site_size=site_size, lead_color=lead_color, lead_site_lw=site_lw, lead_hop_lw=hop_lw,
+#            ax=ax1)
+# ax1.set_axis_off()
+# ax1.margins(-0.49, -0.49, -0.49)
+#
+#
+
+
+
+
+fig1.savefig(f'../figures/{file_list[0]}-cond-vs-Ef.pdf', format='pdf', backend='pgf')
 plt.show()

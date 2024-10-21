@@ -243,7 +243,7 @@ class AmorphousLattice_3d:
             if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def generate_disorder(self, K_onsite, K_hopp):
+    def generate_disorder(self, K_onsite=0., K_hopp=0.):
 
         loger_amorphous.trace('Generating disorder configuration...')
         self.K_onsite, self.K_hopp = K_onsite, K_hopp

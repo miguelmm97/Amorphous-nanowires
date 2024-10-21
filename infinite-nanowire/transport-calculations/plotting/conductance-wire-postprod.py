@@ -23,7 +23,7 @@ from modules.AmorphousLattice_2d import AmorphousLattice_2d
 from modules.AmorphousWire_kwant import promote_to_kwant_nanowire
 
 #%% Loading data
-file_list = ['Exp8.h5']
+file_list = ['Exp11.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data_oscillations_amorphous_cross_section')
 
 # Parameters
