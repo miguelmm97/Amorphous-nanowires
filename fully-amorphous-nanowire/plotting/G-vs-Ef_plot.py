@@ -14,7 +14,7 @@ from modules.AmorphousLattice_3d import AmorphousLattice_3d
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
 
 #%% Loading data
-file_list = ['Exp8.h5']
+file_list = ['Exp9.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
 # data_dict = load_my_data(file_list, '.')
 
@@ -58,22 +58,24 @@ hop_lw     = 0.05
 lead_color = 'r'
 
 # Figure 1: Definition
-fig1 = plt.figure(figsize=(20, 10))
+fig1 = plt.figure(figsize=(10, 8))
 gs = GridSpec(1, 1, figure=fig1, wspace=0., hspace=0.)
 ax1 = fig1.add_subplot(gs[0, 0])
 
 # Figure 1: Plots
 for i in range(len(G_0[0, :])):
-    ax1.plot(fermi, G_0[:, i], color='#9A32CD', label=f'$w= {width[i]}$', linestyle=line_list[i])
-    ax1.plot(fermi, G_half[:, i], color='#3F6CFF', alpha=0.5, linestyle=line_list[i])
+    ax1.plot(fermi, G_0[:, i], color=color_list[i], label=f'$w= {width[i]}$', linestyle='solid')
+    ax1.plot(fermi, G_half[:, i], color=color_list[i], alpha=0.5, linestyle='dotted')
 ax1.legend(ncol=1, frameon=False, fontsize=16)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {Nz}$', y=0.93, fontsize=20)
+ax1.text(0.015, 1.2, '$\phi_{max}$', fontsize=fontsize)
+ax1.text(0.015, 0.2, '$\phi = 0$', fontsize=fontsize)
 
 # Figure 1: Format
-y_axis_ticks = [i for i in range(0, 14, 2)]
-y_axis_labels = [str(i) for i in range(0, 14, 2)]
+y_axis_ticks = [i for i in range(0, 10, 2)]
+y_axis_labels = [str(i) for i in range(0, 10, 2)]
 ax1.set_xlim(fermi[0], fermi[-1])
-ax1.set_ylim(0, 14)
+ax1.set_ylim(0, 10)
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
 ax1.set_xlabel("$E_F / t$", fontsize=fontsize)

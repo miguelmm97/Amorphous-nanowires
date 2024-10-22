@@ -45,11 +45,11 @@ t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
-mu_leads         = 1 * t                                      # Chemical potential at the leads
+mu_leads         = - 0 * t                                    # Chemical potential at the leads
 Ef               = 0.04                                       # Fermi energy
-width            = [0.0000000001]                             # Amorphous width 0.0001, 0.02, 0.05,
-K_vec            = [0.2, 0.5, 1, 3]                           # Disorder strength
-Nz               = np.linspace(200, 100, 5, dtype=np.int32)   # Length of the wire
+width            = [0.001, 0.02, 0.1]                         # Amorphous width 0.0001, 0.02, 0.05,
+K_vec            = [0.]                           # Disorder strength
+Nz               = np.linspace(200, 100, 3, dtype=np.int32)   # Length of the wire
 flux             = np.linspace(0, 1, 100)                     # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 

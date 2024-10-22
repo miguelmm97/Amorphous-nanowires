@@ -43,7 +43,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny           = 5, 5                                       # Number of sites in the cross-section
+Nx, Ny           = 10, 10                                       # Number of sites in the cross-section
 r                = 1.3                                        # Nearest-neighbour cutoff distance
 t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
@@ -103,6 +103,6 @@ for i, phi in enumerate(flux):
     # ax.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
     ax.set_title(f'$\phi / \phi_0={phi :.2f}$')
 
-fig1.savefig(f'figures/bands-vs-flux.pdf', format='pdf', backend='pgf')
+# fig1.savefig(f'figures/bands-vs-flux.pdf', format='pdf', backend='pgf')
 plt.show()
 
