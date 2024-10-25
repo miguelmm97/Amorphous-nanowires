@@ -7,9 +7,8 @@ from colorlog import ColoredFormatter
 
 # Managing data
 import h5py
-from tables import *
 import os
-import numpy as np
+
 
 # %% Logging setup
 def addLoggingLevel(levelName, levelNum, methodName=None):

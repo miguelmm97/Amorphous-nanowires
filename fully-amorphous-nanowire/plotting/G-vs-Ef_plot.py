@@ -14,7 +14,7 @@ from modules.AmorphousLattice_3d import AmorphousLattice_3d
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
 
 #%% Loading data
-file_list = ['Exp9.h5']
+file_list = ['Exp10.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
 # data_dict = load_my_data(file_list, '.')
 
