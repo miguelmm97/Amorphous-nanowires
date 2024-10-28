@@ -1,6 +1,7 @@
 #%% modules set up
 
 # Math and plotting
+import numpy as np
 import sys
 from datetime import date
 
@@ -44,7 +45,7 @@ We calculate the conductance of the nanowire vs Fermi energy.
 """
 
 Nx, Ny, Nz       = 10, 10, 100                # Number of sites in the cross-section
-width            = [0.0001, 0.02, 0.05, 0.1]  # Spread of the Gaussian distribution for the lattice sites
+width            = [0.1, 0.15, 0.2]           # Spread of the Gaussian distribution for the lattice sites
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
