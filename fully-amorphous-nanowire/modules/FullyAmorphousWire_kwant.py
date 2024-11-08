@@ -14,7 +14,7 @@ import logging
 import colorlog
 from colorlog import ColoredFormatter
 
-
+print('hey')
 # %% Logging setup
 loger_kwant = logging.getLogger('kwant')
 loger_kwant.setLevel(logging.INFO)
