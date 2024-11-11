@@ -14,7 +14,6 @@ import logging
 import colorlog
 from colorlog import ColoredFormatter
 
-print('hey')
 # %% Logging setup
 loger_kwant = logging.getLogger('kwant')
 loger_kwant.setLevel(logging.INFO)
@@ -361,7 +360,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     return lead
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.4, flux_end=1.5, Nflux=100, Ef=0.):
+def select_perfect_transmission_flux(nanowire, flux0=0.8, flux_end=1.5, Nflux=100, Ef=0.):
 
     loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
@@ -401,7 +400,7 @@ def select_minimal_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200)
 
     return flux_min, Gmin
 
-def thermal_average(G0, Ef0, T, thermal_interval= None):
+def thermal_average(G0, Ef0, T, thermal_interval=None):
 
    # Definitions
     energy_factor = 150                  # t=150 meV in Bi2Se3

@@ -38,10 +38,6 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Variables
-"""
-We check that the fully amorphous wire reduces to the translation invariant one.
-"""
-
 Nx               = np.arange(4, 10)                           # Number of sites in x direction
 Ny               = Nx                                         # Number of sites in x direction
 Nz               = 100                                        # Number of sites in x direction

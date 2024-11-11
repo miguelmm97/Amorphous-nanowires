@@ -43,10 +43,6 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-"""
-We check that the fully amorphous wire reduces to the translation invariant one.
-"""
-
 Nx, Ny, Nz       = 10, 10, 100                # Number of sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping

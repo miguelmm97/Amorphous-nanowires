@@ -46,16 +46,17 @@ eps              = 4 * t                                      # Onsite orbital h
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                                    # Chemical potential at the leads
-Ef               = 0.6                                        # Fermi energy
-width            = [0.001, 0.02, 0.05, 0.1, 0.15, 0.2]        # Amorphous width 0.0001, 0.02, 0.05,
+Ef               = np.linspace(0, 0.7, 6)                     # Fermi energy
+width            = np.linspace(0.01, 2, 20)                   # Amorphous width
 K_vec            = [0.]                                       # Disorder strength
-Nz               = np.linspace(200, 30, 20, dtype=np.int32)   # Length of the wire
-flux             = np.linspace(0, 1, 5)                     # Flux
+Nz               = [200]                                      # Length of the wire
+flux             = np.linspace(0, 1, 5)                       # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
-G_array = np.zeros((len(width), len(Nz), len(flux), len(K_vec)), dtype=np.float64)
+G_array = np.zeros((len(width), len(flux), len(Ef), len(Nz), len(K_vec)), dtype=np.float64)
 disorder_dict = {}
+
 #%% Main
 
 # Generate nanowires
@@ -65,28 +66,31 @@ for i, w in enumerate(width):
     full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
     full_lattice.build_lattice()
 
-    for d, K in enumerate(K_vec):
+    for j, K in enumerate(K_vec):
 
         # Generating disorder realisation of the wire
         full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
-        disorder_dict[d] = full_lattice.disorder
+        disorder_dict[j] = full_lattice.disorder
 
-        for j, L in enumerate(Nz):
+        for k, L in enumerate(Nz):
 
             # Selecting different cuts of the wire for each disorder realisation
             lattice = take_cut_from_parent_wire(full_lattice, Nz_new=L, keep_disorder=True)
             nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
 
             # Calculating conductance
-            for k, phi in enumerate(flux):
-                S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
-                G_array[i, j, k, d] = S.transmission(1, 0)
-                loger_main.info(f'Width: {i} / {len(width) - 1}, Disorder: {d} / {len(K_vec) - 1}, L: {j} /'
-                                f'{len(Nz) - 1}, flux: {k} / {len(flux) - 1} || G: {G_array[i, j, k, d] :.2f}')
+            for l, eps in enumerate(Ef):
+                for m, phi in enumerate(flux):
+
+                    S = kwant.smatrix(nanowire, eps, params=dict(flux=phi))
+                    G_array[i, m, l, j, k] = S.transmission(1, 0)
+                    loger_main.info(f'Width: {i} / {len(width) - 1}, Disorder: {j} / {len(K_vec) - 1}, L: {k} /'
+                                    f'{len(Nz) - 1},  Ef: {l} / {len(Ef) - 1}, flux: {m} / {len(flux) - 1} '
+                                    f'|| G: {G_array[i, m, l, j, k] :.2f}')
 
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-L'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-width'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')
@@ -100,6 +104,7 @@ with h5py.File(filepath, 'w') as f:
     disorder = simulation.create_group('Disorder')
     store_my_data(simulation, 'Nz',       Nz)
     store_my_data(simulation, 'flux',     flux)
+    store_my_data(simulation, 'Ef',       Ef)
     store_my_data(simulation, 'width',    width)
     store_my_data(simulation, 'K',        K_vec)
     store_my_data(simulation, 'G_array',  G_array)
@@ -107,7 +112,6 @@ with h5py.File(filepath, 'w') as f:
 
     # Parameters folder
     parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'Ef',            Ef)
     store_my_data(parameters, 'Nx',            Nx)
     store_my_data(parameters, 'Ny',            Ny)
     store_my_data(parameters, 'r',             r)
