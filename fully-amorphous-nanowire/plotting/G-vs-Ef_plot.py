@@ -14,7 +14,7 @@ from modules.AmorphousLattice_3d import AmorphousLattice_3d
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
 
 #%% Loading data
-file_list = ['Exp18.h5']
+file_list = ['Exp19.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
 # data_dict = load_my_data(file_list, '.')
 
@@ -36,6 +36,7 @@ G_0           = data_dict[file_list[0]]['Simulation']['G_0']
 G_half        = data_dict[file_list[0]]['Simulation']['G_half']
 fermi         = data_dict[file_list[0]]['Simulation']['fermi']
 width         = data_dict[file_list[0]]['Simulation']['width']
+K_onsite      = data_dict[file_list[0]]['Simulation']['K_onsite']
 # x             = data_dict[file_list[0]]['Simulation']['x']
 # y             = data_dict[file_list[0]]['Simulation']['y']
 # z             = data_dict[file_list[0]]['Simulation']['z']
@@ -64,7 +65,8 @@ ax1 = fig1.add_subplot(gs[0, 0])
 
 # Figure 1: Plots
 for i in range(len(G_0[0, :])):
-    ax1.plot(fermi, G_0[:, i], color=color_list[i], label=f'$w= {width[i]}$', linestyle='solid')
+    # ax1.plot(fermi, G_0[:, i], color=color_list[i], label=f'$w= {width[i]}$', linestyle='solid')
+    ax1.plot(fermi, G_0[:, i], color=color_list[i], label=f'$K= {K_onsite[i]}$', linestyle='solid')
     ax1.plot(fermi, G_half[:, i], color=color_list[i], alpha=0.5, linestyle='dotted')
 ax1.legend(ncol=1, frameon=False, fontsize=16)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {Nz}$', y=0.93, fontsize=20)

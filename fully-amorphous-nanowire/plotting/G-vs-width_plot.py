@@ -59,20 +59,20 @@ for i in range(Nrow):
 # Figure 1: Plots
 for i in range(G_array.shape[2]):
     ax = ax_vec[i]
-    ax.set_title(f'$E_f= {Ef[i]}$', fontsize=fontsize)
+    ax.set_title(f'$E_f= {Ef[i] :.2f}$', fontsize=fontsize)
     for j in range(G_array.shape[1]):
         label = f'$\phi= {flux[j] :.2f}$'
         ax.plot(width, G_array[:, j, i, 0, 0], color=palette1[j], linestyle='solid', marker=marker_list[j], label=label)
 
 # Figure 1: Format
 ax_vec[0].legend(ncol=2, frameon=False, fontsize=10)
-fig1.suptitle(f'$\mu_l= {mu_leads}$, $E_f= {Ef}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$', y=0.93, fontsize=20)
+fig1.suptitle(f'$\mu_l= {mu_leads}$, $L= {Nz[0]}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$', y=0.93, fontsize=20)
 for ax in ax_vec:
-    ax.set_xlim(Nz[-1], Nz[0])
+    ax.set_xlim(0, 2)
     ax.set_ylim(0, np.max(G_array))
     ax.tick_params(which='major', width=0.75, labelsize=10)
     ax.tick_params(which='major', length=6, labelsize=10)
-    ax.set_xlabel("$L$", fontsize=fontsize)
+    ax.set_xlabel("$w$", fontsize=fontsize)
     ax.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 
 fig1.savefig(f'../figures/{file_list[0]}-cond-vs-width.pdf', format='pdf', backend='pgf')
