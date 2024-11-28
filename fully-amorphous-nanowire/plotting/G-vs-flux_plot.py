@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp15.h5']
+file_list = ['Exp17.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
@@ -80,7 +80,7 @@ for i in range(G_array.shape[1]):
 # Figure 1: Format
 ax1.legend(ncol=5, frameon=False, fontsize=20)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $r= {r}$, $N_x= {Nx}$, $N_y = {Ny}$, $N_z= {Nz}$', y=0.93, fontsize=20)
-ylim = 2.1
+ylim = np.max(G_array)
 for ax in ax_vec:
     ax.set_xlim(flux[0], flux[-1])
     ax.set_ylim(0, ylim)
