@@ -43,7 +43,7 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-Nx, Ny, Nz       = 10, 10, 100                # Number of sites in the cross-section
+Nx, Ny, Nz       = 10, 10, 200                # Number of sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
@@ -51,7 +51,7 @@ lamb             = 1 * t                      # Spin-orbit coupling in the cross
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
 flux             = np.linspace(0, 5, 250)     # Magnetic flux
-width            = [0.3]  # Amorphous width 0.0001, 0.02, 0.05,
+width            = [0.2, 0.3, 0.4, 0.5]       # Amorphous width 0.0001, 0.02, 0.05,
 Ef               = [0.0]                      # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 

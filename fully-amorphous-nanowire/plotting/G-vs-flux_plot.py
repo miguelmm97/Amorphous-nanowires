@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp17.h5']
+file_list = ['Exp20.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
