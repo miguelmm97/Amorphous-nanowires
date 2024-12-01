@@ -51,7 +51,7 @@ lamb             = 1 * t                      # Spin-orbit coupling in the cross
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
 flux             = np.linspace(0, 5, 250)     # Magnetic flux
-width            = [0.2, 0.3, 0.4, 0.5]       # Amorphous width 0.0001, 0.02, 0.05,
+width            = [0.4]       # Amorphous width 0.0001, 0.02, 0.05,
 Ef               = [0.0]                      # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
@@ -96,7 +96,11 @@ with h5py.File(filepath, 'w') as f:
     simulation = f.create_group('Simulation')
     store_my_data(simulation, 'flux',      flux)
     store_my_data(simulation, 'width',     width)
-    store_my_data(simulation, 'G_array',   G_array)
+    if len(width)==1:
+        store_my_data(simulation, 'x', lattice_dict[0].x)
+        store_my_data(simulation, 'y', lattice_dict[0].y)
+        store_my_data(simulation, 'z', lattice_dict[0].z)
+
 
     # Parameters folder
     parameters = f.create_group('Parameters')
