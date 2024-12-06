@@ -72,11 +72,12 @@ y             = data_dict[file_list[0]]['Simulation']['y']
 z             = data_dict[file_list[0]]['Simulation']['z']
 
 # Variables
-idx1, idx2 = 100, 142
+idx1, idx2 = 100, 144 #0, 33
 flux1 = flux[idx1]
 flux2 = flux[idx2]
 #%% Main
 
+# Amorphous lattice
 loger_main.info('Generating fully amorphous lattice...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
 lattice.set_configuration(x, y, z)
@@ -97,20 +98,15 @@ loger_main.info('Calculating local Dos...')
 local_density = kwant.operator.Density(nanowire)
 density_1 = local_density(state1(0)[0])
 density_2 = local_density(state2(0)[0])
-# density_1[density_1 <1e-10] = 1e-10
-# density_2[density_2 <1e-10] = 1e-10
 density_1 = density_1 / np.sum(density_1)
 density_2 = density_2 / np.sum(density_2)
 
-
-
-
+# Normalisation for the plots
 mean_value = np.mean(np.array([density_1, density_2]))
 std_value = np.std(np.array([density_1, density_2]))
-max_value, min_value = mean_value + 2 * std_value, 0
-# print(mean_value, std_value)
+max_value, min_value = mean_value + 1 * std_value, 0
 
-# np.log(np.real(scatt_density_up) / np.max(np.real(scatt_density_up))
+
 #%% Figures
 font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
 plt.rc('text', usetex=True)

@@ -50,8 +50,8 @@ eps              = 4 * t                      # Onsite orbital hopping (in units
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
-flux             = np.linspace(0, 2, 100)     # Magnetic flux
-width            = [0.1]                      # Amorphous width 0.0001, 0.02, 0.05,
+flux             = np.linspace(0, 5, 250)     # Magnetic flux
+width            = [0.35]                      # Amorphous width 0.0001, 0.02, 0.05,
 Ef               = [0.0]                      # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
