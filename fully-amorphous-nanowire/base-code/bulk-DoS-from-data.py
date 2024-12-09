@@ -41,7 +41,7 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Loading data
-file_list = ['Exp23.h5']
+file_list = ['Exp22.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
@@ -66,7 +66,7 @@ y             = data_dict[file_list[0]]['Simulation']['y']
 z             = data_dict[file_list[0]]['Simulation']['z']
 
 # Variables
-idx1, idx2 = 25, 33 # 100, 144
+idx1, idx2 = 100, 144 # 25, 33
 flux1 = flux[idx1]
 flux2 = flux[idx2]
 #%% Main

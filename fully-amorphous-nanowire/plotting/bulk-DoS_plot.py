@@ -14,7 +14,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp4.h5']
+file_list = ['Exp5.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-bulk-dos')
 
 # Parameters
@@ -66,6 +66,7 @@ gs = GridSpec(2, 1, figure=fig1, wspace=0.1, hspace=0.35)
 ax1 = fig1.add_subplot(gs[0, 0])
 ax2 = fig1.add_subplot(gs[1, 0])
 
+
 ax2.plot(N, bulk_tot_density1, marker='o', linestyle='solid', color='limegreen', label='(a)')
 ax2.plot(N, bulk_tot_density2, marker='o', linestyle='solid', color='dodgerblue', label='(b)')
 ax2.set_xlabel('$n_x$', fontsize=fontsize)
@@ -74,6 +75,7 @@ ax2.legend(frameon=False, fontsize=15)
 
 
 ax_vec = [ax1]
+ax1.set_title(f'$w= {width}$, $E_f = {Ef}$', fontsize=fontsize)
 for i in range(G_array.shape[1]):
     for j in range(len(Ef)):
         ax = ax_vec[j]
@@ -142,7 +144,7 @@ cbar_ax.set_axis_off()
 cbar.set_label(label='$\\vert \psi (r)\\vert ^2$', labelpad=10, fontsize=20)
 
 
-fig1.savefig(f'../figures/{file_list[0]}-total-DoS-bulk.pdf', format='pdf')
-fig2.savefig(f'../figures/{file_list[0]}-bulk-cuts.pdf', format='pdf')
+# fig1.savefig(f'../figures/{file_list[0]}-total-DoS-bulk.pdf', format='pdf')
+# fig2.savefig(f'../figures/{file_list[0]}-bulk-cuts.pdf', format='pdf')
 
 plt.show()
