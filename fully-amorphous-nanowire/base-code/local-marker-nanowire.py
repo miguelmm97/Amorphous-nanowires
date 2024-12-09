@@ -2,6 +2,10 @@
 
 # Math and plotting
 import numpy as np
+from numpy.linalg import eigh
+import scipy.sparse.linalg as sla
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 # Kwant
 import kwant
@@ -9,7 +13,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, select_perfect_transmission_flux
 
 import sys
 from datetime import date
@@ -39,9 +43,8 @@ formatter = ColoredFormatter(
 stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
-
 #%% Loading data
-file_list = ['Exp22.h5']
+file_list = ['Exp23.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
@@ -65,12 +68,9 @@ flux          = data_dict[file_list[0]]['Simulation']['flux']
 
 
 # Variables
-idx = 100
+idx =33
 flux_value = flux[idx]
-fermi = np.linspace(0, 0.1, 500)
 
-# Preallocation
-G   = np.zeros((len(fermi)))
 
 #%% Main
 
@@ -80,49 +80,33 @@ lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
 lattice.set_configuration(x, y, z)
 lattice.build_lattice(restrict_connectivity=False)
 lattice.generate_disorder(K_hopp=0., K_onsite=0.)
-nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
-# Conductance calculation for different flux values
-for i, Ef in enumerate(fermi):
-    S0 = kwant.smatrix(nanowire, Ef, params=dict(flux=flux_value))
-    G[i] = S0.transmission(1, 0)
-    loger_main.info(f'Ef: {i} / {len(fermi) - 1},  || G: {G[i] :.2f} ')
+# Spectrum of the closed system
+H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value), sparse=True)
+eps, psi = sla.eigsh(H.tocsc(), k=50, sigma=0)
+# H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value))
+# eps, psi = np.linalg.eigh(H)
+
+idx = eps.argsort()
+eps = eps[idx]
+psi = psi[:, idx]
+
+
+#%% Figures
+font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+color_list = ['limegreen', 'dodgerblue', 'm', 'r', 'orange']
 
 
 
-#%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef'
-file_list = os.listdir(data_dir)
-expID = get_fileID(file_list, common_name='Exp')
-filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join(data_dir, filename)
+fig1 = plt.figure()
+gs = GridSpec(1, 1, figure=fig1, wspace=0, hspace=0)
+ax1 = fig1.add_subplot(gs[0, 0])
 
-
-with h5py.File(filepath, 'w') as f:
-
-    # Simulation folder
-    simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'width',         width)
-    store_my_data(simulation, 'fermi',         fermi)
-    store_my_data(simulation, 'G',             G)
-    store_my_data(simulation, 'flux',          flux_value)
-
-    # Parameters folder
-    parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'Nx',            Nx)
-    store_my_data(parameters, 'Ny',            Ny)
-    store_my_data(parameters, 'Nz',            Nz)
-    store_my_data(parameters, 'r',             r)
-    store_my_data(parameters, 't',             t)
-    store_my_data(parameters, 'eps',           eps)
-    store_my_data(parameters, 'lamb',          lamb)
-    store_my_data(parameters, 'lamb_z',        lamb_z)
-    store_my_data(parameters, 'mu_leads',      mu_leads)
-
-    # Attributes
-    attr_my_data(parameters, "Date",       str(date.today()))
-    attr_my_data(parameters, "Code_path",  sys.argv[0])
-
-loger_main.info('Data saved correctly')
-
+ax1.plot(np.arange(len(eps)), eps, 'o', color='dodgerblue')
+ax1.set_xlabel('Eigenstate')
+ax1.set_ylabel('$\epsilon$')
+plt.show()
