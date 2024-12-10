@@ -423,3 +423,46 @@ def thermal_average(G0, Ef0, T, thermal_interval=None):
         G_avg[i] = np.trapezoid(integrand, delta_E)
 
     return G_avg
+
+#%% Topology functions
+
+def spectrum(H, Nsp=None):
+
+    if Nsp is None:
+        Nsp = int(len(H) / 2)
+
+    # Spectrum
+    loger_kwant.info('Calculating eigenstates...')
+    energy, eigenstates = np.linalg.eigh(H)
+    idx = energy.argsort()
+    energy = energy[idx]
+    eigenstates = eigenstates[:, idx]
+
+    # OPDM
+    loger_kwant.info('Calculating OPDM...')
+    U = np.zeros((len(H), len(H)), dtype=np.complex128)
+    U[:, 0: Nsp] = eigenstates[:, 0: Nsp]
+    rho = U @ np.conj(np.transpose(U))
+
+    return energy, eigenstates, rho
+
+def local_marker(x, y, z, P, S):
+
+    # Operators for calculating the marker
+    X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+    X = np.reshape(X, (len(X), 1))
+    Y = np.reshape(Y, (len(Y), 1))
+    Z = np.reshape(Z, (len(Z), 1))
+    PS = P @ S
+    XP = X * P
+    YP = Y * P
+    ZP = Z * P
+
+    # Local chiral marker
+    local_marker = np.zeros((len(x), ))
+    M = PS @ XP @ YP @ ZP + PS @ ZP @ XP @ YP + PS @ YP @ ZP @ XP - PS @ XP @ ZP @ YP - PS @ ZP @ YP @ XP - PS @ YP @ XP @ ZP
+    for i in range(len(x)):
+        idx = 4 * i
+        local_marker[i] = (8 * pi / 3) * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
+
+    return local_marker
