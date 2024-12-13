@@ -16,7 +16,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['Exp7.h5']
+file_list = ['Exp11.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-local-marker')
 
 # Parameters

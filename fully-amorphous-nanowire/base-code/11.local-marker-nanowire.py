@@ -71,15 +71,15 @@ loger_main.addHandler(stream_handler)
 # flux_value = flux[idx]
 
 # Variables (calculation from scratch)
-Nx, Ny, Nz = 5, 5, 25
+Nx, Ny, Nz = 10, 10, 25
 r          = 1.3
-width      = 0.000001
+width      = 0.4
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
 lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
-flux_value = 4
+flux_value = 0
 
 #%% Main
 

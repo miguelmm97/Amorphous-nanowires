@@ -14,7 +14,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp6.h5']
+file_list = ['Exp4.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-bulk-dos')
 
 # Parameters
