@@ -55,36 +55,42 @@ lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 flux_value = 0
 
-Nsites = int(Nx * Ny * Nz)
-marker = np.zeros((len(width), Nsites))
+marker = np.zeros((len(width), ))
 
 #%% Main
 
+def bulk(x, y, z, cutoff, include_last_layer=True):
+    x_pos, y_pos = x - 0.5 * Nx, y - 0.5 * Ny
+    cond1 = np.abs(x_pos) < cutoff
+    cond2 = np.abs(y_pos) < cutoff
+    cond = cond1 * cond2
+    if not include_last_layer:
+        cond3 = 0.5 < z
+        cond4 = z < Nz - 1.5
+        cond = cond1 * cond2 * cond3 * cond4
+    return x[cond], y[cond], z[cond]
+
+
 # Fully amorphous wire
 for i, w in enumerate(width):
+    loger_main.info(f'width: {i}/{len(width) - 1}, marker: {marker[i]}')
 
-
-    loger_main.info('Generating fully amorphous lattice...')
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
     lattice.build_lattice(restrict_connectivity=False)
     lattice.generate_disorder(K_hopp=0., K_onsite=0.)
     nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
-    loger_main.info('Nanowire promoted to Kwant successfully.')
 
     # Spectrum of the closed system
-    loger_main.info('Calculating spectrum:')
     H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value))
     eps, _, rho = spectrum(H)
 
     # Local marker
-    loger_main.info('Calculating local marker...')
     site_pos = np.array([site.pos for site in nanowire.id_by_site])
     x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
+    x_cut, y_cut, z_cut = bulk(x, y, z, 2.5, include_last_layer=False)
     sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
-    chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
-    marker[i, :] = local_marker(x, y, z, rho, chiral_sym)
-
-
+    chiral_sym = np.kron(np.eye(len(x_cut)), np.kron(sigma_z, sigma_z))
+    marker[i] = np.mean(local_marker(x_cut, y_cut, z_cut, rho, chiral_sym))
 
 
 #%% Saving data
@@ -99,7 +105,7 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'local_marker', local_marker)
+    store_my_data(simulation, 'local_marker', marker)
     store_my_data(simulation, 'width',   width)
 
 

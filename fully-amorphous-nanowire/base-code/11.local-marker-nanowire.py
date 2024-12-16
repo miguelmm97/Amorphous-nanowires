@@ -73,7 +73,7 @@ loger_main.addHandler(stream_handler)
 # Variables (calculation from scratch)
 Nx, Ny, Nz = 10, 10, 25
 r          = 1.3
-width      = 0.4
+width      = 0.3
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t

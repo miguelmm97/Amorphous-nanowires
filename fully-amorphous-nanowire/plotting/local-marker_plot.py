@@ -118,4 +118,11 @@ ax1 = fig2.add_subplot(gs[0, 0])
 ax1.plot(N_array, marker_per_cut, marker='o', linestyle='solid', color='dodgerblue')
 ax1.set_xlabel('$n_x, n_y$ included', fontsize=fontsize)
 ax1.set_ylabel('$\overline{\\nu}$', fontsize=fontsize)
+ax1.set_ylim([-1, 0.1])
+
+
+
+
+fig1.savefig(f'../figures/{file_list[0]}-local-marker.pdf', format='pdf')
+fig2.savefig(f'../figures/{file_list[0]}-total-marker.pdf', format='pdf')
 plt.show()

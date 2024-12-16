@@ -432,14 +432,12 @@ def spectrum(H, Nsp=None):
         Nsp = int(len(H) / 2)
 
     # Spectrum
-    loger_kwant.info('Calculating eigenstates...')
     energy, eigenstates = np.linalg.eigh(H)
     idx = energy.argsort()
     energy = energy[idx]
     eigenstates = eigenstates[:, idx]
 
     # OPDM
-    loger_kwant.info('Calculating OPDM...')
     U = np.zeros((len(H), len(H)), dtype=np.complex128)
     U[:, 0: Nsp] = eigenstates[:, 0: Nsp]
     rho = U @ np.conj(np.transpose(U))
