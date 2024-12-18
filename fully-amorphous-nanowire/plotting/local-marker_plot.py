@@ -46,12 +46,12 @@ def bulk(x, y, z, local_marker, cutoff, include_last_layer=True):
     cond2 = np.abs(y_pos) < cutoff
     cond = cond1 * cond2
     if not include_last_layer:
-        cond3 = 0.5 < z
-        cond4 = z < Nz - 1.5
+        cond3 = 4 < z
+        cond4 = z < Nz - 4
         cond = cond1 * cond2 * cond3 * cond4
     return x[cond], y[cond], z[cond], local_marker[cond]
 
-N = np.linspace(1, Nx / 2 + 1, 3)
+N = np.linspace(0.1, Nx / 2 + 1, 3)
 x1, y1, z1, marker1 = bulk(x, y, z, local_marker, N[0], include_last_layer=False)
 x2, y2, z2, marker2 = bulk(x, y, z, local_marker, N[1], include_last_layer=False)
 x3, y3, z3, marker3 = bulk(x, y, z, local_marker, N[2])
@@ -61,7 +61,7 @@ avg_marker3 = np.mean(marker3)
 avg_marker = [avg_marker1, avg_marker2, avg_marker3]
 
 
-N_array = np.arange(1, int(0.5 * Nx + 1) + 1)
+N_array = np.linspace(2, Nx / 2 + 1, 10)
 marker_per_cut = np.zeros(N_array.shape)
 for i, n in enumerate(N_array):
     include_last_layer = True if n >= (Nx / 2) else False

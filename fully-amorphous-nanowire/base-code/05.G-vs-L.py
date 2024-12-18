@@ -46,11 +46,11 @@ eps              = 4 * t                                      # Onsite orbital h
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                                    # Chemical potential at the leads
-Ef               = 0.6                                        # Fermi energy
-width            = [0.001, 0.02, 0.05, 0.1, 0.15, 0.2]        # Amorphous width 0.0001, 0.02, 0.05,
+Ef               = 0.0                                        # Fermi energy
+width            = [0.4]                                        # Amorphous width 0.0001, 0.02, 0.05,
 K_vec            = [0.]                                       # Disorder strength
-Nz               = np.linspace(200, 30, 20, dtype=np.int32)   # Length of the wire
-flux             = np.linspace(0, 1, 5)                     # Flux
+Nz               = np.linspace(200, 50, 10, dtype=np.int32)   # Length of the wire
+flux             = np.linspace(0, 5, 250)                       # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
@@ -103,6 +103,9 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'width',    width)
     store_my_data(simulation, 'K',        K_vec)
     store_my_data(simulation, 'G_array',  G_array)
+    store_my_data(simulation, 'x',        full_lattice.x)
+    store_my_data(simulation, 'y',        full_lattice.y)
+    store_my_data(simulation, 'z',        full_lattice.z)
     store_my_dict(simulation['Disorder'], disorder_dict)
 
     # Parameters folder

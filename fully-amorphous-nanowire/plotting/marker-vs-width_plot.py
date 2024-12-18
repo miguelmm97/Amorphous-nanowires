@@ -16,7 +16,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['Exp11.h5']
+file_list = ['Exp1.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-marker-vs-width')
 
 # Parameters
@@ -53,6 +53,6 @@ ax1 = fig1.add_subplot(gs[0, 0])
 
 ax1.plot(width, local_marker, marker='o', linestyle='solid', color='dodgerblue')
 ax1.set_xlabel('$w$', fontsize=fontsize)
-ax1.set_ylabel('\\nu', fontsize=fontsize)
+ax1.set_ylabel('$\\nu$', fontsize=fontsize)
 ax1.set_ylim([-1.1, 0.1])
 plt.show()

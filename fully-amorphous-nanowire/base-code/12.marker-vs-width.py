@@ -54,12 +54,13 @@ lamb       = 1 * t
 lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 flux_value = 0
+cutoff = 2.5
 
-marker = np.zeros((len(width), ))
+bulk_marker = np.zeros((len(width), ))
 
 #%% Main
 
-def bulk(x, y, z, cutoff, include_last_layer=True):
+def bulk(x, y, z, local_marker, cutoff, include_last_layer=True):
     x_pos, y_pos = x - 0.5 * Nx, y - 0.5 * Ny
     cond1 = np.abs(x_pos) < cutoff
     cond2 = np.abs(y_pos) < cutoff
@@ -68,12 +69,10 @@ def bulk(x, y, z, cutoff, include_last_layer=True):
         cond3 = 0.5 < z
         cond4 = z < Nz - 1.5
         cond = cond1 * cond2 * cond3 * cond4
-    return x[cond], y[cond], z[cond]
-
+    return x[cond], y[cond], z[cond], local_marker[cond]
 
 # Fully amorphous wire
 for i, w in enumerate(width):
-    loger_main.info(f'width: {i}/{len(width) - 1}, marker: {marker[i]}')
 
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
     lattice.build_lattice(restrict_connectivity=False)
@@ -87,10 +86,13 @@ for i, w in enumerate(width):
     # Local marker
     site_pos = np.array([site.pos for site in nanowire.id_by_site])
     x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
-    x_cut, y_cut, z_cut = bulk(x, y, z, 2.5, include_last_layer=False)
     sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
-    chiral_sym = np.kron(np.eye(len(x_cut)), np.kron(sigma_z, sigma_z))
-    marker[i] = np.mean(local_marker(x_cut, y_cut, z_cut, rho, chiral_sym))
+    chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
+    marker = local_marker(x, y, z, rho, chiral_sym)
+    x_cut, y_cut, z_cut, marker_cut = bulk(x, y, z, marker, cutoff, include_last_layer=False)
+    bulk_marker[i]= np.mean(marker_cut)
+    loger_main.info(f'width: {i}/{len(width) - 1}, marker: {bulk_marker[i]}')
+
 
 
 #%% Saving data
@@ -105,7 +107,7 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'local_marker', marker)
+    store_my_data(simulation, 'local_marker', bulk_marker)
     store_my_data(simulation, 'width',   width)
 
 
@@ -120,6 +122,7 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(parameters, 'eps',     eps)
     store_my_data(parameters, 'lamb',    lamb)
     store_my_data(parameters, 'lamb_z',  lamb_z)
+    store_my_data(parameters, 'cutoff', cutoff)
 
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))
