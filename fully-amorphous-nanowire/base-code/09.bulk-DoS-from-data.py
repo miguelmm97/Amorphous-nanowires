@@ -69,8 +69,8 @@ z             = data_dict[file_list[0]]['Simulation']['z']
 idx1, idx2 = 100, 144 # 25, 33
 flux1 = flux[idx1]
 flux2 = flux[idx2]
-#%% Main
 
+#%% Main: Different nanowires
 loger_main.info('Generating fully amorphous lattice...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
 lattice.set_configuration(x, y, z)
@@ -80,13 +80,15 @@ nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).
 site_pos = np.array([site.pos for site in nanowire.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
-# Calculating the scattering wavefunctions at certain energies
+
+#%% Main: Wavefunctions for the different states
 loger_main.info('Calculating scattering wave functions...')
 state1 = kwant.wave_function(nanowire, energy=Ef[0], params=dict(flux=flux1))
 state2 = kwant.wave_function(nanowire, energy=Ef[0], params=dict(flux=flux2))
 loger_main.info('Scattering wave functions calculated successfully')
 
-# Total local density through a cut
+
+#%% Main: Total DoS through cuts
 N = np.linspace(2, Nx / 2, 10)
 bulk_tot_density1 = np.zeros(N.shape)
 bulk_tot_density2 = np.zeros(N.shape)
@@ -105,7 +107,7 @@ bulk_tot_density1 = bulk_tot_density1 / bulk_tot_density1[-1]
 bulk_tot_density2 = bulk_tot_density2 / bulk_tot_density2[-1]
 
 
-# Local density through a cut
+#%% Main: Local density through a cut
 N_local = np.linspace(2, Nx / 2, 3)
 bulk_density1 = {}
 bulk_density2 = {}

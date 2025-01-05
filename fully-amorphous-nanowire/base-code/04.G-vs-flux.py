@@ -51,14 +51,18 @@ lamb             = 1 * t                      # Spin-orbit coupling in the cross
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
 flux             = np.linspace(0, 5, 250)     # Magnetic flux
-width            = [0.35]                      # Amorphous width 0.0001, 0.02, 0.05,
+width            = np.linspace(1e-5, 0.4, 5)  # Amorphous width 0.0001, 0.02, 0.05,
 Ef               = [0.0]                      # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
+Nsites = int(Nx * Ny * Nz)
 kwant_nw_dict = {}
 lattice_dict = {}
 G_array = np.zeros((len(Ef), len(width), len(flux)), dtype=np.float64)
+X = np.zeros((len(width), Nsites), dtype=np.float64)
+Y = np.zeros((len(width), Nsites), dtype=np.float64)
+Z = np.zeros((len(width), Nsites), dtype=np.float64)
 #%% Main
 
 # Generate nanowires
@@ -69,6 +73,7 @@ for i, w in enumerate(width):
     lattice.generate_disorder()
     lattice_dict[i] = lattice
     kwant_nw_dict[i] = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+    X[i, :], Y[i, :], Z[i, :] = lattice.x, lattice.y, lattice.z
     loger_main.info('Nanowire promoted to Kwant successfully.')
 
 # Calculate conductance
@@ -97,10 +102,9 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'flux',      flux)
     store_my_data(simulation, 'width',     width)
     store_my_data(simulation, 'G_array', G_array)
-    if len(width)==1:
-        store_my_data(simulation, 'x', lattice_dict[0].x)
-        store_my_data(simulation, 'y', lattice_dict[0].y)
-        store_my_data(simulation, 'z', lattice_dict[0].z)
+    store_my_data(simulation, 'x', X)
+    store_my_data(simulation, 'y', Y)
+    store_my_data(simulation, 'z', Z)
 
 
     # Parameters folder

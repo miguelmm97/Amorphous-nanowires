@@ -9,22 +9,26 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['draft-fig3-G-vs-flux-1.h5', 'draft-fig3-high-Ef.h5']
+file_list = ['draft-fig3-G-vs-flux-1.h5', 'draft-fig3-high-Ef.h5', 'draft-fig3-DoS.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 
-# Simulation data
+# Simulation data for conductance
 flux         = data_dict[file_list[0]]['Simulation']['flux']
-G_array_1     = data_dict[file_list[0]]['Simulation']['G_array']
+G_array_1    = data_dict[file_list[0]]['Simulation']['G_array']
 width        = data_dict[file_list[1]]['Simulation']['width']
 Ef           = data_dict[file_list[0]]['Parameters']['Ef']
 G_array_2    = data_dict[file_list[1]]['Simulation']['G_array']
-flux_2         = data_dict[file_list[1]]['Simulation']['flux']
-
+flux_2       = data_dict[file_list[1]]['Simulation']['flux']
 
 G_array = np.zeros((2, 4, 300))
 G_array[0, :, :] = G_array_1[0, [0, 2, 3, 4], :]
 G_array1 = G_array
+
+
+G_trivial = data_dict[file_list[2]]['Simulation']['G_array']
+
+
 
 #%% Figures
 

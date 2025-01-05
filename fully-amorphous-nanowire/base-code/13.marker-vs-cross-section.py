@@ -42,7 +42,7 @@ loger_main.addHandler(stream_handler)
 #%% Variables
 
 Nz         = 20
-Nx         = np.arange(6, 13)
+Nx         = np.arange(5, 11)
 Ny         = Nx
 r          = 1.3
 width      = 0.1
@@ -100,7 +100,7 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'local_marker', local_marker)
+    store_my_data(simulation, 'local_marker', marker)
     store_my_data(simulation, 'x', X)
     store_my_data(simulation, 'y', Y)
     store_my_data(simulation, 'z', Z)
