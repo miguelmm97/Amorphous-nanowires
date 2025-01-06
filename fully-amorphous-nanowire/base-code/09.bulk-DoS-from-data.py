@@ -104,6 +104,8 @@ nanowire_bound = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_l
 site_pos_bound = np.array([site.pos for site in nanowire_bound.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
+
+
 #%% Main: Wavefunctions for the different states
 loger_main.info('Calculating scattering wave functions...')
 top_state = kwant.wave_function(nanowire_top, energy=Ef[0], params=dict(flux=flux_top))
@@ -117,56 +119,56 @@ state_list = [top_state, loc_state, bound_state]
 
 #%% Main: Total DoS through cuts
 N = np.linspace(2, Nx / 2, 10)
-bulk_tot_density = np.zeros((len(state_list), N.shape))
+bulk_tot_density = np.zeros((len(state_list), len(N)))
 
 loger_main.info('Calculating total local bulk DoS...')
 for i, n in enumerate(N):
     loger_main.info(f'Section {i} / {len(N)}')
-
     def bulk(site):
         x, y = site.pos[0] - 0.5 * Nx, site.pos[1] - 0.5 * Ny
-        return (np.abs(x) and np.abs(y)) < n
+        z = site.pos[2]
+        cond3 = 4 < z
+        cond4 = z < Nz - 4
+        if i < len(N) - 1:
+            return ((np.abs(x) and np.abs(y)) < n) and cond3 and cond4
+        else:
+            return (np.abs(x) and np.abs(y)) < n
 
     for j, (nanowire, state) in enumerate(zip(system_list, state_list)):
         total_density_operator = kwant.operator.Density(nanowire, where=bulk, sum=True)
         bulk_tot_density[j, i] = total_density_operator(state(0)[0])
 
 # Normalization in percentage
-for i in len(state_list):
+for i in range(len(state_list)):
     bulk_tot_density[i, :] = bulk_tot_density[i, :] / bulk_tot_density[i, -1]
 
 
 #%% Main: Local density through a cut
-N_local = np.linspace(2, Nx / 2, 3)
+nx = np.linspace(2, Nx / 2, 3)
 bulk_density = {'top': {}, 'loc': {}, 'bound': {}}
 cut_pos = {'top': {}, 'loc': {}, 'bound': {}}
 key_list = ['top', 'loc', 'bound']
 
+# Cuts of the wires
 def bulk(syst, rad):
     new_sites_x = tuple([site for site in syst.id_by_site if np.abs(site.pos[0] - 0.5 * Nx) < rad])
     new_sites = tuple([site for site in new_sites_x if np.abs(site.pos[1] - 0.5 * Ny) < rad])
     new_sites_pos = np.array([site.pos for site in new_sites])
     return new_sites, new_sites_pos
 
+# DoS
 loger_main.info('Calculating local bulk DoS...')
-
-for (key, nanowire, state) in zip(system_list, state_list):
-    for i, n in enumerate(N_local):
-        loger_main.info(f'Section {i} / {len(N_local)}')
+for (key, nanowire, state) in zip(key_list, system_list, state_list):
+    for i, n in enumerate(nx):
+        loger_main.info(f'Section {i} / {len(nx)}')
         cut_sites, cut_pos[key][i] = bulk(nanowire, n)
         density_operator = kwant.operator.Density(nanowire, where=cut_sites, sum=False)
         bulk_density[key][i] = density_operator(state(0)[0])
 
+# Normalisation
 for state in bulk_density.keys():
     for cut in bulk_density[state].keys():
-        bulk_density[state, cut] = bulk_density[state, cut] / np.sum(bulk_density[state, len(N_local) - 1])
-
-
-# Normalisation for the plots
-sigmas = 1
-mean_value = np.mean(np.array([bulk_density1[len(N_local) - 1], bulk_density2[len(N_local) - 1]]))
-std_value = np.std(np.array([bulk_density1[len(N_local) - 1], bulk_density2[len(N_local) - 1]]))
-max_value, min_value = mean_value + sigmas * std_value, 0
+        bulk_density[state][cut] = bulk_density[state][cut] / np.sum(bulk_density[state][len(nx) - 1])
 
 
 
@@ -182,39 +184,46 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    DoS1 = simulation.create_group('DoS1')
-    DoS2 = simulation.create_group('DoS2')
-    cuts = simulation.create_group('cuts')
+    DoS_top = simulation.create_group('DoS_top')
+    DoS_loc = simulation.create_group('DoS_loc')
+    DoS_bound = simulation.create_group('DoS_bound')
+    cuts_top = simulation.create_group('cuts_top')
+    cuts_loc = simulation.create_group('cuts_loc')
+    cuts_bound = simulation.create_group('cuts_bound')
 
     store_my_data(simulation,  'G_array',          G_array)
     store_my_data(simulation,    'flux',           flux)
     store_my_data(simulation,   'width',           width)
     store_my_data(simulation,       'N',           N)
-    store_my_data(simulation, 'N_local',           N_local)
-    store_my_data(simulation, 'bulk_tot_density1', bulk_tot_density1)
-    store_my_data(simulation, 'bulk_tot_density2', bulk_tot_density2)
+    store_my_data(simulation,      'nx',           nx)
+    store_my_data(simulation, 'bulk_tot_density', bulk_tot_density)
 
-    store_my_dict(simulation['DoS1'],  bulk_density1)
-    store_my_dict(simulation['DoS2'],  bulk_density2)
-    store_my_dict(simulation['cuts'],  cut_pos)
+    store_my_dict(simulation['DoS_top'],  bulk_density['top'])
+    store_my_dict(simulation['cuts_top'],  cut_pos['top'])
+    store_my_dict(simulation['DoS_loc'], bulk_density['loc'])
+    store_my_dict(simulation['cuts_loc'], cut_pos['loc'])
+    store_my_dict(simulation['DoS_bound'], bulk_density['bound'])
+    store_my_dict(simulation['cuts_bound'], cut_pos['bound'])
 
 
     # Parameters folder
     parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'flux1', flux1)
-    store_my_data(parameters, 'flux2', flux2)
-    store_my_data(parameters, 'idx1',   idx1)
-    store_my_data(parameters, 'idx2',   idx2)
-    store_my_data(parameters, 'Ef',      Ef)
-    store_my_data(parameters, 'Nx',      Nx)
-    store_my_data(parameters, 'Ny',      Ny)
-    store_my_data(parameters, 'Nz',      Nz)
-    store_my_data(parameters, 'r ',      r)
-    store_my_data(parameters, 't ',      t)
-    store_my_data(parameters, 'eps',     eps)
-    store_my_data(parameters, 'lamb',    lamb)
-    store_my_data(parameters, 'lamb_z',  lamb_z)
-    store_my_data(parameters, 'mu_leads', mu_leads)
+    store_my_data(parameters, 'flux_top',   flux_top)
+    store_my_data(parameters, 'flux_loc',   flux_loc)
+    store_my_data(parameters, 'flux_bound', flux_bound)
+    store_my_data(parameters, 'idx_top',    index_top)
+    store_my_data(parameters, 'idx_loc',    index_loc)
+    store_my_data(parameters, 'idx_bound',  index_bound)
+    store_my_data(parameters, 'Ef',         Ef)
+    store_my_data(parameters, 'Nx',         Nx)
+    store_my_data(parameters, 'Ny',         Ny)
+    store_my_data(parameters, 'Nz',         Nz)
+    store_my_data(parameters, 'r ',         r)
+    store_my_data(parameters, 't ',         t)
+    store_my_data(parameters, 'eps',        eps)
+    store_my_data(parameters, 'lamb',       lamb)
+    store_my_data(parameters, 'lamb_z',     lamb_z)
+    store_my_data(parameters, 'mu_leads',   mu_leads)
 
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))
