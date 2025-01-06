@@ -41,7 +41,7 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Loading data
-file_list = ['Exp22.h5']
+file_list = ['Exp25.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
@@ -66,52 +66,81 @@ y             = data_dict[file_list[0]]['Simulation']['y']
 z             = data_dict[file_list[0]]['Simulation']['z']
 
 # Variables
-idx1, idx2 = 100, 144 # 25, 33
-flux1 = flux[idx1]
-flux2 = flux[idx2]
+flux_top = flux[39]
+w_top = width[2]
+index_top = 2
+flux_loc = flux[116]
+w_loc = width[1]
+index_loc = 1
+flux_bound = flux[161]
+w_bound = width[-1]
+index_bound = -1
 
 #%% Main: Different nanowires
-loger_main.info('Generating fully amorphous lattice...')
-lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
-lattice.set_configuration(x, y, z)
+loger_main.info('Generating lattice for the topological state...')
+lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_top, r=r)
+lattice.set_configuration(x[index_top, :], y[index_top, :], z[index_top, :])
 lattice.build_lattice(restrict_connectivity=False)
 lattice.generate_disorder(K_hopp=0., K_onsite=0.)
-nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
-site_pos = np.array([site.pos for site in nanowire.id_by_site])
+nanowire_top = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+site_pos_top = np.array([site.pos for site in nanowire_top.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
+loger_main.info('Generating lattice for the localised state...')
+lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_loc, r=r)
+lattice.set_configuration(x[index_loc, :], y[index_loc, :], z[index_loc, :])
+lattice.build_lattice(restrict_connectivity=False)
+lattice.generate_disorder(K_hopp=0., K_onsite=0.)
+nanowire_loc = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+site_pos_loc = np.array([site.pos for site in nanowire_loc.id_by_site])
+loger_main.info('Nanowire promoted to Kwant successfully.')
+
+loger_main.info('Generating lattice for the bound state...')
+lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_bound, r=r)
+lattice.set_configuration(x[index_bound, :], y[index_bound, :], z[index_bound, :])
+lattice.build_lattice(restrict_connectivity=False)
+lattice.generate_disorder(K_hopp=0., K_onsite=0.)
+nanowire_bound = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+site_pos_bound = np.array([site.pos for site in nanowire_bound.id_by_site])
+loger_main.info('Nanowire promoted to Kwant successfully.')
 
 #%% Main: Wavefunctions for the different states
 loger_main.info('Calculating scattering wave functions...')
-state1 = kwant.wave_function(nanowire, energy=Ef[0], params=dict(flux=flux1))
-state2 = kwant.wave_function(nanowire, energy=Ef[0], params=dict(flux=flux2))
+top_state = kwant.wave_function(nanowire_top, energy=Ef[0], params=dict(flux=flux_top))
+loc_state = kwant.wave_function(nanowire_loc, energy=Ef[0], params=dict(flux=flux_loc))
+bound_state = kwant.wave_function(nanowire_bound, energy=Ef[0], params=dict(flux=flux_bound))
 loger_main.info('Scattering wave functions calculated successfully')
+
+system_list = [nanowire_top, nanowire_loc, nanowire_bound]
+state_list = [top_state, loc_state, bound_state]
 
 
 #%% Main: Total DoS through cuts
 N = np.linspace(2, Nx / 2, 10)
-bulk_tot_density1 = np.zeros(N.shape)
-bulk_tot_density2 = np.zeros(N.shape)
+bulk_tot_density = np.zeros((len(state_list), N.shape))
 
 loger_main.info('Calculating total local bulk DoS...')
 for i, n in enumerate(N):
+    loger_main.info(f'Section {i} / {len(N)}')
+
     def bulk(site):
         x, y = site.pos[0] - 0.5 * Nx, site.pos[1] - 0.5 * Ny
         return (np.abs(x) and np.abs(y)) < n
-    loger_main.info(f'Section {i} / {len(N)}')
-    total_density_operator = kwant.operator.Density(nanowire, where=bulk, sum=True)
-    density_operator = kwant.operator.Density(nanowire, where=bulk, sum=False)
-    bulk_tot_density1[i] = total_density_operator(state1(0)[0])
-    bulk_tot_density2[i] = total_density_operator(state2(0)[0])
-bulk_tot_density1 = bulk_tot_density1 / bulk_tot_density1[-1]
-bulk_tot_density2 = bulk_tot_density2 / bulk_tot_density2[-1]
+
+    for j, (nanowire, state) in enumerate(zip(system_list, state_list)):
+        total_density_operator = kwant.operator.Density(nanowire, where=bulk, sum=True)
+        bulk_tot_density[j, i] = total_density_operator(state(0)[0])
+
+# Normalization in percentage
+for i in len(state_list):
+    bulk_tot_density[i, :] = bulk_tot_density[i, :] / bulk_tot_density[i, -1]
 
 
 #%% Main: Local density through a cut
 N_local = np.linspace(2, Nx / 2, 3)
-bulk_density1 = {}
-bulk_density2 = {}
-cut_pos = {}
+bulk_density = {'top': {}, 'loc': {}, 'bound': {}}
+cut_pos = {'top': {}, 'loc': {}, 'bound': {}}
+key_list = ['top', 'loc', 'bound']
 
 def bulk(syst, rad):
     new_sites_x = tuple([site for site in syst.id_by_site if np.abs(site.pos[0] - 0.5 * Nx) < rad])
@@ -120,16 +149,18 @@ def bulk(syst, rad):
     return new_sites, new_sites_pos
 
 loger_main.info('Calculating local bulk DoS...')
-for i, n in enumerate(N_local):
-    cut_sites, cut_pos[i] = bulk(nanowire, n)
-    loger_main.info(f'Section {i} / {len(N_local)}')
-    density_operator = kwant.operator.Density(nanowire, where=cut_sites, sum=False)
-    bulk_density1[i] = density_operator(state1(0)[0])
-    bulk_density2[i] = density_operator(state2(0)[0])
 
-for key in bulk_density1.keys():
-    bulk_density1[key] = bulk_density1[key] / np.sum(bulk_density1[len(N_local) - 1])
-    bulk_density2[key] = bulk_density2[key] / np.sum(bulk_density2[len(N_local) - 1])
+for (key, nanowire, state) in zip(system_list, state_list):
+    for i, n in enumerate(N_local):
+        loger_main.info(f'Section {i} / {len(N_local)}')
+        cut_sites, cut_pos[key][i] = bulk(nanowire, n)
+        density_operator = kwant.operator.Density(nanowire, where=cut_sites, sum=False)
+        bulk_density[key][i] = density_operator(state(0)[0])
+
+for state in bulk_density.keys():
+    for cut in bulk_density[state].keys():
+        bulk_density[state, cut] = bulk_density[state, cut] / np.sum(bulk_density[state, len(N_local) - 1])
+
 
 # Normalisation for the plots
 sigmas = 1
