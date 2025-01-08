@@ -127,12 +127,14 @@ for i, n in enumerate(N):
     def bulk(site):
         x, y = site.pos[0] - 0.5 * Nx, site.pos[1] - 0.5 * Ny
         z = site.pos[2]
-        cond3 = 4 < z
-        cond4 = z < Nz - 4
-        if i < len(N) - 1:
-            return ((np.abs(x) and np.abs(y)) < n) and cond3 and cond4
-        else:
-            return (np.abs(x) and np.abs(y)) < n
+        cond1 = np.abs(x) < n
+        cond2 = np.abs(y) < n
+        # cond3 = 2 < z
+        # cond4 = z < Nz - 2
+        # if i < len(N) - 1:
+        #     return cond1 * cond2 * cond3 * cond4
+        # else:
+        return cond1 * cond2
 
     for j, (nanowire, state) in enumerate(zip(system_list, state_list)):
         total_density_operator = kwant.operator.Density(nanowire, where=bulk, sum=True)
@@ -231,7 +233,13 @@ with h5py.File(filepath, 'w') as f:
 
 loger_main.info('Data saved correctly')
 
-
+# example_site = [site for site in nanowire_top.id_by_site]
+# example_pos = np.array([site.pos for site in example_site])
+# example_pos[:, 0] = example_pos[:, 0] - 0.5 * Nx
+# example_pos[:, 1] = example_pos[:, 1] - 0.5 * Ny
+# example = []
+# for i, site in enumerate(example_site):
+#     example.append(bulk(site))
 
 
 

@@ -13,7 +13,7 @@ from modules.functions import *
 L = [2, 5]
 
 #%% Loading data
-file_list = ['draft-fig3-G-vs-flux.h5', 'draft-fig3-high-Ef.h5', 'Exp9.h5']
+file_list = ['draft-fig3-G-vs-flux.h5', 'draft-fig3-high-Ef.h5', 'draft-fig3-DoS.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 
@@ -78,7 +78,7 @@ colormap = cm.ScalarMappable(norm=Normalize(vmin=min_value, vmax=max_value), cma
 
 # Figure 1: Definition
 fig1 = plt.figure(figsize=(10, 7))
-gs = GridSpec(2, 4, figure=fig1, wspace=0.2, hspace=0.2)
+gs = GridSpec(2, 4, figure=fig1, wspace=0.4, hspace=0.2)
 ax1 = fig1.add_subplot(gs[0, :])
 ax2 = fig1.add_subplot(gs[1, 0])
 ax3 = fig1.add_subplot(gs[1, 1], projection='3d')
@@ -98,9 +98,9 @@ for i in range(G_high_Ef.shape[1]):
 ax1.plot(flux, 1 * np.ones(flux.shape), '--', color='Black', alpha=0.2)
 ax1.text(1.15, 1.25, f'$E_f= {Ef1[0]}$', fontsize=fontsize - 2)
 ax1_inset.text(3.5, 3.3, f'$E_f= {Ef2[0]}$', fontsize=15)
-ax1.plot(flux_top, G_top, marker='o', color=color_list[2], markersize=7)
-ax1.plot(flux_loc, G_loc, marker='d', color=color_list[1], markersize=10)
-ax1.plot(flux_bound, G_bound, marker='*', color=color_list[-1], markersize=10)
+ax1.plot(flux_top, G_top, marker='o', color=color_list[2], markersize=7, markeredgecolor='black')
+ax1.plot(flux_loc, G_loc, marker='d', color=color_list[1], markersize=10, markeredgecolor='black')
+ax1.plot(flux_bound, G_bound, marker='*', color=color_list[-1], markersize=10, markeredgecolor='black')
 # ax1.text(flux_top, G_top, f'$(a)$', fontsize=fontsize - 2)
 
 
@@ -147,18 +147,18 @@ ax5.scatter(cuts_bound['2'][:, 0], cuts_bound['2'][:, 1], cuts_bound['2'][:, 2],
 ax5.set_box_aspect((1, 1, 5))
 ax5.set_axis_off()
 
-scatter_ax3 = fig1.add_axes([0.33, 0.3, 0.05, 0.05])
-scatter_ax3.scatter([0], [0], color=color_list[2], s=100, marker='o')
+scatter_ax3 = fig1.add_axes([0.315, 0.3, 0.05, 0.05])
+scatter_ax3.scatter([0], [0], color=color_list[2], s=100, marker='o', edgecolor='black')
 scatter_ax3.set_xticks([])
 scatter_ax3.set_yticks([])
 scatter_ax3.set_axis_off()
 scatter_ax4 = fig1.add_axes([0.52, 0.3, 0.05, 0.05])
-scatter_ax4.scatter([0], [0], color=color_list[1], s=100, marker='^')
+scatter_ax4.scatter([0], [0], color=color_list[1], s=100, marker='^', edgecolor='black')
 scatter_ax4.set_xticks([])
 scatter_ax4.set_yticks([])
 scatter_ax4.set_axis_off()
 scatter_ax5 = fig1.add_axes([0.72, 0.3, 0.05, 0.05])
-scatter_ax5.scatter([0], [0], color=color_list[-1], s=200, marker='*')
+scatter_ax5.scatter([0], [0], color=color_list[-1], s=200, marker='*', edgecolor='black')
 scatter_ax5.set_xticks([])
 scatter_ax5.set_yticks([])
 scatter_ax5.set_axis_off()
@@ -177,8 +177,8 @@ cbar.ax.ticklabel_format(style='sci')
 ax2.plot(N/N[-1], bulk_tot_density[0, :], marker='o', linestyle='solid', color=color_list[2])
 ax2.plot(N/N[-1], bulk_tot_density[1, :], marker='^', linestyle='solid', color=color_list[1])
 ax2.plot(N/N[-1], bulk_tot_density[2, :], marker='*', linestyle='solid', color=color_list[-1])
-ax2.set_xlabel('$S_{xy} (\%)$', fontsize=fontsize)
-ax2.set_ylabel('Norm. DoS', fontsize=fontsize)
+ax2.set_xlabel('$S_{xy}$', fontsize=fontsize)
+ax2.set_ylabel('DoS', fontsize=fontsize)
 ax2.set_ylim(0, 1)
 ax2.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax2.tick_params(which='major', length=6, labelsize=fontsize)

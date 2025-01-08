@@ -45,7 +45,7 @@ Nz         = 20
 Nx         = np.arange(5, 11)
 Ny         = Nx
 r          = 1.3
-width      = 0.1
+width      = np.arange(1e-5, 0.4, 10)
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -55,36 +55,38 @@ flux_value = 0
 
 # Preallocation
 Nsites = int(Nz * np.max(Nx) * np.max(Ny))
-marker = np.zeros((len(Nx), Nsites))
-X = np.zeros((len(Nx), Nsites))
-Y = np.zeros((len(Nx), Nsites))
-Z = np.zeros((len(Nx), Nsites))
+marker = np.zeros((len(width), len(Nx), Nsites))
+X = np.zeros((len(width), len(Nx), Nsites))
+Y = np.zeros((len(width), len(Nx), Nsites))
+Z = np.zeros((len(width), len(Nx), Nsites))
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 
 #%% Main
 
-# Generating lattice structure of the wire
-full_lattice = AmorphousLattice_3d(Nx=np.max(Nx), Ny=np.max(Ny), Nz=Nz, w=width, r=r)
-full_lattice.build_lattice()
-full_lattice.generate_disorder(K_onsite=0., K_hopp=0)
+for i, w in enumerate(width):
 
-for i, n in enumerate(Nx):
+    # Generating lattice structure of the wire
+    full_lattice = AmorphousLattice_3d(Nx=np.max(Nx), Ny=np.max(Ny), Nz=Nz, w=w, r=r)
+    full_lattice.build_lattice()
+    full_lattice.generate_disorder(K_onsite=0., K_hopp=0)
 
-    # Selecting different cuts of the wire for each disorder realisation
-    lattice = take_cut_from_parent_wire(full_lattice, Nx_new=n, Ny_new=n, Nz_new=Nz, keep_disorder=True)
-    nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
+    for j, n in enumerate(Nx):
 
-    # Spectrum of the closed system
-    H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value))
-    eps, _, rho = spectrum(H)
+        # Selecting different cuts of the wire for each disorder realisation
+        lattice = take_cut_from_parent_wire(full_lattice, Nx_new=n, Ny_new=n, Nz_new=Nz, keep_disorder=True)
+        nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
 
-    # Local marker
-    site_pos = np.array([site.pos for site in nanowire.id_by_site])
-    x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
-    X[i, :len(x)], Y[i, :len(x)], Z[i, :len(x)] = x, y, z
-    chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
-    marker[i, :len(x)] = local_marker(x, y, z, rho, chiral_sym)
-    loger_main.info(f'Nx: {i}/{len(Nx) - 1}')
+        # Spectrum of the closed system
+        H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value))
+        eps, _, rho = spectrum(H)
+
+        # Local marker
+        site_pos = np.array([site.pos for site in nanowire.id_by_site])
+        x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
+        X[i, j, :len(x)], Y[i, j, :len(x)], Z[i, j, :len(x)] = x, y, z
+        chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
+        marker[i, j, :len(x)] = local_marker(x, y, z, rho, chiral_sym)
+        loger_main.info(f'width: {i}/{len(width) - 1}, Nx: {j}/{len(Nx) - 1}')
 
 
 
@@ -108,6 +110,7 @@ with h5py.File(filepath, 'w') as f:
     # Parameters folder
     parameters = f.create_group('Parameters')
     store_my_data(parameters, 'flux',  flux_value)
+    store_my_data(parameters, 'width', width)
     store_my_data(parameters, 'Nx',      Nx)
     store_my_data(parameters, 'Ny',      Ny)
     store_my_data(parameters, 'Nz',      Nz)
