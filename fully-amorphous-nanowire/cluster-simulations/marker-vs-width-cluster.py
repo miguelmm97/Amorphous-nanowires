@@ -1,4 +1,4 @@
-#%% modules set up
+#%% Modules and setup
 
 # Math and plotting
 import numpy as np
@@ -11,8 +11,21 @@ from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d, take_cut_from_parent_wire
 from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, spectrum, local_marker
 
+# Utilities
+import argparse
 import sys
 from datetime import date
+
+
+# Arguments to submit to the cluster
+parser = argparse.ArgumentParser(description='Local marker vs width')
+parser.add_argument('-l', '--line', type=int, help='Select line number', default=None)
+parser.add_argument('-f', '--file', type=str, help='Select file name', default='params.txt')
+parser.add_argument('-M', '--outdir', type=str, help='Select the base name of the output file', default='outdir')
+parser.add_argument('-o', '--outbase', type=str, help='Select the base name of the output file', default='exp')
+args = parser.parse_args()
+
+
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -42,7 +55,7 @@ loger_main.addHandler(stream_handler)
 #%% Variables
 
 Nz         = 15
-Nx         = [12] # np.arange(6, 13)
+Nx         = np.arange(6, 13)
 Ny         = Nx
 r          = 1.3
 width      = np.linspace(1e-5, 0.5, 15)
@@ -63,7 +76,6 @@ sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 
 #%% Main
 
-loger_main.info(f'Starting calculation...')
 for i, w in enumerate(width):
 
     # Generating lattice structure of the wire
@@ -92,11 +104,8 @@ for i, w in enumerate(width):
 
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-marker-vs-cross-section'
-file_list = os.listdir(data_dir)
-expID = get_fileID(file_list, common_name='Exp')
-filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join(data_dir, filename)
+outfile = '{}-{}.h5'.format(args.outbase, args.line)
+filepath = os.path.join(args.outdir, outfile)
 
 
 with h5py.File(filepath, 'w') as f:

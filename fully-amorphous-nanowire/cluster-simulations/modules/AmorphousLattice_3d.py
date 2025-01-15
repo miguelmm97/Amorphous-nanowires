@@ -1,4 +1,4 @@
-#%% Modules setup
+#%% modules setup
 
 # Math and plotting
 from numpy import pi
@@ -9,8 +9,12 @@ from shapely.geometry import Point, LineString, MultiPoint, Polygon
 from shapely import intersects
 from scipy.integrate import quad
 
+
 # Managing classes
 from dataclasses import dataclass, field
+
+# Tracking time
+import time
 
 # Managing logging
 import logging
@@ -149,14 +153,29 @@ def remove_site(list, site):
 
 
 # Functions for generating instances of the amorphous class
-def take_cut_from_parent_wire(parent, Nz, keep_disorder=True):
+def take_cut_from_parent_wire(parent, Nx_new=None, Ny_new=None, Nz_new=None, keep_disorder=True):
 
-    # Select sites in the cut of the parent lattice
-    Nsites = int(parent.Nx * parent.Ny * Nz)
-    x, y, z = parent.x[:Nsites], parent.y[:Nsites], parent.z[:Nsites]
+    # Sites from the new and parent lattice
+    Nx, Ny, Nz = parent.Nx, parent.Ny, parent.Nz
+    if Nx_new is None:
+        Nx_new = parent.Nx
+    if Ny_new is None:
+        Ny_new = parent.Ny
+    if Nz_new is None:
+        Nz_new = parent.Nz
+
+    # Selecting sites from the parent lattice
+    Nsites1, Nxy = int(Nx * Ny * Nz_new), int(Nx * Ny)
+    x1, y1, z1 = parent.x[:Nsites1], parent.y[:Nsites1], parent.z[:Nsites1]
+    x2 = np.concatenate([x1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    y2 = np.concatenate([y1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    z2 = np.concatenate([z1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    x = np.concatenate([x2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
+    y = np.concatenate([y2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
+    z = np.concatenate([z2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
 
     # Generate child lattice
-    lattice = AmorphousLattice_3d(Nx=parent.Nx, Ny=parent.Ny, Nz=Nz, w=parent.w, r=parent.r)
+    lattice = AmorphousLattice_3d(Nx=Nx_new, Ny=Ny_new, Nz=Nz_new, w=parent.w, r=parent.r)
     lattice.set_configuration(x, y, z)
     lattice.build_lattice()
     if keep_disorder:
@@ -169,19 +188,19 @@ class AmorphousLattice_3d:
     """ Infinite amorphous cross-section nanowire based on the crystalline Fu and Berg model"""
 
     # Class fields set upon instantiation
-    Nx:  int                                                # Number of lattice sites along x direction
-    Ny:  int                                                # Number of lattice sites along y direction
-    Nz:  int                                                # Number of lattice sites along y direction
-    w:   float                                              # Width of the Gaussian distribution
-    r:   float                                              # Cutoff distance to consider neighbours
+    Nx:  int                                          # Number of lattice sites along x direction
+    Ny:  int                                          # Number of lattice sites along y direction
+    Nz:  int                                          # Number of lattice sites along y direction
+    w:   float                                        # Width of the Gaussian distribution
+    r:   float                                        # Cutoff distance to consider neighbours
 
     # Class fields that can be set externally
-    x: np.ndarray         = None                            # x position of the sites
-    y: np.ndarray         = None                            # y position of the sites
-    z: np.ndarray         = None                            # z position of the sites
-    K_onsite: float       = None                            # Strength of the onsite disorder distribution
-    K_hopp:   float       = None                            # Strength of the hopping disorder distribution
-    disorder: np.ndarray  = None                            # Disorder matrix
+    x: np.ndarray         = None                      # x position of the sites
+    y: np.ndarray         = None                      # y position of the sites
+    z: np.ndarray         = None                      # z position of the sites
+    K_onsite: float       = None                      # Strength of the onsite disorder distribution
+    K_hopp:   float       = None                      # Strength of the hopping disorder distribution
+    disorder: np.ndarray  = None                      # Disorder matrix
 
     # Class fields that can only be set internally
     Nsites: int = field(init=False)                         # Number of sites in the cross-section
@@ -192,6 +211,7 @@ class AmorphousLattice_3d:
 
 
     # Methods for building the lattice
+
     def build_lattice(self, n_tries=0, restrict_connectivity=False):
 
         if n_tries > 100:
@@ -238,7 +258,7 @@ class AmorphousLattice_3d:
             if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def generate_disorder(self, K_onsite, K_hopp):
+    def generate_disorder(self, K_onsite=0., K_hopp=0.):
 
         loger_amorphous.trace('Generating disorder configuration...')
         self.K_onsite, self.K_hopp = K_onsite, K_hopp

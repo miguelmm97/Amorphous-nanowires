@@ -1,4 +1,4 @@
-# %% modules setup
+ #%% modules setup
 
 # Managing logging
 import logging
@@ -7,9 +7,7 @@ from colorlog import ColoredFormatter
 
 # Managing data
 import h5py
-from tables import *
 import os
-import numpy as np
 
 
 # %% Logging setup
@@ -62,7 +60,7 @@ stream_handler.setFormatter(formatter)
 logger_functions.addHandler(stream_handler)
 
 
-#%% Managing data
+#%% # Managing data
 def get_fileID(file_list, common_name='datafile'):
     expID = 0
     for file in file_list:
@@ -72,20 +70,17 @@ def get_fileID(file_list, common_name='datafile'):
             expID = max(ID, expID)
     return expID + 1
 
-
 def store_my_data(file, name, data):
     try:
         file.create_dataset(name=name, data=data)
     except Exception as ex:
         logger_functions.warning(f'Failed to write {name} in {file} because of exception: {ex}')
 
-
 def attr_my_data(dataset, attr_name, attr):
     try:
         dataset.attrs.create(name=attr_name, data=attr)
     except Exception as ex:
         logger_functions.warning(f'Failed to write {attr_name} in {dataset} because of exception: {ex}')
-
 
 def load_my_data(file_list, directory):
     # Generate a dict with 1st key for filenames, 2nd key for datasets in the files
@@ -125,7 +120,6 @@ def load_my_data(file_list, directory):
                                 data_dict[file][group] = f[group][()]
     return data_dict
 
-
 def load_my_attr(file_list, directory, dataset):
     attr_dict = {}
 
@@ -140,7 +134,6 @@ def load_my_attr(file_list, directory, dataset):
                 attr_dict[file][att] = f[dataset].attrs[att]
 
     return attr_dict
-
 
 def store_my_dict(file, dict):
     for key in dict.keys():

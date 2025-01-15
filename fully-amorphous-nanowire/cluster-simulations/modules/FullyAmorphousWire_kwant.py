@@ -14,7 +14,6 @@ import logging
 import colorlog
 from colorlog import ColoredFormatter
 
-
 # %% Logging setup
 loger_kwant = logging.getLogger('kwant')
 loger_kwant.setLevel(logging.INFO)
@@ -41,7 +40,8 @@ loger_kwant.addHandler(stream_handler)
 
 # %% Module
 """
-Here we promote the infinite amorphous nanowire defined into a kwant.system where to do transport calculations.
+Here we promote the infinite amorphous nanowire defined in class InfiniteNanowire_FuBerg.py 
+into a kwant.system where to do transport calculations.
 """
 
 sigma_0 = np.eye(2, dtype=np.complex128)
@@ -122,7 +122,7 @@ def Peierls_kwant(site1, site0, flux, area):
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
 
-Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refers to the site from 
+Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
 which we hopp.
 """
 
@@ -254,22 +254,23 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     scatt_region.attach_lead(left_lead)
 
 
-    # Right lead: definition
+    # # Right lead: definition
     loger_kwant.trace('Attaching right lead...')
     sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
     right_lead = kwant.Builder(sym_right_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
-
-    # Right lead: Hoppings
+    #
+    # # Right lead: Hoppings
     loger_kwant.trace('Defining hoppings in the first unit cell of the lead...')
     right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     right_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
-
-    # Right lead: Attachment
+    #
+    # # Right lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, latt.Nz) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
+    # scatt_region[(latt_lead(i, j, latt.Nz + 1) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     scatt_region[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     scatt_region[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
 
@@ -339,7 +340,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
         raise KeyError(f'Parameter error: {err}')
 
     def onsite_leads(K):
-        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) + np.random.normal(-K, K)
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0) # + np.random.normal(-K, K)
 
     # Define lattice and initialise system and sites
     latt = kwant.lattice.cubic(1, norbs=4)
@@ -359,7 +360,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     return lead
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200):
+def select_perfect_transmission_flux(nanowire, flux0=0.8, flux_end=1.5, Nflux=100, Ef=0.):
 
     loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
@@ -367,12 +368,14 @@ def select_perfect_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200)
     Gmax = 0.
     flux_max = flux0
     for i, phi in enumerate(flux):
-        S0 = kwant.smatrix(nanowire, 0.1, params=dict(flux=phi))
+        S0 = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
         G = S0.transmission(1, 0)
-        loger_kwant.trace(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2e}')
+        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
         if G > Gmax:
             Gmax = G
             flux_max = phi
+            if Gmax > 0.98:
+                break
         else:
             pass
 
@@ -397,7 +400,7 @@ def select_minimal_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200)
 
     return flux_min, Gmin
 
-def thermal_average(G0, Ef0, T, thermal_interval= None):
+def thermal_average(G0, Ef0, T, thermal_interval=None):
 
    # Definitions
     energy_factor = 150                  # t=150 meV in Bi2Se3
@@ -420,3 +423,44 @@ def thermal_average(G0, Ef0, T, thermal_interval= None):
         G_avg[i] = np.trapezoid(integrand, delta_E)
 
     return G_avg
+
+#%% Topology functions
+
+def spectrum(H, Nsp=None):
+
+    if Nsp is None:
+        Nsp = int(len(H) / 2)
+
+    # Spectrum
+    energy, eigenstates = np.linalg.eigh(H)
+    idx = energy.argsort()
+    energy = energy[idx]
+    eigenstates = eigenstates[:, idx]
+
+    # OPDM
+    U = np.zeros((len(H), len(H)), dtype=np.complex128)
+    U[:, 0: Nsp] = eigenstates[:, 0: Nsp]
+    rho = U @ np.conj(np.transpose(U))
+
+    return energy, eigenstates, rho
+
+def local_marker(x, y, z, P, S):
+
+    # Operators for calculating the marker
+    X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+    X = np.reshape(X, (len(X), 1))
+    Y = np.reshape(Y, (len(Y), 1))
+    Z = np.reshape(Z, (len(Z), 1))
+    PS = P @ S
+    XP = X * P
+    YP = Y * P
+    ZP = Z * P
+
+    # Local chiral marker
+    local_marker = np.zeros((len(x), ))
+    M = PS @ XP @ YP @ ZP + PS @ ZP @ XP @ YP + PS @ YP @ ZP @ XP - PS @ XP @ ZP @ YP - PS @ ZP @ YP @ XP - PS @ YP @ XP @ ZP
+    for i in range(len(x)):
+        idx = 4 * i
+        local_marker[i] = (8 * pi / 3) * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
+
+    return local_marker
