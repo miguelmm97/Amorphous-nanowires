@@ -18,13 +18,22 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['draft-fig7.h5']
+file_list = ['draft-fig7.h5', 'data-cluster.h5', 'data-cluster2.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 # Plot 1
-avg_marker         = data_dict[file_list[0]]['Plot1']['avg_marker']
-width              = data_dict[file_list[0]]['Plot1']['width']
-Nx                 = data_dict[file_list[0]]['Plot1']['Nx']
+avg_marker1        = data_dict[file_list[1]]['Plot1']['avg_marker']
+avg_marker2        = data_dict[file_list[2]]['Plot1']['avg_marker']
+std_marker1        = data_dict[file_list[1]]['Plot1']['std_marker']
+std_marker2        = data_dict[file_list[2]]['Plot1']['std_marker']
+width1              = data_dict[file_list[1]]['Plot1']['width']
+width2              = data_dict[file_list[2]]['Plot1']['width']
+Nx                 = data_dict[file_list[1]]['Plot1']['Nx']
+avg_marker = np.concatenate((avg_marker1, avg_marker2))
+std_marker = np.concatenate((std_marker1, std_marker2))
+width = np.concatenate((width1, width2))
+error_bar_up = avg_marker + 0.5 * std_marker
+error_bar_down = avg_marker - 0.5 * std_marker
 
 # Plot 2
 Nx_plot            = data_dict[file_list[0]]['Plot2']['Nx_plot']
@@ -52,12 +61,12 @@ plt.rc('font', family='serif')
 color_list = ['dodgerblue', 'limegreen', 'm', 'r', 'orange']
 fontsize = 20
 palette = seaborn.color_palette(palette='magma', n_colors=len(Nx))
-palette2 = seaborn.color_palette(palette='magma', n_colors=len(width))
+palette2 = seaborn.color_palette(palette='viridis', n_colors=len(width3))
 
 
 # Figure 1
 fig1 = plt.figure(figsize=(10, 7))
-gs = GridSpec(2, 6, figure=fig1, wspace=0.4, hspace=0.3)
+gs = GridSpec(2, 6, figure=fig1, wspace=0.5, hspace=0.3)
 ax1 = fig1.add_subplot(gs[0, :3])
 ax2 = fig1.add_subplot(gs[0, 3:])
 ax3 = fig1.add_subplot(gs[1, :2],  projection='3d')
@@ -66,11 +75,12 @@ ax5 = fig1.add_subplot(gs[1, 4:],  projection='3d')
 
 for i in range(len(Nx)):
     ax1.plot(width, avg_marker[:, i], marker='o', linestyle='solid', color=palette[i], label=f'${Nx[i]}$')
+    ax1.fill_between(width, error_bar_down[:, i], error_bar_up[:, i], color=palette[i], alpha=0.3)
 
-lgnd = ax1.legend(ncol=2, frameon=False, fontsize=13, handlelength=1, bbox_to_anchor=(0.35, 0.35), columnspacing=0.5)
-ax1.text(0.05, -0.1, '$\\underline{N_{x, y}}$', fontsize=fontsize-2)
-ax1.text(0.35, -0.8, '$N_z = 15$', fontsize=fontsize-2)
-ax1.text(0.23, -0.95, f'$\\vert x, y, z \\vert< {0.4}$' + '$N_{x, y, z}$', fontsize=fontsize-2)
+lgnd = ax1.legend(ncol=2, frameon=False, fontsize=13, handlelength=1, columnspacing=0.5, bbox_to_anchor=(0.6, 0.75))
+ax1.text(0.58, -0.23, '$\\underline{N_{x, y}}$', fontsize=fontsize-2)
+ax1.text(0.01, -0.15, '$N_z = 15$', fontsize=fontsize-2)
+ax1.text(0.35, -0.9, f'$\\vert x, y, z \\vert< {0.4}$' + '$N_{x, y}$', fontsize=fontsize-2)
 ax1.set_xlabel('$w$', fontsize=fontsize)
 ax1.set_ylabel('$\overline{\\nu}$', fontsize=fontsize)
 ax1.set_ylim([-1, 0])
@@ -124,34 +134,37 @@ cbar.ax.tick_params(which='major', width=0.75, labelsize=fontsize)
 cbar.ax.ticklabel_format(style='sci')
 
 
-scatter_ax3 = fig1.add_axes([0.08, 0.3, 0.05, 0.05])
+scatter_ax3 = fig1.add_axes([0.1, 0.3, 0.05, 0.05])
 scatter_ax3.set_xticks([])
 scatter_ax3.set_yticks([])
 scatter_ax3.set_axis_off()
-scatter_ax3.text(-0.5, 0, '$\\vert x, y \\vert <' + f'{cutoff[0] :.1f}' + 'N_{x, y}$', fontsize=fontsize - 2)
-scatter_ax3.text(0, -1, '$\\vert z \\vert < N_z$ ', fontsize=fontsize - 2)
+scatter_ax3.text(-0.5, 0, '$\\vert x, y \\vert < 2.4$', fontsize=fontsize - 2)
+scatter_ax3.text(0, -1, '$\\vert z \\vert < 2.4$ ', fontsize=fontsize - 2)
 scatter_ax3.text(0, -2, f'$\\nu= {avg_marker2[0] :.2f}$ ', fontsize=fontsize - 2)
 
 scatter_ax4 = fig1.add_axes([0.35, 0.3, 0.05, 0.05])
 scatter_ax4.set_xticks([])
 scatter_ax4.set_yticks([])
 scatter_ax4.set_axis_off()
-scatter_ax4.text(0, 0, '$S_{x,y}' + f'= {cutoff[1] :.1f} (\%)$', fontsize=fontsize - 2)
-scatter_ax4.text(0, -1, f'$\\nu= {avg_marker2[1] :.2f}$ ', fontsize=fontsize - 2)
+scatter_ax4.text(0, 0, '$\\vert x, y \\vert < 3.6$', fontsize=fontsize - 2)
+scatter_ax4.text(0, -1, '$\\vert z \\vert < 4.8$ ', fontsize=fontsize - 2)
+scatter_ax4.text(0, -2, f'$\\nu= {avg_marker2[1] :.2f}$ ', fontsize=fontsize - 2)
 
-scatter_ax5 = fig1.add_axes([0.6, 0.3, 0.05, 0.05])
+scatter_ax5 = fig1.add_axes([0.62, 0.3, 0.05, 0.05])
 scatter_ax5.set_xticks([])
 scatter_ax5.set_yticks([])
 scatter_ax5.set_axis_off()
-scatter_ax5.text(0, 0, '$S_{x,y}' + f'= {cutoff[2] :.1f} (\%)$', fontsize=fontsize - 2)
-scatter_ax5.text(0, -1, f'$\\nu= {avg_marker2[2] :.2f}$ ', fontsize=fontsize - 2)
+scatter_ax5.text(0, 0, '$\\vert x, y \\vert < 6.5$', fontsize=fontsize - 2)
+scatter_ax5.text(0, -1, '$\\vert z \\vert < 8$ ', fontsize=fontsize - 2)
+scatter_ax5.text(0, -2, f'$\\nu= {avg_marker2[2] :.2f}$ ', fontsize=fontsize - 2)
 
 scatter_ax5 = fig1.add_axes([0.85, 0.3, 0.05, 0.05])
 scatter_ax5.set_xticks([])
 scatter_ax5.set_yticks([])
 scatter_ax5.set_axis_off()
-scatter_ax5.text(0, 0, '$n_{x, y}' + f'= {12}$', fontsize=fontsize - 2)
-scatter_ax5.text(0, -1, f'$w={w :.2f}$ ', fontsize=fontsize - 2)
+scatter_ax5.text(0, 0, '$N_{x, y}' + f'= {12}$', fontsize=fontsize - 2)
+scatter_ax5.text(0, -1, '$N_{z}' + f'= {15}$', fontsize=fontsize - 2)
+scatter_ax5.text(0, -2, f'$w={w :.2f}$ ', fontsize=fontsize - 2)
 
 
 
@@ -160,15 +173,15 @@ scatter_ax5.text(0, -1, f'$w={w :.2f}$ ', fontsize=fontsize - 2)
 
 
 # Figure 3
-for i in range(len(width)):
-    ax2.plot(cutoff_sequence, marker_transition[i, :], marker='o', linestyle='solid', color=palette2[i], label=f'${width[i] :.2f}$')
+for i in range(len(width3)):
+    ax2.plot(cutoff_sequence, marker_transition[i, :], marker='o', linestyle='solid', color=palette2[i], label=f'${width3[i] :.2f}$')
 ax2.set_xlabel('$\\vert x, y, z \\vert$', fontsize=fontsize)
 # ax2.set_ylabel('$\overline{\\nu}$', fontsize=fontsize)
 ax2.set_ylim([-1, 0])
 ax2.set_xlim([cutoff_sequence[0], 1])
 # ax2.legend(ncol=2, frameon=False, fontsize=13, handlelength=1)
-ax2.text(0.82, -0.97, f'$w= {width[0] :.2f}$', fontsize=15)
-ax2.text(0.55, -0.085, f'$w= {width[-1] :.2f}$', fontsize=15)
+ax2.text(0.82, -0.97, f'$w= {width3[0] :.2f}$', fontsize=15)
+ax2.text(0.55, -0.085, f'$w= {width3[-1] :.2f}$', fontsize=15)
 ax2.text(0.25, -0.15, '$N_{x, y} = 12$', fontsize=15)
 # ax2.text(0.25, -0.2, '$N_{z} = 15$', fontsize=15)
 majorsy = [-1, -0.5, 0]
@@ -180,5 +193,7 @@ ax2.tick_params(which='major', length=6, labelsize=fontsize)
 ax2.tick_params(which='minor', width=0.75, labelsize=fontsize)
 ax2.tick_params(which='minor', length=3, labelsize=fontsize)
 ax2.set(yticklabels=ylabels)
+
+fig1.savefig('draft-fig7.pdf', format='pdf')
 plt.show()
 
