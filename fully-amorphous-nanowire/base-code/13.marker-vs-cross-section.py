@@ -42,7 +42,7 @@ loger_main.addHandler(stream_handler)
 #%% Variables
 
 Nz         = 15
-Nx         = [12] # np.arange(6, 13)
+Nx         = [6] # np.arange(6, 13)
 Ny         = Nx
 r          = 1.3
 width      = np.linspace(1e-5, 0.5, 15)
@@ -86,6 +86,8 @@ for i, w in enumerate(width):
         x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
         X[i, j, :len(x)], Y[i, j, :len(x)], Z[i, j, :len(x)] = x, y, z
         chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
+        # print(np.allclose(chiral_sym @ H @ chiral_sym, -H))
+        # print(np.allclose(rho @ chiral_sym + chiral_sym @ rho, chiral_sym))
         marker[i, j, :len(x)] = local_marker(x, y, z, rho, chiral_sym)
         loger_main.info(f'width: {i}/{len(width) - 1}, Nx: {j}/{len(Nx) - 1}')
 

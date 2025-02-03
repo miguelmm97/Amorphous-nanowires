@@ -3,7 +3,7 @@
 # Math and plotting
 from numpy import pi
 import numpy as np
-from scipy.integrate import quad
+from scipy.integrate import cumulative_trapezoid, quad
 
 # Kwant
 import kwant
@@ -39,10 +39,6 @@ stream_handler.setFormatter(formatter)
 loger_kwant.addHandler(stream_handler)
 
 # %% Module
-"""
-Here we promote the infinite amorphous nanowire defined in class InfiniteNanowire_FuBerg.py 
-into a kwant.system where to do transport calculations.
-"""
 
 sigma_0 = np.eye(2, dtype=np.complex128)
 sigma_x = np.array([[0, 1], [1, 0]], dtype=np.complex128)
@@ -154,7 +150,7 @@ class FullyAmorphousWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_leads=0.):
+def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_leads=0., interface_z=0.5, interface_r=1.3):
 
     # Load parameters into the builder namespace
     try:
@@ -195,12 +191,13 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
             syst[(latt(n), latt(i))] = hopp
 
     if attach_leads:
-        complete_system = attach_cubic_leads(syst, lattice_tree, latt, param_dict, mu_leads=mu_leads)
+        complete_system = attach_cubic_leads(syst, lattice_tree, latt, param_dict,
+                                             mu_leads=mu_leads, interface_z=interface_z, interface_r=interface_r)
     else:
         complete_system = syst
     return complete_system
 
-def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.):
+def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0., interface_z=0.5, interface_r=1.3):
 
     # Load parameters into the builder namespace
     try:
@@ -243,13 +240,13 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     interface_left = []
     for i in range(lattice_tree.Nsites):
-        if lattice_tree.z[i] < 0.5:
+        if lattice_tree.z[i] < interface_z:
             interface_left.append(i)
 
     for site in interface_left:
         for i in range(latt.Nx):
             for j in range(latt.Ny):
-                if displacement3D_kwant(latt_lead(i, j, -1), latt(site))[0] < lattice_tree.r:
+                if displacement3D_kwant(latt_lead(i, j, -1), latt(site))[0] < interface_r:
                     scatt_region[(latt(site), latt_lead(i, j, -1))] = hopp_lead_wire
     scatt_region.attach_lead(left_lead)
 
@@ -259,14 +256,14 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
     sym_right_lead = kwant.TranslationalSymmetry((0, 0, 1))
     right_lead = kwant.Builder(sym_right_lead)
     latt_lead = kwant.lattice.cubic(norbs=4)
-    #
+
     # # Right lead: Hoppings
     loger_kwant.trace('Defining hoppings in the first unit cell of the lead...')
     right_lead[(latt_lead(i, j, 0) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
     right_lead[kwant.builder.HoppingKind((1, 0, 0), latt_lead, latt_lead)] = hopp_x_up
     right_lead[kwant.builder.HoppingKind((0, 1, 0), latt_lead, latt_lead)] = hopp_y_up
     right_lead[kwant.builder.HoppingKind((0, 0, 1), latt_lead, latt_lead)] = hopp_z_up
-    #
+
     # # Right lead: Attachment
     loger_kwant.trace('Defining the way to attach the lead to the system...')
     scatt_region[(latt_lead(i, j, latt.Nz) for i in range(latt.Nx) for j in range(latt.Ny))] = onsite_leads
@@ -276,13 +273,13 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
 
     interface_right = []
     for i in range(lattice_tree.Nsites):
-        if lattice_tree.z[i] > (lattice_tree.Nz - 1) - 0.5:
+        if lattice_tree.z[i] > (lattice_tree.Nz - 1) - interface_z:
             interface_right.append(i)
 
     for site in interface_right:
         for i in range(latt.Nx):
             for j in range(latt.Ny):
-                if displacement3D_kwant(latt_lead(i, j, latt.Nz), latt(site))[0] < lattice_tree.r:
+                if displacement3D_kwant(latt_lead(i, j, latt.Nz), latt(site))[0] < interface_r:
                     scatt_region[(latt(site), latt_lead(i, j, latt.Nz))] = hopp_lead_wire
     scatt_region.attach_lead(right_lead)
 
@@ -400,30 +397,32 @@ def select_minimal_transmission_flux(nanowire, flux0=0.5, flux_end=1, Nflux=200)
 
     return flux_min, Gmin
 
-def thermal_average(G0, Ef0, T, thermal_interval=None):
+def thermal_average(G, Ef, kBT):
 
-   # Definitions
-    energy_factor = 150                  # t=150 meV in Bi2Se3
-    k_B           = 8.617333262e-2       # [meV/K]
-    beta          = 1 / (k_B * T)
-    G_avg         = np.zeros(G0.shape)
-    if thermal_interval is None:
-        thermal_interval = int((1.5 * (k_B * T) * len(Ef0)) / (Ef0[:-1] - Ef0[0]))
-
-    def df_FD(E, Ef, T):
-        if T != 0:
-            return - beta * np.exp(beta * (E - Ef) * energy_factor) / (np.exp(beta * (E - Ef)* energy_factor) + 1) ** 2
+    # Derivative of the Fermi-Dirac distribution
+    def df_FD(E, mu, kBT):
+        beta = 1 / kBT    # kBT in units of t
+        if kBT != 0:
+            return - beta * np.exp(beta * (E - mu)) / (np.exp(beta * (E - mu)) + 1) ** 2
         else:
             raise ValueError("T=0 limit undefined unless inside an integral!")
 
-    for i, Ef in enumerate(Ef0):
-        delta_E = Ef0[i - thermal_interval: i + thermal_interval]
-        delta_G = G0[i - thermal_interval: i + thermal_interval]
-        integrand = - delta_G * df_FD(delta_E, Ef, T)
-        G_avg[i] = np.trapezoid(integrand, delta_E)
+    # Thermal range to average over
+    dE = Ef[1] - Ef[0]
+    sample_th = int(kBT / dE)
+    if sample_th < 5:
+        raise ValueError('Thermal interval to average over is too small!')
+    Ef_th = Ef[sample_th: -sample_th]
+    G_th = np.zeros((len(Ef_th),))
 
-    return G_avg
-
+    # Average
+    for i, E in enumerate(Ef_th):
+        j = i + sample_th
+        E_interval = Ef[j - sample_th: j + sample_th]
+        G_interval = G[j - sample_th: j + sample_th]
+        integrand = - G_interval * df_FD(E_interval, Ef[j], kBT)
+        G_th[i] = cumulative_trapezoid(integrand, E_interval)[-1]
+    return G_th, Ef_th
 #%% Topology functions
 
 def spectrum(H, Nsp=None):
@@ -462,5 +461,20 @@ def local_marker(x, y, z, P, S):
     for i in range(len(x)):
         idx = 4 * i
         local_marker[i] = (8 * pi / 3) * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
+
+    return local_marker
+
+
+def local_marker_1d(z, P, S, Nx, Ny, Nz):
+
+    # Operators for calculating the marker
+    Z = np.diag(np.repeat(z, 4))
+    local_marker = np.zeros((Nz, ))
+    M = P @ S @ Z @ P
+
+    # Local marker
+    for i in range(Nz):
+        idx = 4 * Nx * Ny * i
+        local_marker[i] = - 2 * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
 
     return local_marker

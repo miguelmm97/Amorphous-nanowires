@@ -412,3 +412,30 @@ def FuBerg_model_bands(Nx, Ny, kz, flux, param_dict):
         eigenstates[i] = aux_eigenstates[:, :, i]
 
     return energy_bands, eigenstates
+
+def thermal_average(G, Ef, kBT):
+
+    # Derivative of the Fermi-Dirac distribution
+    def df_FD(E, mu, kBT):
+        beta = 1 / kBT    # kBT in units of t
+        if kBT != 0:
+            return - beta * np.exp(beta * (E - mu)) / (np.exp(beta * (E - mu)) + 1) ** 2
+        else:
+            raise ValueError("T=0 limit undefined unless inside an integral!")
+
+    # Thermal range to average over
+    dE = Ef[1] - Ef[0]
+    sample_th = int(kBT / dE)
+    if sample_th < 5:
+        raise ValueError('Thermal interval to average over is too small!')
+    Ef_th = Ef[sample_th: -sample_th]
+    G_th = np.zeros((len(Ef_th),))
+
+    # Average
+    for i, E in enumerate(Ef_th):
+        j = i + sample_th
+        E_interval = Ef[j - sample_th: j + sample_th]
+        G_interval = G[j - sample_th: j + sample_th]
+        integrand = - G_interval * df_FD(E_interval, Ef[j], kBT)
+        G_th[i] = np.trapz(integrand, E_interval)
+    return G_th, Ef_th

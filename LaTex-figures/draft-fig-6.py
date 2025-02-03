@@ -6,31 +6,31 @@ from matplotlib.gridspec import GridSpec
 
 # modules
 from modules.functions import *
-
+from modules.AmorphousWire_kwant import thermal_average
 #%% Loading data
-file_list = ['Exp27.h5', 'Exp22.h5', 'Exp26.h5', 'Exp23.h5']
+file_list = ['Exp27.h5', 'Exp22.h5', 'Exp26.h5', 'Exp23.h5', 'Exp31.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
 
 # Parameters
-Nx           = data_dict[file_list[0]]['Parameters']['Nx']
-Ny           = data_dict[file_list[0]]['Parameters']['Ny']
-Nz           = data_dict[file_list[0]]['Parameters']['Nz']
-r            = data_dict[file_list[0]]['Parameters']['r']
-t            = data_dict[file_list[0]]['Parameters']['t']
-eps          = data_dict[file_list[0]]['Parameters']['eps']
-lamb         = data_dict[file_list[0]]['Parameters']['lamb']
-lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z']
-mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
+Nx           = data_dict[file_list[4]]['Parameters']['Nx']
+Ny           = data_dict[file_list[4]]['Parameters']['Ny']
+Nz           = data_dict[file_list[4]]['Parameters']['Nz']
+r            = data_dict[file_list[4]]['Parameters']['r']
+t            = data_dict[file_list[4]]['Parameters']['t']
+eps          = data_dict[file_list[4]]['Parameters']['eps']
+lamb         = data_dict[file_list[4]]['Parameters']['lamb']
+lamb_z       = data_dict[file_list[4]]['Parameters']['lamb_z']
+mu_leads     = data_dict[file_list[4]]['Parameters']['mu_leads']
 params_dict  = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # File 1
 flux_half_1    = data_dict[file_list[0]]['Simulation']['flux_max']
-G_0_1          = data_dict[file_list[0]]['Simulation']['G_0']
-G_half_1       = data_dict[file_list[0]]['Simulation']['G_half']
-fermi_1        = data_dict[file_list[0]]['Simulation']['fermi']
-width_1        = data_dict[file_list[0]]['Simulation']['width']
-
-# File 2
+# G_0_1          = data_dict[file_list[0]]['Simulation']['G_0']
+# G_half_1       = data_dict[file_list[0]]['Simulation']['G_half']
+# fermi_1        = data_dict[file_list[0]]['Simulation']['fermi']
+# width_1        = data_dict[file_list[0]]['Simulation']['width']
+#
+# # File 2
 flux_half_2    = data_dict[file_list[1]]['Simulation']['flux_max']
 G_0_2          = data_dict[file_list[1]]['Simulation']['G_0']
 G_half_2       = data_dict[file_list[1]]['Simulation']['G_half']
@@ -50,7 +50,13 @@ G_0_4          = data_dict[file_list[3]]['Simulation']['G_0']
 G_half_4       = data_dict[file_list[3]]['Simulation']['G_half']
 fermi_4        = data_dict[file_list[3]]['Simulation']['fermi']
 K_onsite_4     = data_dict[file_list[3]]['Simulation']['K_onsite']
-
+#
+# flux_half_1    = data_dict[file_list[4]]['Simulation']['flux_max']
+G_0_1          = data_dict[file_list[4]]['Simulation']['G_0']
+G_half_1       = data_dict[file_list[4]]['Simulation']['G_half']
+fermi_1        = data_dict[file_list[4]]['Simulation']['fermi']
+K_onsite_1     = data_dict[file_list[4]]['Simulation']['K_onsite']
+width_1        = data_dict[file_list[4]]['Simulation']['width']
 
 #%% Figures
 
@@ -79,15 +85,30 @@ ax4 = fig1.add_subplot(gs[0, 3])
 ax_amor = [ax1, ax2]
 ax_dis = [ax3, ax4]
 
+
+
+
 # Amorphous plots
-for i in range(len(G_0_1[0, :-1])):
+# for i in range(len(G_0_1[0, :-1])):
+for i in range(1):
+
+    # Thermal average
+    kBT = 0.02
+    G01_th, Ef_th = thermal_average(G_0_1[:, i], fermi_1, kBT)
+    # G11_th, _ = thermal_average(G_half_1[:, i], fermi_1, kBT)
+    # G02_th, _ = thermal_average(G_0_2[:, i], fermi_1, kBT)
+    # G12_th, _ = thermal_average(G_half_1[:, i], fermi_1, kBT)
 
     label1 = '$\phi_{max}$' if i==0 else None
     label2 = '$\phi=0$' if i==0 else None
-    ax1.plot(fermi_1, G_0_1[:, i],    color=color_list[i], label=f'$w= {width_1[i]}$', linestyle='solid')
-    ax1.plot(fermi_1, G_half_1[:, i], color=color_list[i], alpha=0.5, linestyle='dotted')
-    ax2.plot(fermi_2, G_0_2[:, i],    color=color_list[i], label=label1, linestyle='solid')
-    ax2.plot(fermi_2, G_half_2[:, i], color=color_list[i], label=label2, alpha=0.5, linestyle='dotted')
+    # ax1.plot(fermi_1, G_0_1[:, i],    color=color_list[i], label=f'$w= {width_1[i]}$', linestyle='solid')
+    # ax1.plot(fermi_1, G_half_1[:, i], color=color_list[i], alpha=0.5, linestyle='dotted')
+    # ax2.plot(fermi_2, G_0_2[:, i],    color=color_list[i], label=label1, linestyle='solid')
+    # ax2.plot(fermi_2, G_half_2[:, i], color=color_list[i], label=label2, alpha=0.5, linestyle='dotted')
+    ax1.plot(Ef_th, G01_th, color=color_list[i], label=f'$w= {width_1[i]}$', linestyle='solid')
+    # ax1.plot(Ef_th, G11_th, color=color_list[i], alpha=0.5, linestyle='dotted')
+    # ax2.plot(Ef_th, G02_th, color=color_list[i], label=label1, linestyle='solid')
+    # ax2.plot(Ef_th, G12_th, color=color_list[i], label=label2, alpha=0.5, linestyle='dotted')
 
 for ax in ax_amor:
     y_axis_ticks = [i for i in range(0, 11, 2)]
