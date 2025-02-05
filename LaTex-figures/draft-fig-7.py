@@ -18,7 +18,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['draft-fig7.h5', 'data-cluster.h5', 'data-cluster2.h5', 'data-cluster-random1.h5']
+file_list = ['draft-fig7.h5', 'data-cluster.h5', 'data-cluster2.h5', 'data-cluster-random1.h5', 'data-cluster-bulk.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 # Plot 1
@@ -32,12 +32,12 @@ data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/dat
 # avg_marker = np.concatenate((avg_marker1, avg_marker2))
 # std_marker = np.concatenate((std_marker1, std_marker2))
 # width = np.concatenate((width1, width2))
-avg_marker        = data_dict[file_list[3]]['Plot1']['avg_marker']
-std_marker        = data_dict[file_list[3]]['Plot1']['std_marker']
-width              = data_dict[file_list[3]]['Plot1']['width']
+avg_marker        = data_dict[file_list[4]]['Plot1']['avg_marker']
+std_marker        = data_dict[file_list[4]]['Plot1']['std_marker']
+width              = data_dict[file_list[4]]['Plot1']['width']
 error_bar_up = avg_marker + 0.5 * std_marker
 error_bar_down = avg_marker - 0.5 * std_marker
-Nx                 = data_dict[file_list[3]]['Plot1']['Nx']
+Nx                 = data_dict[file_list[4]]['Plot1']['Nx']
 
 # Plot 2
 Nx_plot            = data_dict[file_list[0]]['Plot2']['Nx_plot']

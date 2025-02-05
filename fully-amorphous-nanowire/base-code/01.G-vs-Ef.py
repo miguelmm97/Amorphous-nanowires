@@ -11,7 +11,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, select_perfect_transmission_flux
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, select_perfect_transmission_flux, spectrum
 
 #%% Logging setup
 loger_main = logging.getLogger('main')
@@ -40,15 +40,15 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-Nx, Ny, Nz       = 5, 5, 100                  # Number of sites in the cross-section
-width            = [0.1]                     # Spread of the Gaussian distribution for the lattice sites
+Nx, Ny, Nz       = 5, 5, 70                  # Number of sites in the cross-section
+width            = [0.000001]                     # Spread of the Gaussian distribution for the lattice sites
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
-fermi            = np.linspace(0., 2, 1000)    # Fermi energy
+fermi            = np.linspace(-2, 10, 10000)  # Fermi energy
 K_hopp           = 0.
 K_onsite         = 0.
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
@@ -89,6 +89,9 @@ for j, w in enumerate(width):
         # loger_main.info(
             # f'Ef: {i} / {len(fermi) - 1}, K: {j} / {len(K_onsite) - 1} || G0: {G_0[i, j] :.2f} || Ghalf: {G_half[i, j] :.2f}')
 
+nanowire_closed = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
+H = nanowire_closed.hamiltonian_submatrix(params=dict(flux=0))
+eps, _, _ = spectrum(H)
 
 #%% Saving data
 data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef'
@@ -111,6 +114,7 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'x',             lattice.x)
     store_my_data(simulation, 'y',             lattice.y)
     store_my_data(simulation, 'z',             lattice.z)
+    # store_my_data(simulation, 'eps',           eps)
     # store_my_data(simulation, 'disorder',      lattice.disorder)
 
     # Parameters folder

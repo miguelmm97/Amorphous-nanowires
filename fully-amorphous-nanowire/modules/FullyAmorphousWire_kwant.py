@@ -464,7 +464,6 @@ def local_marker(x, y, z, P, S):
 
     return local_marker
 
-
 def local_marker_1d(z, P, S, Nx, Ny, Nz):
 
     # Operators for calculating the marker
@@ -474,7 +473,8 @@ def local_marker_1d(z, P, S, Nx, Ny, Nz):
 
     # Local marker
     for i in range(Nz):
-        idx = 4 * Nx * Ny * i
-        local_marker[i] = - 2 * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
+        step = 4 * Nx * Ny
+        idx = step * i
+        local_marker[i] = - 2 * np.trace(M[idx: idx + step, idx: idx + step])
 
     return local_marker
