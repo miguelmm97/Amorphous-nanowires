@@ -11,7 +11,8 @@ import kwant
 from modules.functions import *
 from modules.AmorphousWire_kwant import thermal_average, infinite_nanowire_kwant
 #%% Loading data
-file_list = ['Exp35.h5', 'Exp36.h5','Exp37.h5', 'Exp38.h5', 'Exp34.h5', 'Exp30.h5', 'Exp39.h5', 'Exp40.h5', 'Exp41.h5']
+file_list = ['Exp35.h5', 'Exp36.h5','Exp37.h5', 'Exp38.h5', 'Exp34.h5', 'Exp30.h5', 'Exp39.h5', 'Exp40.h5',
+             'Exp41.h5', 'Exp42.h5', 'Exp43.h5',  'Exp44.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
 
 # Parameters
@@ -58,6 +59,18 @@ Nx_9           = data_dict[file_list[8]]['Parameters']['Nx']
 Ny_9           = data_dict[file_list[8]]['Parameters']['Ny']
 Nz_9           = data_dict[file_list[8]]['Parameters']['Nz']
 mu_leads_9     = data_dict[file_list[8]]['Parameters']['mu_leads']
+Nx_10           = data_dict[file_list[9]]['Parameters']['Nx']
+Ny_10           = data_dict[file_list[9]]['Parameters']['Ny']
+Nz_10           = data_dict[file_list[9]]['Parameters']['Nz']
+mu_leads_10     = data_dict[file_list[9]]['Parameters']['mu_leads']
+Nx_11           = data_dict[file_list[10]]['Parameters']['Nx']
+Ny_11           = data_dict[file_list[10]]['Parameters']['Ny']
+Nz_11           = data_dict[file_list[10]]['Parameters']['Nz']
+mu_leads_11     = data_dict[file_list[10]]['Parameters']['mu_leads']
+Nx_12           = data_dict[file_list[11]]['Parameters']['Nx']
+Ny_12           = data_dict[file_list[11]]['Parameters']['Ny']
+Nz_12           = data_dict[file_list[11]]['Parameters']['Nz']
+mu_leads_12    = data_dict[file_list[11]]['Parameters']['mu_leads']
 
 
 # File 1
@@ -89,10 +102,22 @@ width_8        = data_dict[file_list[7]]['Simulation']['width']
 G_0_9          = data_dict[file_list[8]]['Simulation']['G_0']
 fermi_9        = data_dict[file_list[8]]['Simulation']['fermi']
 width_9        = data_dict[file_list[8]]['Simulation']['width']
+G_0_10          = data_dict[file_list[9]]['Simulation']['G_0']
+fermi_10        = data_dict[file_list[9]]['Simulation']['fermi']
+width_10        = data_dict[file_list[9]]['Simulation']['width']
+spectrum2       = data_dict[file_list[9]]['Simulation']['eps']
+G_0_11          = data_dict[file_list[10]]['Simulation']['G_0']
+fermi_11        = data_dict[file_list[10]]['Simulation']['fermi']
+width_11        = data_dict[file_list[10]]['Simulation']['width']
+K_11            = data_dict[file_list[10]]['Simulation']['K_onsite']
+G_0_12          = data_dict[file_list[11]]['Simulation']['G_0']
+fermi_12        = data_dict[file_list[11]]['Simulation']['fermi']
+width_12        = data_dict[file_list[11]]['Simulation']['width']
+K_12            = data_dict[file_list[11]]['Simulation']['K_onsite']
 
 # Bottom and top of the bands
 kz = np.linspace(-pi, pi, 101)
-wire_kwant = infinite_nanowire_kwant(5, 5, params_dict, mu_leads=-1.).finalized()
+wire_kwant = infinite_nanowire_kwant(10, 10, params_dict, mu_leads=-1.).finalized()
 bands = kwant.physics.Bands(wire_kwant, params=dict(flux=0))
 bottom_bands = bands(0)
 top_bands = bands(pi)
@@ -112,6 +137,9 @@ tol = 10 * (fermi_8[2] - fermi_8[0])
 DoS_closed_nw = np.zeros(np.shape(fermi_8))
 for i, E in enumerate(fermi_8):
     DoS_closed_nw[i] = len(np.where(np.abs(E - spectrum) < tol)[0])
+DoS_closed_nw2 = np.zeros(np.shape(fermi_9))
+for i, E in enumerate(fermi_9):
+    DoS_closed_nw2[i] = len(np.where(np.abs(E - spectrum2) < tol)[0])
 
 #%% Figures
 
@@ -122,7 +150,7 @@ color_list = ['limegreen', 'dodgerblue', 'm', 'r', 'orange', 'forestgreen']
 marker_list=['o', 's', 'd', 'p', '*', 'h', '>', '<', 'X']
 line_list = ['solid', 'dashed', 'dashdot', 'dotted']
 markersize = 5
-fontsize=20
+fontsize = 20
 site_size  = 0.1
 site_lw    = 0.01
 site_color = 'm'
@@ -140,6 +168,7 @@ ax_amor = [ax1, ax2, ax3, ax4]
 
 
 for i in range(1):
+
     # Thermal average
     kBT = 0.1
     G01_th, Ef_th1 = thermal_average(G_0_1[:, i], fermi_1, kBT)
@@ -151,7 +180,11 @@ for i in range(1):
     G07_th, Ef_th7 = thermal_average(G_0_7[:, i], fermi_7, kBT)
     G08_th, Ef_th8 = thermal_average(G_0_8[:, i], fermi_8, kBT)
     G09_th, Ef_th9 = thermal_average(G_0_9[:, i], fermi_9, kBT)
+    G010_th, Ef_th10 = thermal_average(G_0_10[:, i], fermi_10, kBT)
+    G011_th, Ef_th11 = thermal_average(G_0_11[:, i], fermi_11, kBT)
+    G012_th, Ef_th12 = thermal_average(G_0_12[:, i], fermi_12, kBT)
 
+    # Conductance
     ax1.plot(fermi_1, G_0_1[:, i], color=color_list[1], label=f'$w= {width_1[i]}, N_x={Nx}, N_z={Nz}, \mu= {mu_leads}$', linestyle='solid', alpha=0.3)
     ax1.plot(fermi_6, G_0_6[:, i], color=color_list[2], label=f'$w= {width_6[i]}, N_x={Nx_6}, N_z={Nz_6}, \mu= {mu_leads_6}$',linestyle='solid', alpha=0.3)
     ax2.plot(fermi_2, G_0_2[:, i], color=color_list[1], label=f'$w= {width_2[i]}, N_x={Nx_2}, N_z={Nz_2}, \mu= {mu_leads_2},$' + 'smooth interface', linestyle='solid', alpha=0.3)
@@ -161,6 +194,11 @@ for i in range(1):
     ax3.plot(fermi_7, G_0_7[:, i], color=color_list[5], label=f'$w= {width_7[i]}, N_x={Nx_7}, N_z={Nz_7}, \mu= {mu_leads_7}$', linestyle='solid', alpha=0.3)
     ax2.plot(fermi_8, G_0_8[:, i], color=color_list[5], label=f'$w= {width_8[i]}, N_x={Nx_8}, N_z={Nz_8}, \mu= {mu_leads_8}$', linestyle='solid', alpha=0.3)
     ax4.plot(fermi_9, G_0_9[:, i], color=color_list[0], label=f'$w= {width_9[i]}, N_x={Nx_9}, N_z={Nz_9}, \mu= {mu_leads_9}$', linestyle='solid', alpha=0.3)
+    ax4.plot(fermi_10, G_0_10[:, i], color=color_list[1], label=f'$w= {width_10[i]}, N_x={Nx_10}, N_z={Nz_10}, \mu= {mu_leads_10}$', linestyle='solid', alpha=0.3)
+    ax4.plot(fermi_11, G_0_11[:, i], color=color_list[2],label=f'$w= {width_11[i]}, N_x={Nx_11}, N_z={Nz_11}, \mu= {mu_leads_11}, K= {K_11}$', linestyle='solid', alpha=0.3)
+    ax4.plot(fermi_12, G_0_12[:, i], color=color_list[3], label=f'$w= {width_12[i]}, N_x={Nx_12}, N_z={Nz_12}, \mu= {mu_leads_12} K= {K_12}$', linestyle='solid', alpha=0.3)
+
+    # Thermal average
     ax1.plot(Ef_th1, G01_th, color=color_list[1], linestyle='dashed')
     ax2.plot(Ef_th2, G02_th, color=color_list[1], linestyle='dashed')
     ax2.plot(Ef_th3, G03_th, color=color_list[2], linestyle='dashed')
@@ -170,10 +208,15 @@ for i in range(1):
     ax3.plot(Ef_th7, G07_th, color=color_list[5], linestyle='dashed')
     ax2.plot(Ef_th8, G08_th, color=color_list[5], linestyle='dashed')
     ax4.plot(Ef_th9, G09_th, color=color_list[0], linestyle='dashed')
+    ax4.plot(Ef_th10, G010_th, color=color_list[1], linestyle='dashed')
+    ax4.plot(Ef_th11, G011_th, color=color_list[2], linestyle='dashed')
+    ax4.plot(Ef_th12, G012_th, color=color_list[3], linestyle='dashed')
 ax2.text(-0.9, 1, 'Lead gap', rotation='vertical')
 
-ax4.plot(fermi_9, 0.2 * Nchannels_lead, linestyle='solid', color='blue', alpha=0.7)
-ax3.plot(fermi_8, 0.2 * DoS_closed_nw, linestyle='solid', color='blue', alpha=0.7)
+# DoS and open channels
+ax4.plot(fermi_9, 0.2 * Nchannels_lead, linestyle='solid', color=color_list[0], alpha=0.7, label='Lead channels')
+ax3.plot(fermi_8, 0.2 * DoS_closed_nw, linestyle='solid', color=color_list[5], alpha=0.7, label='DoS closed')
+ax4.plot(fermi_10, 0.2 * DoS_closed_nw2, linestyle='solid', color=color_list[1], alpha=0.7, label='DoS closed')
 for energy in spectrum:
     if energy < 1.5:
         ax3.plot(energy * np.ones((100, )), np.linspace(0, 10, 100), linestyle='dashed', color='dodgerblue', alpha=0.1)
@@ -189,6 +232,7 @@ for ax in ax_amor:
     ax.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 ax2.set_ylim(0, 5)
 ax4.set_xlim(-1, 10)
+ax4.set_ylim(0, 15)
 
 y_axis_ticks = [i for i in range(0, 11, 2)]
 y_axis_labels = [str(i) for i in range(0, 11, 2)]
@@ -199,6 +243,8 @@ ax1.legend(ncol=1, frameon=False, fontsize=10)
 ax2.legend(ncol=1, frameon=False, fontsize=10)
 ax3.legend(ncol=1, frameon=False, fontsize=10)
 ax4.legend(ncol=1, frameon=False, fontsize=10)
+
+
 
 
 # Bands
