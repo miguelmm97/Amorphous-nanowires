@@ -18,7 +18,8 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['draft-fig7.h5', 'data-cluster.h5', 'data-cluster2.h5', 'data-cluster-random1.h5', 'data-cluster-bulk.h5']
+file_list = ['draft-fig7.h5', 'data-cluster.h5', 'data-cluster2.h5', 'data-cluster-random1.h5', 'data-cluster-bulk-full-range.h5',
+             'data-cluster-bulk.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 # Plot 1
@@ -32,12 +33,12 @@ data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/dat
 # avg_marker = np.concatenate((avg_marker1, avg_marker2))
 # std_marker = np.concatenate((std_marker1, std_marker2))
 # width = np.concatenate((width1, width2))
-avg_marker        = data_dict[file_list[4]]['Plot1']['avg_marker']
-std_marker        = data_dict[file_list[4]]['Plot1']['std_marker']
-width              = data_dict[file_list[4]]['Plot1']['width']
+avg_marker        = data_dict[file_list[1]]['Plot1']['avg_marker']
+std_marker        = data_dict[file_list[1]]['Plot1']['std_marker']
+width              = data_dict[file_list[1]]['Plot1']['width']
 error_bar_up = avg_marker + 0.5 * std_marker
 error_bar_down = avg_marker - 0.5 * std_marker
-Nx                 = data_dict[file_list[4]]['Plot1']['Nx']
+Nx                 = data_dict[file_list[1]]['Plot1']['Nx']
 
 # Plot 2
 Nx_plot            = data_dict[file_list[0]]['Plot2']['Nx_plot']
@@ -88,7 +89,7 @@ ax1.text(0.35, -0.9, f'$\\vert x, y, z \\vert< {0.4}$' + '$N_{x, y}$', fontsize=
 ax1.set_xlabel('$w$', fontsize=fontsize)
 ax1.set_ylabel('$\overline{\\nu}$', fontsize=fontsize)
 ax1.set_ylim([-1, 0])
-ax1.set_xlim([0, width[-1]])
+ax1.set_xlim([0, 0.8])
 majorsy = [-1, -0.5, 0]
 minorsy = [-0.75, -0.25]
 ax1.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
@@ -102,9 +103,9 @@ ax1.tick_params(which='minor', length=3, labelsize=fontsize)
 
 # Figure 2
 # Defining a colormap
-divnorm = mcolors.TwoSlopeNorm(vmin=-1, vcenter=-0.5, vmax=0)
+divnorm = mcolors.TwoSlopeNorm(vmin=-1, vcenter=-0.5, vmax=1)
 hex_list = ['#ff416d', '#ff7192', '#ffa0b6', '#ffd0db', '#ffffff', '#cfdaff', '#9fb6ff', '#6f91ff', '#3f6cff']
-colormap = cm.ScalarMappable(norm=Normalize(vmin=-1, vmax=0), cmap=get_continuous_cmap(hex_list))
+colormap = cm.ScalarMappable(norm=Normalize(vmin=-1, vmax=1), cmap=get_continuous_cmap(hex_list))
 
 # Figure 1
 # fig2.suptitle(f'$N_x= {Nx_plot}, w= {w :.2f}$', fontsize=fontsize)

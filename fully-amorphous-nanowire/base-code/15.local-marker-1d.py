@@ -41,9 +41,9 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nz         = 40
-Nx         = 5
-Ny         = 5
+Nz         = 100
+Nx         = 4
+Ny         = 4
 r          = 1.3
 width      = np.linspace(1e-5, 0.5, 15)
 t          = 1
@@ -51,7 +51,7 @@ eps        = 4 * t
 lamb       = 1 * t
 lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
-flux = np.linspace(0, 5, 25)
+flux = [1.3]  # np.linspace(0, 5, 25)
 
 # Preallocation
 Nsites = Nx * Ny * Nz

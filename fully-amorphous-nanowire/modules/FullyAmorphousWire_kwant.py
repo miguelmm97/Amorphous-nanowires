@@ -468,7 +468,7 @@ def local_marker_1d(z, P, S, Nx, Ny, Nz):
 
     # Operators for calculating the marker
     Z = np.diag(np.repeat(z, 4))
-    local_marker = np.zeros((Nz, ))
+    local_marker = np.zeros((Nz, ), dtype=np.complex128)
     M = P @ S @ Z @ P
 
     # Local marker
@@ -476,5 +476,10 @@ def local_marker_1d(z, P, S, Nx, Ny, Nz):
         step = 4 * Nx * Ny
         idx = step * i
         local_marker[i] = - 2 * np.trace(M[idx: idx + step, idx: idx + step])
+        if np.imag(local_marker[i]) > 1e-13:
+            raise ValueError('Local marker is complex valued')
+        else:
+            local_marker[i] = np.real(local_marker[i])
+    print(np.sum(local_marker))
 
     return local_marker
