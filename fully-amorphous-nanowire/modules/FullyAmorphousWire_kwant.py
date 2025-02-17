@@ -150,7 +150,7 @@ class FullyAmorphousWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_leads=0., interface_z=0.5, interface_r=1.3):
+def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, interface_z=0.5, interface_r=1.3):
 
     # Load parameters into the builder namespace
     try:
@@ -165,9 +165,10 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
     latt = FullyAmorphousWire_ScatteringRegion(norbs=4, lattice=lattice_tree, name='scatt_region')
 
     # Hopping and onsite functions
-    def onsite_potential(site):
+    def onsite_potential(site, mu):
         index = site.tag[0]
-        return onsite(eps) + np.kron(sigma_0, tau_0) * lattice_tree.disorder[index, index]
+        return onsite(eps) + mu * np.kron(sigma_0, tau_0) + \
+            np.kron(sigma_0, tau_0) * lattice_tree.disorder[index, index]
 
     def hopp(site1, site0, flux):
         index0, index1 = site0.tag[0], site1.tag[0]
@@ -191,26 +192,31 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, mu_
             syst[(latt(n), latt(i))] = hopp
 
     if attach_leads:
-        complete_system = attach_cubic_leads(syst, lattice_tree, latt, param_dict,
-                                             mu_leads=mu_leads, interface_z=interface_z, interface_r=interface_r)
+        complete_system = attach_cubic_leads(syst, lattice_tree, latt, param_dict, interface_z=interface_z, interface_r=interface_r)
     else:
         complete_system = syst
     return complete_system
 
-def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0., interface_z=0.5, interface_r=1.3):
+def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, interface_z=0.5, interface_r=1.3, leads='topological'):
 
     # Load parameters into the builder namespace
-    try:
-        t      = param_dict['t']
-        eps    = param_dict['eps']
-        lamb   = param_dict['lamb']
-        lamb_z = param_dict['lamb_z']
-    except KeyError as err:
-        raise KeyError(f'Parameter error: {err}')
+    if leads == 'topological':
+        try:
+            t      = param_dict['t']
+            eps    = param_dict['eps']
+            lamb   = param_dict['lamb']
+            lamb_z = param_dict['lamb_z']
+        except KeyError as err:
+            raise KeyError(f'Parameter error: {err}')
+    elif leads == 'metallic':
+        t = param_dict['t']
+        eps = 0
+        lamb = 0
+        lamb_z = 0
 
-    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
-
-    # Hoppings
+    # Hoppings and onsite
+    def onsite_leads(site, mu_leads):
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
     def hopp_lead_wire(site1, site0, flux):
         d, phi, theta = displacement3D_kwant(site1, site0)
         return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
@@ -218,6 +224,7 @@ def attach_cubic_leads(scatt_region, lattice_tree, latt, param_dict, mu_leads=0.
         return hopping(t, lamb, lamb_z, 1., 0, pi / 2, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, lattice_tree.r)
     hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, lattice_tree.r)
+
 
     # Left lead: definition
     loger_kwant.trace('Attaching left lead...')
@@ -357,7 +364,7 @@ def infinite_nanowire_kwant(Nx, Ny, param_dict, mu_leads=0.):
     return lead
 #%% Transport functions
 
-def select_perfect_transmission_flux(nanowire, flux0=0.8, flux_end=1.5, Nflux=100, Ef=0.):
+def select_perfect_transmission_flux(nanowire, flux0=0.8, flux_end=1.5, Nflux=100, Ef=0., mu_leads=0.):
 
     loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
     flux = np.linspace(flux0, flux_end, Nflux)
@@ -365,7 +372,7 @@ def select_perfect_transmission_flux(nanowire, flux0=0.8, flux_end=1.5, Nflux=10
     Gmax = 0.
     flux_max = flux0
     for i, phi in enumerate(flux):
-        S0 = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
+        S0 = kwant.smatrix(nanowire, 0., params=dict(flux=phi, mu=-Ef, mu_leads=mu_leads - Ef))
         G = S0.transmission(1, 0)
         loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
         if G > Gmax:

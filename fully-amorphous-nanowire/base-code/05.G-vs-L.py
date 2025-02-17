@@ -47,39 +47,42 @@ lamb             = 1 * t                                      # Spin-orbit coupl
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                                    # Chemical potential at the leads
 Ef               = 0.0                                        # Fermi energy
-width            = [0.4]                                        # Amorphous width 0.0001, 0.02, 0.05,
+width            = [0.00001, 0.1, 0.2, 0.35]                  # Amorphous width
 K_vec            = [0.]                                       # Disorder strength
 Nz               = np.linspace(200, 50, 10, dtype=np.int32)   # Length of the wire
-flux             = np.linspace(0, 5, 250)                       # Flux
+flux             = np.linspace(0, 1.5, 250)                       # Flux
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
 G_array = np.zeros((len(width), len(Nz), len(flux), len(K_vec)), dtype=np.float64)
 disorder_dict = {}
+X = np.zeros((len(width), Nx * Ny * np.max(Nz)))
+Y = np.zeros((len(width), Nx * Ny * np.max(Nz)))
+Z = np.zeros((len(width), Nx * Ny * np.max(Nz)))
 #%% Main
 
 # Generate nanowires
 for i, w in enumerate(width):
-
     # Generating lattice structure of the wire
     full_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(Nz), w=w, r=r)
     full_lattice.build_lattice()
+    X[i, :] = full_lattice.x
+    Y[i, :] = full_lattice.y
+    Z[i, :] = full_lattice.z
 
     for d, K in enumerate(K_vec):
-
         # Generating disorder realisation of the wire
         full_lattice.generate_disorder(K_onsite=0., K_hopp=K)
         disorder_dict[d] = full_lattice.disorder
 
         for j, L in enumerate(Nz):
-
             # Selecting different cuts of the wire for each disorder realisation
             lattice = take_cut_from_parent_wire(full_lattice, Nz_new=L, keep_disorder=True)
-            nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+            nanowire = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
 
             # Calculating conductance
             for k, phi in enumerate(flux):
-                S = kwant.smatrix(nanowire, Ef, params=dict(flux=phi))
+                S = kwant.smatrix(nanowire, 0., params=dict(flux=phi, mu=-Ef, mu_leads=mu_leads - Ef))
                 G_array[i, j, k, d] = S.transmission(1, 0)
                 loger_main.info(f'Width: {i} / {len(width) - 1}, Disorder: {d} / {len(K_vec) - 1}, L: {j} /'
                                 f'{len(Nz) - 1}, flux: {k} / {len(flux) - 1} || G: {G_array[i, j, k, d] :.2f}')
@@ -103,10 +106,10 @@ with h5py.File(filepath, 'w') as f:
     store_my_data(simulation, 'width',    width)
     store_my_data(simulation, 'K',        K_vec)
     store_my_data(simulation, 'G_array',  G_array)
-    store_my_data(simulation, 'x',        full_lattice.x)
-    store_my_data(simulation, 'y',        full_lattice.y)
-    store_my_data(simulation, 'z',        full_lattice.z)
-    store_my_dict(simulation['Disorder'], disorder_dict)
+    store_my_data(simulation, 'X',        X)
+    store_my_data(simulation, 'Y',        Y)
+    store_my_data(simulation, 'Z',        Z)
+    # store_my_dict(simulation['Disorder'], disorder_dict)
 
     # Parameters folder
     parameters = f.create_group('Parameters')

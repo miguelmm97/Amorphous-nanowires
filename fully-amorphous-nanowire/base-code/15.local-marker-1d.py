@@ -41,7 +41,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nz         = 100
+Nz         = 50
 Nx         = 4
 Ny         = 4
 r          = 1.3
@@ -71,18 +71,18 @@ for i, w in enumerate(width):
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
     lattice.build_lattice()
     lattice.generate_disorder(K_onsite=0., K_hopp=0)
-    nanowire_leads = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=-1, attach_leads=True).finalized()
-    nanowire_closed = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
+    nanowire_leads = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=True).finalized()
+    nanowire_closed = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
 
 
     for j, phi in enumerate(flux):
 
         # Conductance
-        S0 = kwant.smatrix(nanowire_leads, 0., params=dict(flux=phi))
+        S0 = kwant.smatrix(nanowire_leads, 0., params=dict(flux=phi, mu=0., mu_leads=0.))
         G[i, j] = S0.transmission(1, 0)
 
         # Spectrum of the closed system
-        H = nanowire_closed.hamiltonian_submatrix(params=dict(flux=phi))
+        H = nanowire_closed.hamiltonian_submatrix(params=dict(flux=phi, mu=0., mu_leads=0.))
         eps, _, rho = spectrum(H)
 
         # Local marker
