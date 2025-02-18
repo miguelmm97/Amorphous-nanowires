@@ -60,7 +60,7 @@ lead_color = 'r'
 
 
 # Figure 1: Definition
-fig1 = plt.figure(figsize=(8, 7))
+fig1 = plt.figure(figsize=(8, 6))
 gs = GridSpec(1, 1, figure=fig1, wspace=0.2, hspace=0.3)
 ax1 = fig1.add_subplot(gs[0, 0])
 ax1_inset1 = ax1.inset_axes([0.05, 0.45, 0.3, 0.3], )
@@ -79,10 +79,14 @@ ax1_inset2.margins(-0.49, -0.49, -0.49)
 ax1_inset2.set_xlim(-2.5, 6)
 ax1_inset2.set_ylim(-2.5, 6)
 ax1_inset2.set_zlim(0, 9)
+# ax1_inset2.set_box_aspect((1, 1, 3))
 
-ax1.plot(fermi, G0, color='#9A32CD', label=f'$\phi / \phi_0= {flux0}$')
-ax1.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'$\phi / \phi_0= {flux_half}$ ')
-ax1.legend(ncol=1, frameon=False, fontsize=16)
+ax1.plot(fermi, G0, color='#9A32CD', label=f'${flux0}$')
+ax1.plot(fermi, G_half, color='#3F6CFF', alpha=0.5, label=f'${flux_half}$ ')
+ax1.legend(ncol=1, loc='upper left', frameon=False, fontsize=20, columnspacing=0.3, handlelength=0.75, labelspacing=0.2,  bbox_to_anchor=(0, 0.95))
+ax1.text(0.1, 13.2, '$\\underline{\phi/\phi_0}$', fontsize=fontsize)
+ax1.text(0.4, 12, '$\Delta E_F=0$', fontsize=fontsize)
+ax1.text(0.4, 13, f'$w= {width}$', fontsize=fontsize)
 
 y_axis_ticks = [i for i in range(0, 14, 2)]
 y_axis_labels = [str(i) for i in range(0, 14, 2)]
@@ -90,10 +94,10 @@ ax1.set_xlim(fermi[0], fermi[-1])
 ax1.set_ylim(0, 14)
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
-ax1.set_xlabel("$E_F / t$", fontsize=fontsize)
-ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize)
+ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1)
+ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize, labelpad=-1)
 ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 
-fig1.savefig('draft-fig1.pdf', format='pdf', backend='pgf')
+fig1.savefig('fig1-layer-dis.pdf', format='pdf', backend='pgf')
 plt.show()
 

@@ -80,8 +80,8 @@ palette2 = seaborn.color_palette(palette='magma', n_colors=len(width))
 
 
 # Figure 1
-fig1 = plt.figure(figsize=(10, 7))
-gs = GridSpec(2, 4, figure=fig1, wspace=0.2, hspace=0.2)
+fig1 = plt.figure(figsize=(8, 6))
+gs = GridSpec(2, 4, figure=fig1, wspace=0.25, hspace=0.3)
 ax1 = fig1.add_subplot(gs[0, 0:2])
 ax2 = fig1.add_subplot(gs[1, :])
 # ax3 = ax2.inset_axes([0.1, 0.65, 0.32, 0.32], )
@@ -93,18 +93,18 @@ ax1.plot(flux2, 1 * np.ones(flux2.shape), '--', color='Black', alpha=0.2)
 for j in range(G2.shape[1] - 1, -1, -1):
     label = f'$L= {Nz2[j]}$'
     ax1.plot(flux2, G2[2, j, :, 0], color=palette1[j], linestyle='solid', label=label)
-ax1.text(0.1, 1.35, f'$w={width2[2] :.2f}$', fontsize=fontsize-3)
-ax1.text(0.1, 1.15, f'$N_x=N_y={Nx}$', fontsize=fontsize-3)
+ax1.text(0.1, 1.05, f'$w={width2[2] :.2f}$', fontsize=fontsize)
+# ax1.text(0.1, 1.15, f'$N_x=N_y={Nx}$', fontsize=fontsize-3)
 
 ax1.set_xlim(flux2[0], flux2[-1])
-ax1.set_ylim(0, 1.5)
-ax1.set(yticks=[0, 0.5, 1, 1.5])
+ax1.set_ylim(0, 1.25)
+ax1.set(yticks=[0, 0.5, 1])
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
 ax1.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
 ax1.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
-ax1.tick_params(which='major', width=0.75, labelsize=fontsize - 3)
-ax1.tick_params(which='major', length=6, labelsize=fontsize - 3)
+ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
+ax1.tick_params(which='major', length=6, labelsize=fontsize )
 
 
 # Plot 2
@@ -116,20 +116,21 @@ ax2.plot(flux[idx1], peaks1, marker='o', color=color_list[0], linestyle='None', 
 ax2.plot(flux[idx2], peaks2, marker='s', color=color_list[1], linestyle='None', alpha=0.5)
 ax2.plot(flux[idx3], peaks3, marker='^', color=color_list[2], linestyle='None', alpha=0.5, markersize=7)
 
+ax2.legend(ncol=4, frameon=False, fontsize=fontsize, columnspacing=0.3, handlelength=1, labelspacing=0.2, bbox_to_anchor=(0.45, 0.43))
+ax2.text(0.37, 1.7, '$\\underline{L}$', fontsize=fontsize)
+ax2.text(4, 1.8, f'$w={width[0] :.2f}$', fontsize=fontsize)
 
-ax2.legend(ncol=5, frameon=False, fontsize=fontsize-3, columnspacing=0.5, handlelength=1, bbox_to_anchor=(0.1, 0.6))
-ax2.text(0.4, 1.6, '$\\underline{L}$', fontsize=fontsize-3)
-ax2.text(4, 1.6, f'$w={width[0] :.2f}$', fontsize=fontsize-3)
 ax2.set_xlabel("$\phi$", fontsize=fontsize)
 ax2.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 ax2.set_xlim(flux[0], flux[-1])
-ax2.set_ylim(0, np.max(G))
+ax2.set_ylim(0, np.max(G) + 0.2)
 ax2.set(yticks=[0, 0.5, 1, 1.5, 2])
 ax2.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax2.tick_params(which='major', length=6, labelsize=fontsize)
 
 
 # PLot 3
+ax3.plot(Nz[::-1], 1 * np.ones(Nz[::-1].shape), '--', color='Black', alpha=0.2)
 ax3.plot(Nz[::-1], peaks1[::-1], marker='o', color=color_list[0], linestyle='None',  alpha=0.5)
 ax3.plot(Nz[::-1], exp1, color=color_list[0], linestyle='dashed')
 ax3.plot(Nz[::-1][1:], peaks2[::-1], marker='s', color=color_list[1], linestyle='None',  alpha=0.5)
@@ -137,12 +138,13 @@ ax3.plot(Nz[::-1][1:], exp2[1:], color=color_list[1], linestyle='dashed')
 ax3.plot(Nz[::-1], peaks3[::-1], marker='*', color=color_list[2], linestyle='None',  alpha=0.5)
 ax3.plot(Nz[::-1], exp3, color=color_list[2], linestyle='dashed')
 
-ax3.set_xlabel("$N_z$", fontsize=fontsize -3, labelpad=-10)
-ax3.set_xlim(Nz[-1], Nz[1])
-ax3.set_ylim(0, np.max(peaks1))
-ax3.tick_params(which='major', width=0.75, labelsize=fontsize - 3)
-ax3.tick_params(which='major', length=6, labelsize=fontsize - 3)
-ax3.set(yticks=[0, 0.5, 1, 1.5], yticklabels=[])
+ax3.set_xlabel("$N_z$", fontsize=fontsize, labelpad=-10)
+ax3.set_xlim(60, 180)
+ax3.set_ylim(0, 1.25)
+ax3.tick_params(which='major', width=0.75, labelsize=fontsize)
+ax3.tick_params(which='major', length=6, labelsize=fontsize)
+ax3.set(yticks=[0, 0.5, 1], yticklabels=[])
+ax3.set(xticks=[60, 100, 140, 180])
 
-fig1.savefig('draft-fig8.pdf', format='pdf')
+fig1.savefig('fig-G-vs-L.pdf', format='pdf')
 plt.show()

@@ -193,6 +193,12 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
     # Create lattice structure for the scattering region from the amorphous cross-section
     latt = AmorphousCrossSectionWire_ScatteringRegion(norbs=4, cross_section=cross_section, name='scatt_region')
 
+    def onsite_potential(site, mu):
+        index = site.tag[0]
+        return onsite(eps) + mu * np.kron(sigma_0, tau_0)
+
+
+
     # Initialise kwant system
     loger_kwant.info('Creating kwant scattering region...')
     syst = kwant.Builder()
@@ -217,12 +223,12 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
             syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
 
     if attach_leads:
-        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict, mu_leads=mu_leads)
+        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
     else:
         complete_system = syst
     return complete_system
 
-def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, mu_leads=0.):
+def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
 
     # Load parameters into the builder namespace
     try:
@@ -233,7 +239,8 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
+    def onsite_leads(site, mu_leads):
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
 
     # Hoppings
     def hopp_x_up(site1, site0, flux):

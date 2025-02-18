@@ -141,7 +141,7 @@ class AmorphousLattice_2d:
 
 
     # Methods for building the lattice
-    def generate_configuration(self, from_x=None, from_y=None):
+    def generate_configuration(self, from_x=None, from_y=None, restrict_connectivity=False):
 
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
@@ -162,25 +162,35 @@ class AmorphousLattice_2d:
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
-            if len(self.neighbours[i]) < 2:
+            if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def build_lattice(self, from_x=None, from_y=None, n_tries=0):
+    def build_lattice(self, n_tries=0, restrict_connectivity=False):
 
         if n_tries > 100:
             loger_amorphous.error('Loop. Parameters might not allow an acceptable configuration.')
+        if self.w  < 1e-10:
+            loger_amorphous.error('The amorphicity cannot be strictly 0')
+            exit()
 
-        try:
-            self.generate_configuration(from_x=from_x, from_y=from_y)
-            self.get_boundary()
-            loger_amorphous.info('Configuration accepted!')
-        except Exception as error:
-            loger_amorphous.warning(f'{error}')
+        # Restricting to only connected lattice configurations
+        if restrict_connectivity:
             try:
-                self.build_lattice(from_x=None, from_y=None, n_tries=n_tries + 1)
-            except RecursionError:
-                loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
-                exit()
+                self.generate_configuration(restrict_connectivity=True)
+                self.get_boundary()
+                loger_amorphous.trace('Configuration accepted!')
+            except Exception as error:
+                loger_amorphous.warning(f'{error}')
+                try:
+                    self.erase_configuration()
+                    self.build_lattice(n_tries=n_tries + 1, restrict_connectivity=True)
+                except RecursionError:
+                    loger_amorphous.error('Recursion error. Infinite loop. Terminating...')
+                    exit()
+        else:
+            # Accepting literally anything
+            self.generate_configuration()
+            self.area = (self.Nx - 1) * (self.Ny - 1)
 
     def get_boundary(self):
 
@@ -270,3 +280,10 @@ class AmorphousLattice_2d:
 
         # Lattice sites
         ax.scatter(self.x, self.y, color='deepskyblue', s=50)
+
+    # Setters and erasers
+    def set_configuration(self, x, y):
+        self.x, self.y, = x, y
+
+    def erase_configuration(self):
+        self.x, self.y = None, None
