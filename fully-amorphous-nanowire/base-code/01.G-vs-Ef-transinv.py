@@ -10,8 +10,8 @@ import kwant
 
 # modules
 from modules.functions import *
-from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, select_perfect_transmission_flux, spectrum
+from modules.AmorphousLattice_2d import AmorphousLattice_2d
+from modules.AmorphousWire_kwant import promote_to_kwant_nanowire, select_perfect_transmission_flux
 
 # %% Logging setup
 loger_main = logging.getLogger('main')
@@ -39,15 +39,15 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 # %% Variables
-Nx, Ny, Nz = 10, 10, 200 # Number of sites in the cross-section
-width = [0.00001, 0.05, 0.1, 0.15]  # Spread of the Gaussian distribution for the lattice sites
-r = 1.3                  # Nearest-neighbour cutoff distance
-t = 1                    # Hopping
-eps = 4 * t              # Onsite orbital hopping (in units of t)
-lamb = 1 * t             # Spin-orbit coupling in the cross-section (in units of t)
-lamb_z = 1.8 * t         # Spin-orbit coupling along z direction
-mu_leads = -0 * t        # Chemical potential at the leads
-fermi = np.linspace(0, 2, 1000)  # Fermi energy
+Nx, Ny, Nz = 5, 5, 100            # Number of sites in the cross-section
+width = [0.000001]              # Spread of the Gaussian distribution for the lattice sites
+r = 1.3                             # Nearest-neighbour cutoff distance
+t = 1                               # Hopping
+eps = 4 * t                         # Onsite orbital hopping (in units of t)
+lamb = 1 * t                        # Spin-orbit coupling in the cross-section (in units of t)
+lamb_z = 1.8 * t                    # Spin-orbit coupling along z direction
+mu_leads = -0 * t                   # Chemical potential at the leads
+fermi = np.linspace(0, 0.5, 300)      # Fermi energy
 K_hopp = 0.
 K_onsite = 0.
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
@@ -56,9 +56,9 @@ params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 G_0 = np.zeros((len(fermi), len(width)))
 G_half = np.zeros((len(fermi), len(width)))
 flux_max = np.zeros((len(width),))
-X = np.zeros((len(width), Nx * Ny * Nz))
-Y = np.zeros((len(width), Nx * Ny * Nz))
-Z = np.zeros((len(width), Nx * Ny * Nz))
+X = np.zeros((len(width), Nx * Ny))
+Y = np.zeros((len(width), Nx * Ny))
+Z = np.zeros((len(width), Nx * Ny))
 # G_0    = np.zeros((len(fermi), len(K_onsite)))
 # G_half = np.zeros((len(fermi), len(K_onsite)))
 # flux_max = np.zeros((len(K_onsite), ))
@@ -70,19 +70,17 @@ for j, w in enumerate(width):
 # for j, k in enumerate(K_onsite):
 
     loger_main.info('Generating fully amorphous lattice...')
-    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
-    lattice.build_lattice(restrict_connectivity=False)
-    lattice.generate_disorder(K_hopp=K_hopp, K_onsite=K_onsite)
-    nanowire = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
+    lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
+    lattice.build_lattice()
+    nanowire = promote_to_kwant_nanowire(lattice, Nz, params_dict).finalized()
     X[j, :] = lattice.x
     Y[j, :] = lattice.y
-    Z[j, :] = lattice.z
     loger_main.info('Nanowire promoted to Kwant successfully.')
 
     # Scanning for flux that gives perfect transmission at the Dirac point
-    flux_max[j], Gmax = select_perfect_transmission_flux(nanowire, flux0=0., flux_end=1, Ef=0.01, mu_leads=mu_leads)
+    flux_max[j], Gmax = select_perfect_transmission_flux(nanowire, flux0=0.4, flux_end=0.6, Nflux=1000, Ef=0.01, mu_leads=0)
     loger_main.info(f'Flux for perfect transmission: {flux_max[j]}, Conductance at the Dirac point: {Gmax}')
-    # flux_max = 0.7
+    # flux_max[j] = 0.55
 
     # Conductance calculation for different flux values
     for i, Ef in enumerate(fermi):

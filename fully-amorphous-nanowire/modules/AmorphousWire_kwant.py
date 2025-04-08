@@ -142,6 +142,26 @@ def Peierls_kwant(site1, site0, flux, area):
         I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
 
+def select_perfect_transmission_flux(nanowire, flux0=0.0, flux_end=1.5, Nflux=100, Ef=0., mu_leads=0.):
+
+    loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
+    flux = np.linspace(flux0, flux_end, Nflux)
+
+    Gmax = 0.
+    flux_max = flux0
+    for i, phi in enumerate(flux):
+        S0 = kwant.smatrix(nanowire, 0., params=dict(flux=phi, mu=-Ef, mu_leads=mu_leads - Ef))
+        G = S0.transmission(1, 0)
+        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
+        if G > Gmax:
+            Gmax = G
+            flux_max = phi
+            # if Gmax > 0.98:
+            #     break
+        else:
+            pass
+
+    return flux_max, Gmax
 
 
 """
@@ -179,7 +199,7 @@ class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True, mu_leads=0.):
+def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True):
 
     # Load parameters into the builder namespace
     try:
@@ -197,12 +217,10 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
         index = site.tag[0]
         return onsite(eps) + mu * np.kron(sigma_0, tau_0)
 
-
-
     # Initialise kwant system
     loger_kwant.info('Creating kwant scattering region...')
     syst = kwant.Builder()
-    syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite(eps)
+    syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite_potential
 
     # Hopping functions
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)

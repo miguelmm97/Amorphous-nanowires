@@ -41,8 +41,8 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nz         = 15
-Nx         = [6] # np.arange(6, 13)
+Nz         = 12
+Nx         = [12] # np.arange(6, 13)
 Ny         = Nx
 r          = 1.3
 width      = np.linspace(1e-5, 0.5, 15)
@@ -75,10 +75,10 @@ for i, w in enumerate(width):
 
         # Selecting different cuts of the wire for each disorder realisation
         lattice = take_cut_from_parent_wire(full_lattice, Nx_new=n, Ny_new=n, Nz_new=Nz, keep_disorder=True)
-        nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=0, attach_leads=False).finalized()
+        nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
 
         # Spectrum of the closed system
-        H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value))
+        H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value, mu=0.))
         eps, _, rho = spectrum(H)
 
         # Local marker

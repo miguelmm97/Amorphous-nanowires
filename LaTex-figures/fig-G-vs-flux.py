@@ -8,6 +8,7 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import seaborn
+from matplotlib.ticker import ScalarFormatter, LogLocator
 # modules
 from modules.functions import *
 
@@ -64,6 +65,20 @@ hop_color  = 'royalblue'
 hop_lw     = 0.05
 lead_color = 'r'
 
+# Key style modifications for dark theme
+plt.rcParams.update({
+    'axes.facecolor': 'black',
+    'figure.facecolor': 'black',
+    'savefig.facecolor': 'black',
+    'axes.edgecolor': 'white',
+    'axes.labelcolor': 'white',
+    'xtick.color': 'white',
+    'ytick.color': 'white',
+    'text.color': 'white',
+    'legend.edgecolor': 'white',
+    'legend.facecolor': 'black',
+})
+
 # Colormap
 sigmas = 3
 mean_value = np.mean(DoS_top['2'])
@@ -75,7 +90,7 @@ colors[0] = [1, 1, 1, 1]
 color_map = LinearSegmentedColormap.from_list("custom_colormap", colors)
 colormap = cm.ScalarMappable(norm=Normalize(vmin=min_value, vmax=max_value), cmap=color_map)
 palette = seaborn.color_palette(palette='viridis_r', n_colors=200)
-palette = [palette[0], palette[50], palette[100] , palette[130], palette[-1]]
+palette = ['orange', palette[0], palette[50], palette[100] , palette[130]][::-1]#, palette[-1]]
 
 
 # Figure 1: Definition
@@ -90,26 +105,27 @@ ax5 = fig1.add_subplot(gs[1, 3], projection='3d')
 
 # Figure 1: Conductance plots
 ax_vec = [ax1]
-for i in range(G_low_Ef.shape[1]):
+for i in range(G_low_Ef.shape[1] - 1, -1, -1):
     label = f'${width[i] :.1f}$'
     ax1.plot(flux, G_low_Ef[0, i, :], color=palette[i], linestyle='solid', label=label)
 
 ax1.plot(flux, 1 * np.ones(flux.shape), '--', color='Black', alpha=0.2)
-ax1.text(4.1, 1.3, '$E_F^{nw}=$' + f'${Ef1[0]}$', fontsize=fontsize)
-ax1.text(3, 1.3,  '$E_F^{lead}=$' + f'${Ef1[0] + 1}$', fontsize=fontsize)
-ax1.plot(flux_top, G_top, marker='o', color=palette[2], markersize=7, markeredgecolor='black')
-ax1.plot(flux_loc, G_loc, marker='d', color=palette[1], markersize=10, markeredgecolor='black')
-ax1.plot(flux_bound, G_bound, marker='*', color=palette[-1], markersize=10, markeredgecolor='black')
+# ax1.text(4.1, 1.3, '$E_F^{nw}=$' + f'${Ef1[0]}$', fontsize=fontsize)
+# ax1.text(3, 1.3,  '$E_F^{lead}=$' + f'${Ef1[0] + 1}$', fontsize=fontsize)
+ax1.plot(flux_top, G_top, marker='o', color=palette[2], markersize=10, markeredgecolor='black')
+ax1.plot(flux_loc, G_loc+0.05, marker='^', color=palette[1], markersize=10, markeredgecolor='black')
+ax1.plot(flux_bound, G_bound, marker='*', color=palette[-1], markersize=12, markeredgecolor='black')
 # ax1.text(flux_top, G_top, f'$(a)$', fontsize=fontsize - 2)
 
 
 # Figure 1: Format
-ax1.text(0.1, 1.3, '$\\underline{w}$', fontsize=fontsize)
-ax1.legend(loc='upper left', ncol=3, alignment='left', frameon=False, fontsize=fontsize, columnspacing=0.4, handlelength=1, labelspacing=0.2,bbox_to_anchor=(0.05, 1.1))
+ax1.text(0.1, 1.3, '$(a)$', fontsize=fontsize)
+ax1.text(0.6, 1.25, '$\\underline{w}$', fontsize=fontsize)
+ax1.legend(loc='upper left', ncol=5, alignment='left', frameon=False, fontsize=fontsize, columnspacing=0.6, handlelength=1, labelspacing=0.2, bbox_to_anchor=(0.15, 1.02))
 ax1.set_xlim(flux[0], flux[-1])
 ax1.set_ylim(0, 1.5)
 ax1.set(xticks=[0, 1, 2, 3, 4, 5])
-majorsy = [0, 0.5, 1]
+majorsy = [0, 0.5, 1, 1.5]
 ax1.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
 ax1.set_ylabel("$G(2e^2/h)$", fontsize=fontsize)
 ax1.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
@@ -123,30 +139,37 @@ ax1.tick_params(which='minor', length=3, labelsize=fontsize)
 
 ax3.scatter(cuts_top['2'][:, 0], cuts_top['2'][:, 1], cuts_top['2'][:, 2], facecolor='white', edgecolor='black')
 ax3.scatter(cuts_top['2'][:, 0], cuts_top['2'][:, 1], cuts_top['2'][:, 2], c=DoS_top['2'], cmap=color_map, vmin=min_value, vmax=max_value)
-ax3.set_box_aspect((1, 1, 5))
+ax3.set_box_aspect((3, 3, 10))
 ax3.set_axis_off()
+pos3 = ax3.get_position()
+ax3.set_position([pos3.x0, pos3.y0 - 0.07, 0.2, 0.3])
 
 ax4.scatter(cuts_loc['2'][:, 0], cuts_loc['2'][:, 1], cuts_loc['2'][:, 2], facecolor='white', edgecolor='black')
 ax4.scatter(cuts_loc['2'][:, 0], cuts_loc['2'][:, 1], cuts_loc['2'][:, 2], c=DoS_loc['2'], cmap=color_map, vmin=min_value, vmax=max_value)
-ax4.set_box_aspect((1, 1, 5))
+ax4.set_box_aspect((3, 3, 10))
 ax4.set_axis_off()
+pos4 = ax4.get_position()
+ax4.set_position([pos4.x0, pos4.y0 - 0.07, 0.2, 0.3])
 
 ax5.scatter(cuts_bound['2'][:, 0], cuts_bound['2'][:, 1], cuts_bound['2'][:, 2], facecolor='white', edgecolor='black')
 ax5.scatter(cuts_bound['2'][:, 0], cuts_bound['2'][:, 1], cuts_bound['2'][:, 2], c=DoS_bound['2'], cmap=color_map, vmin=min_value, vmax=max_value)
-ax5.set_box_aspect((1, 1, 5))
+ax5.set_box_aspect((3, 3, 10))
 ax5.set_axis_off()
+pos5 = ax5.get_position()
+ax5.set_position([pos5.x0, pos5.y0 - 0.07, 0.2, 0.3])
 
-scatter_ax3 = fig1.add_axes([0.315, 0.3, 0.05, 0.05])
+# scatter_ax3 = fig1.add_axes([0.315, 0.3, 0.05, 0.05])
+scatter_ax3 = fig1.add_axes([0.38, 0.4, 0.05, 0.05])
 scatter_ax3.scatter([0], [0], color=palette[2], s=100, marker='o', edgecolor='black')
 scatter_ax3.set_xticks([])
 scatter_ax3.set_yticks([])
 scatter_ax3.set_axis_off()
-scatter_ax4 = fig1.add_axes([0.52, 0.3, 0.05, 0.05])
+scatter_ax4 = fig1.add_axes([0.595, 0.4, 0.05, 0.05])
 scatter_ax4.scatter([0], [0], color=palette[1], s=100, marker='^', edgecolor='black')
 scatter_ax4.set_xticks([])
 scatter_ax4.set_yticks([])
 scatter_ax4.set_axis_off()
-scatter_ax5 = fig1.add_axes([0.72, 0.3, 0.05, 0.05])
+scatter_ax5 = fig1.add_axes([0.81, 0.4, 0.05, 0.05])
 scatter_ax5.scatter([0], [0], color=palette[-1], s=200, marker='*', edgecolor='black')
 scatter_ax5.set_xticks([])
 scatter_ax5.set_yticks([])
@@ -156,17 +179,21 @@ scatter_ax5.set_axis_off()
 cbar_ax = fig1.add_subplot(gs[1, 1:])
 divider = make_axes_locatable(cbar_ax)
 cax = divider.append_axes("bottom", size="10%", pad=0)
-cbar = fig1.colorbar(colormap, cax=cax, orientation='horizontal')
+cbar = fig1.colorbar(colormap, cax=cax, orientation='horizontal', format='%.0e', ticks=[0., 0.0001, 0.0002, 0.0003])
 cbar_ax.set_axis_off()
 cbar.set_label(label='$\\vert \psi (r)\\vert ^2$', labelpad=1, fontsize=20)
 cbar.ax.tick_params(which='major', width=0.75, labelsize=fontsize)
-cbar.ax.ticklabel_format(style='sci')
+cbar.ax.set_xticklabels(['0', '1e-4', '2e-4', '3e-4'])
+#
 
-
-ax2.plot(N/N[-1], bulk_tot_density[0, :], marker='o', linestyle='solid', color=palette[2])
-ax2.plot(N/N[-1], bulk_tot_density[1, :], marker='^', linestyle='solid', color=palette[1])
-ax2.plot(N/N[-1], bulk_tot_density[2, :], marker='*', linestyle='solid', color=palette[-1])
-ax2.set_xlabel('$S$', fontsize=fontsize, labelpad=-1)
+ax2.text(7, 0.85, '$(c)$', fontsize=fontsize)
+ax2.text(12, 0.85, '$(d)$', fontsize=fontsize)
+ax2.text(17, 0.85, '$(e)$', fontsize=fontsize)
+ax2.text(2.1, 0.85, '$(b)$', fontsize=fontsize)
+ax2.plot(N, bulk_tot_density[0, :], marker='o', linestyle='solid', color=palette[2])
+ax2.plot(N, bulk_tot_density[1, :], marker='^', linestyle='solid', color=palette[1])
+ax2.plot(N, bulk_tot_density[2, :], marker='*', linestyle='solid', color=palette[-1])
+ax2.set_xlabel('$R$', fontsize=fontsize, labelpad=-1)
 ax2.set_ylabel('DoS', fontsize=fontsize)
 ax2.set_ylim(0, 1)
 ax2.tick_params(which='major', width=0.75, labelsize=fontsize)
@@ -177,10 +204,10 @@ majorsy = [0, 0.5, 1]
 minorsy = [0.25, 0.75]
 ax2.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
 ax2.yaxis.set_minor_locator(ticker.FixedLocator(minorsy))
-majorsx = [0.5, 1]
-minorsx = [0.75]
-ax2.xaxis.set_major_locator(ticker.FixedLocator(majorsx))
-ax2.xaxis.set_minor_locator(ticker.FixedLocator(minorsx))
+#majorsx = [0.5, 1]
+#minorsx = [0.75]
+#ax2.xaxis.set_major_locator(ticker.FixedLocator(majorsx))
+#ax2.xaxis.set_minor_locator(ticker.FixedLocator(minorsx))
 
 
 fig1.savefig('fig-G-vs-flux.pdf', format='pdf')

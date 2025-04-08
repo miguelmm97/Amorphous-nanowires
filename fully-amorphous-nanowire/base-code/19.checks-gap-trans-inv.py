@@ -55,16 +55,14 @@ eps              = 4 * t                          # Onsite orbital hopping (in u
 lamb             = 1 * t                          # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                        # Spin-orbit coupling along z direction
 mu_leads         = -1 * t                         # Chemical potential at the leads
-flux             = np.linspace(0, 5, 300)         # Magnetic flux
-width            = [0.25]
-# Amorphous width
+flux             = 0.                             # Magnetic flux
+width            = [0.2]                          # Amorphous width
 Ef               = [0]                            # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 kwant_nw_dict = {}
 lattice_dict = {}
-G_array = np.zeros((len(Ef), len(width), len(flux)), dtype=np.float64)
-gap_array = np.zeros((len(width), len(flux)), dtype=np.float64)
+# gap_array = np.zeros((len(width), len(flux)), dtype=np.float64)
 #%% Main
 
 # Generate nanowires
@@ -77,57 +75,36 @@ for i, w in enumerate(width):
     loger_main.info('Nanowire promoted to Kwant successfully.')
 
 
-for key in kwant_nw_dict.keys():
-    for i, phi in enumerate(flux):
-        for k, E in enumerate(Ef):
-            # Conductance
-            S = kwant.smatrix(kwant_nw_dict[key], 0., params=dict(flux=phi, mu=-Ef[k], mu_leads=mu_leads - Ef[k]))
-            G_array[k, key, i] = S.transmission(1, 0)
-            loger_main.info(f'Width: {key} / {len(width) - 1}, flux: {i} / {len(flux)}, Ef: {Ef[k]}'
-                            f'|| G: {G_array[k, key, i] :.2f}')
-        # Gap
-        nanowire = InfiniteNanowire_FuBerg(lattice=lattice_dict[key], t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=phi)
-        nanowire.get_bands(k_0=0, k_end=0, Nk=1)
-        gap_array[key, i] = nanowire.get_gap()
+for key in lattice_dict.keys():
+    S = kwant.smatrix(kwant_nw_dict[key], 0., params=dict(flux=flux, mu=0., mu_leads=-1))
+    G = S.transmission(1, 0)
+    # Gap
+    nanowire = InfiniteNanowire_FuBerg(lattice=lattice_dict[key], t=t, eps=eps, lamb=lamb, lamb_z=lamb_z, flux=flux)
+    nanowire.get_bands() # (k_0=0, k_end=0, Nk=1)
+        # gap_array[key, i] = nanowire.get_gap()
+
+#%% Figures
+
+font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 
+fig1 = plt.figure()
+gs = GridSpec(1, 1, figure=fig1, wspace=0.3, hspace=0.4)
+ax1 = fig1.add_subplot(gs[0, 0])
 
-#%% Saving data
-
-
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-trans-inv'
-file_list = os.listdir(data_dir)
-expID = get_fileID(file_list, common_name='Exp')
-filename = '{}{}{}'.format('Exp', expID, '.h5')
-filepath = os.path.join(data_dir, filename)
-
-with h5py.File(filepath, 'w') as f:
-
-    # Simulation folder
-    simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'flux',       flux)
-    store_my_data(simulation, 'width',      width)
-    store_my_data(simulation, 'G_array',    G_array)
-    store_my_data(simulation, 'gap_array',  gap_array)
-
-    # Parameters folder
-    parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'Ef',         Ef)
-    store_my_data(parameters, 'Nx',         Nx)
-    store_my_data(parameters, 'Ny',         Ny)
-    store_my_data(parameters, 'Nz',         Nz)
-    store_my_data(parameters, 'r',          r)
-    store_my_data(parameters, 't',          t)
-    store_my_data(parameters, 'eps',        eps)
-    store_my_data(parameters, 'lamb',       lamb)
-    store_my_data(parameters, 'lamb_z',     lamb_z)
-    store_my_data(parameters, 'mu_leads',   mu_leads)
-
-    # Attributes
-    # attr_my_data(parameters, "Date",       str(date.today()))
-    # attr_my_data(parameters, "Code_path",  sys.argv[0])
-
-loger_main.info('Data saved correctly')
-
-
-
+for key in nanowire.energy_bands.keys():
+    ax1.plot(np.linspace(-pi, pi, 101), nanowire.energy_bands[key], color='dodgerblue', linewidth=0.5)
+    # ax1.plot(kz, 0.04 * np.ones(kz.shape), '--', color='Black', alpha=0.2)
+ax1.text(-0.1, 0, f'$G= {G :.2f}$')
+ax1.set_xlabel('$k/a$')
+ax1.set_ylabel('$E(k)/t$')
+ax1.set_xlim(-0.2, 0.2)
+ax1.set_ylim(-0.2, 0.2)
+ax1.tick_params(which='major', width=0.75, labelsize=10)
+ax1.tick_params(which='major', length=6, labelsize=10)
+# 1ax.set(xticks=[-pi, -pi/2, 0, pi/2, pi], xticklabels=['$-\pi$', '$-\pi/2$', '$0$', '$\pi/2$', '$\pi$'])
+# ax1.set_title(f'$\phi / \phi_0={phi :.2f}$')
+# fig1.savefig(f'figures/bands-vs-flux.pdf', format='pdf', backend='pgf')
+plt.show()

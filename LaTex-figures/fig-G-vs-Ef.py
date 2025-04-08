@@ -12,7 +12,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['draft-fig5.h5']
+file_list = ['Exp69.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 # Parameters
@@ -54,20 +54,20 @@ ax1 = fig1.add_subplot(gs[0, 0])
 
 # Upper panel: Plots
 for i in range(G0.shape[-1]):
-    ax1.plot(fermi, G0[:, i], color=palette[i], label=f'${width[i] :.2f}$', alpha=0.75)
-    ax1.plot(fermi, Ghalf[:, i], color=palette[i], linestyle='dotted')
+    ax1.plot(fermi, G0[:, i], color=palette[i], label=f'${width[i] :.2f}$')#, alpha=0.75)
+    ax1.plot(fermi, Ghalf[:, i], color=palette[i], linestyle='dotted', linewidth=2)
 
-ax1.text(0.12, 9.5, '$\\underline{w}$', fontsize=fontsize)
+ax1.text(0.12, 9.7, '$\\underline{w}$', fontsize=fontsize)
 ax1.text(0.44, 9.7, '$\phi_{\mathrm{max}}$', fontsize=fontsize)
 ax1.text(0.3, 8.5, '$\phi=0$', fontsize=fontsize)
-ax1.text(0.756, 6.5, '$\Delta E_F=0$', fontsize=fontsize)
+# ax1.text(0.756, 6.5, '$\Delta E_F=0$', fontsize=fontsize)
 ax1.legend(loc='upper left', frameon=False, fontsize=fontsize, bbox_to_anchor=(-0.02, 0.95), handlelength=1)
 arrow1 = FancyArrowPatch((0.367, 8.41), (0.452, 7.97), arrowstyle='->', color='black', linewidth=1, mutation_scale=10)
 arrow2 = FancyArrowPatch((0.482, 9.5), (0.528, 8.97), arrowstyle='->', color='black', linewidth=1, mutation_scale=10)
 ax1.add_patch(arrow1)
 ax1.add_patch(arrow2)
 
-ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1)
+ax1.set_xlabel("$E_F^{nw}$", fontsize=fontsize, labelpad=-1)
 ax1.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 ax1.set_xlim(fermi[0], 1)
 ax1.set_ylim(0, np.max(G0[:, 1]))
