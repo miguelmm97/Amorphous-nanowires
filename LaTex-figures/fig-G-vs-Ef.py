@@ -67,7 +67,7 @@ arrow2 = FancyArrowPatch((0.482, 9.5), (0.528, 8.97), arrowstyle='->', color='bl
 ax1.add_patch(arrow1)
 ax1.add_patch(arrow2)
 
-ax1.set_xlabel("$E_F^{nw}$", fontsize=fontsize, labelpad=-1)
+ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1)
 ax1.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 ax1.set_xlim(fermi[0], 1)
 ax1.set_ylim(0, np.max(G0[:, 1]))

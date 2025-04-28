@@ -66,18 +66,18 @@ hop_lw     = 0.05
 lead_color = 'r'
 
 # Key style modifications for dark theme
-plt.rcParams.update({
-    'axes.facecolor': 'black',
-    'figure.facecolor': 'black',
-    'savefig.facecolor': 'black',
-    'axes.edgecolor': 'white',
-    'axes.labelcolor': 'white',
-    'xtick.color': 'white',
-    'ytick.color': 'white',
-    'text.color': 'white',
-    'legend.edgecolor': 'white',
-    'legend.facecolor': 'black',
-})
+# plt.rcParams.update({
+#     'axes.facecolor': 'black',
+#     'figure.facecolor': 'black',
+#     'savefig.facecolor': 'black',
+#     'axes.edgecolor': 'white',
+#     'axes.labelcolor': 'white',
+#     'xtick.color': 'white',
+#     'ytick.color': 'white',
+#     'text.color': 'white',
+#     'legend.edgecolor': 'white',
+#     'legend.facecolor': 'black',
+# })
 
 # Colormap
 sigmas = 3
@@ -90,7 +90,7 @@ colors[0] = [1, 1, 1, 1]
 color_map = LinearSegmentedColormap.from_list("custom_colormap", colors)
 colormap = cm.ScalarMappable(norm=Normalize(vmin=min_value, vmax=max_value), cmap=color_map)
 palette = seaborn.color_palette(palette='viridis_r', n_colors=200)
-palette = ['orange', palette[0], palette[50], palette[100] , palette[130]][::-1]#, palette[-1]]
+palette = [palette[0], palette[50], palette[100], palette[130], palette[-1]]
 
 
 # Figure 1: Definition
@@ -105,7 +105,7 @@ ax5 = fig1.add_subplot(gs[1, 3], projection='3d')
 
 # Figure 1: Conductance plots
 ax_vec = [ax1]
-for i in range(G_low_Ef.shape[1] - 1, -1, -1):
+for i in range(G_low_Ef.shape[1]):
     label = f'${width[i] :.1f}$'
     ax1.plot(flux, G_low_Ef[0, i, :], color=palette[i], linestyle='solid', label=label)
 
@@ -128,7 +128,7 @@ ax1.set(xticks=[0, 1, 2, 3, 4, 5])
 majorsy = [0, 0.5, 1, 1.5]
 ax1.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
 ax1.set_ylabel("$G(2e^2/h)$", fontsize=fontsize)
-ax1.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
+ax1.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
 ax1.tick_params(which='minor', width=0.75, labelsize=fontsize)

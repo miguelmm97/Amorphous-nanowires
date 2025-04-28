@@ -53,7 +53,7 @@ t          = 1
 eps        = 4 * t
 lamb       = 1 * t
 lamb_z     = 1.8 * t
-fermi      = 0.0
+fermi      = 0.5
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 cutoff_bulk = 0.4 * 0.5 * Nx
 cutoff_z = cutoff_bulk
@@ -62,17 +62,16 @@ cutoff_z = cutoff_bulk
 Nsites = int(Nx * Ny * Nz)
 gap_R = np.zeros((len(width), ))
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
-marker = np.zeros((len(width), Nsites))
-marker_bulk_avg = np.zeros((len(width), ))
+marker_AII = np.zeros((len(width), Nsites))
+marker_bulk_avg_AII = np.zeros((len(width), ))
+marker_AIII = np.zeros((len(width), Nsites))
+marker_bulk_avg_AIII = np.zeros((len(width), ))
 
 # Auxiliary operators and functions
 chiral_sym = np.kron(np.eye(Nsites), np.kron(sigma_z, sigma_z))
 R = np.kron(np.eye(Nsites), 0.5 * (np.eye(4) - np.kron(sigma_z, sigma_z)))
-
-    #0.5 * (np.eye(Nsites * 4) - chiral_sym)
 sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
 TRS = np.kron(np.eye(Nsites), 1j * np.kron(np.eye(2), sigma_y))
-
 def bulk(x, y, z, local_marker, cutoff_xy, cutoff_z, nx, ny, full_z=True, full_xy=True):
 
     # Coordinates
@@ -110,25 +109,25 @@ for i, w in enumerate(width):
     # Local marker
     site_pos = np.array([site.pos for site in nanowire.id_by_site])
     x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
-    # Q_aux = np.linalg.inv(1j * (rho @ chiral_sym - chiral_sym @ rho))
-    # vals, vecs = eigh(Q_aux)
-    # Q_aux_abs = vecs.T @ np.diag(np.abs(vals)) @ vecs
-    # Q = 0.5 * (np.eye(Nsites * 4) + Q_aux_abs @ (rho @ chiral_sym - chiral_sym @ rho))
-
     Q_aux = 1j * (rho @ R - R @ rho)
     vals, vecs = eigh(Q_aux)
     Q = 0.5 * vecs @ np.diag(np.ones((4 * Nsites, )) - np.sign(vals)) @ np.conj(vecs.T)
     vals, vecs = eigh(Q)
 
 
-    marker[i, :] = local_marker(x, y, z, Q, chiral_sym)
+    marker_AII[i, :] = local_marker(x, y, z, Q, chiral_sym)
+    marker_AIII[i, :] = local_marker(x, y, z, rho, chiral_sym)
+    loger_main.info(f'T H* T^\dagger = H: {np.allclose(TRS @ H.conj() @ TRS.T.conj(), H)}')
+    loger_main.info(f'HS + SH = S: {np.allclose(H @ chiral_sym + chiral_sym @ H, np.zeros((Nsites * 4, Nsites * 4)))}')
     loger_main.info(f'T rho* T^\dagger = rho: {np.allclose(TRS @ rho.conj() @ TRS.T.conj(), rho)}')
+    loger_main.info(f'rhoS + Srho = S: {np.allclose(rho @ chiral_sym + chiral_sym @ rho, chiral_sym)}')
     loger_main.info(f'Q² = 1: {np.allclose(Q @ Q, Q)}')
     loger_main.info(f'QS + SQ = S: {np.allclose(Q @ chiral_sym + chiral_sym @ Q, chiral_sym)}')
-    # print(np.allclose(rho @ chiral_sym + chiral_sym @ rho, chiral_sym))
 
     # Bulk marker
-    _, _, _, marker_bulk = bulk(x, y, z, marker[i, :], cutoff_bulk, cutoff_z, Nx, Ny, full_z=False, full_xy=False)
-    marker_bulk_avg[i] = np.mean(marker_bulk)
-    loger_main.info(f'width: {i}/{len(width) - 1}, bulk AII marker: {marker_bulk_avg[i] :.4f}')
+    _, _, _, marker_bulk_AII = bulk(x, y, z, marker_AII[i, :], cutoff_bulk, cutoff_z, Nx, Ny, full_z=False, full_xy=False)
+    marker_bulk_avg_AII[i] = np.mean(marker_bulk_AII)
+    _, _, _, marker_bulk_AIII = bulk(x, y, z, marker_AIII[i, :], cutoff_bulk, cutoff_z, Nx, Ny, full_z=False, full_xy=False)
+    marker_bulk_avg_AIII[i] = np.mean(marker_bulk_AIII)
+    loger_main.info(f'width: {i}/{len(width) - 1}, bulk AII marker: {marker_bulk_avg_AII[i] :.4f}, bulk AIII marker: {marker_bulk_avg_AIII[i] :.4f}')
 

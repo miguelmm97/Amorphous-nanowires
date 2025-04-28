@@ -77,34 +77,34 @@ lead_color = 'fuchsia' #'orangered'
 
 
 # Figure 1: Definition
-fig1 = plt.figure(figsize=(8, 6), facecolor='black')
+fig1 = plt.figure(figsize=(8, 6))
 gs = GridSpec(1, 1, figure=fig1, wspace=0.2, hspace=0.3)
-ax1 = fig1.add_subplot(gs[0, 0], facecolor='black')
-ax1_inset1 = ax1.inset_axes([0.02, 0.6, 0.3, 0.3], facecolor='black')
+ax1 = fig1.add_subplot(gs[0, 0])
+ax1_inset1 = ax1.inset_axes([0.02, 0.6, 0.3, 0.3])
 ax1_inset2 = ax1.inset_axes([0.6, -0.12, 0.35, 0.8], projection='3d', zorder=1, )
 
 # Figure 1: Plots
 cross_section.plot_lattice(ax1_inset1, sitecolor='lightskyblue', linkcolor='lightskyblue', alpha_link=1, boundarycolor='lightskyblue',
                            alpha_boundary=1, alpha_site=1)
-#cross_section2.plot_lattice(ax1_inset1, sitecolor='white', linkcolor='white', alpha_link=0.25, boundarycolor='grey',
- #                          alpha_boundary=0, alpha_site=0.25)
+cross_section2.plot_lattice(ax1_inset1, sitecolor='grey', linkcolor='grey', alpha_link=0.25, boundarycolor='grey',
+                          alpha_boundary=0, alpha_site=0.25)
 ax1_inset1.axis('equal')
 ax1_inset1.set_axis_off()
-arrow1 = FancyArrowPatch((0.015, 8), (0.31, 8), arrowstyle='->', color='white', linewidth=1, mutation_scale=20)
-arrow2 = FancyArrowPatch((0.04, 7.5), (0.04, 13), arrowstyle='->', color='white', linewidth=1, mutation_scale=20)
-arrow3 = FancyArrowPatch((0.83, 0.63), (0.67, 1.6), arrowstyle='->', color='white', linewidth=1, mutation_scale=20, zorder=10)
-arrow4 = FancyArrowPatch((0.8, 0.53), (0.89, 2.1), arrowstyle='->', color='white', linewidth=1, mutation_scale=20, zorder=10)
-arrow5 = FancyArrowPatch((0.8119, 0.65), (0.8119, 7.5), arrowstyle='->', color='white', linewidth=1, mutation_scale=20, zorder=10)
+arrow1 = FancyArrowPatch((0.015, 8), (0.31, 8), arrowstyle='->', color='black', linewidth=1, mutation_scale=20)
+arrow2 = FancyArrowPatch((0.04, 7.5), (0.04, 13), arrowstyle='->', color='black', linewidth=1, mutation_scale=20)
+arrow3 = FancyArrowPatch((0.83, 0.63), (0.67, 1.6), arrowstyle='->', color='black', linewidth=1, mutation_scale=20, zorder=10)
+arrow4 = FancyArrowPatch((0.8, 0.53), (0.89, 2.1), arrowstyle='->', color='black', linewidth=1, mutation_scale=20, zorder=10)
+arrow5 = FancyArrowPatch((0.8119, 0.65), (0.8119, 7.5), arrowstyle='->', color='black', linewidth=1, mutation_scale=20, zorder=10)
 ax1.add_patch(arrow1)
 ax1.add_patch(arrow2)
 ax1.add_patch(arrow3)
 ax1.add_patch(arrow4)
 ax1.add_patch(arrow5)
-ax1.text(0.04, 13.2, f'$y$', fontsize=fontsize, color='white')
-ax1.text(0.31, 8.1, f'$x$', fontsize=fontsize, color='white')
-ax1.text(0.67, 2, f'$y$', fontsize=fontsize,color='white')
-ax1.text(0.88, 2.2, f'$x$', fontsize=fontsize, color='white')
-ax1.text(0.8119, 7.7, f'$z$', fontsize=fontsize, color='white')
+ax1.text(0.04, 13.2, f'$y$', fontsize=fontsize, color='black')
+ax1.text(0.31, 8.1, f'$x$', fontsize=fontsize, color='black')
+ax1.text(0.67, 2, f'$y$', fontsize=fontsize,color='black')
+ax1.text(0.88, 2.2, f'$x$', fontsize=fontsize, color='black')
+ax1.text(0.8119, 7.7, f'$z$', fontsize=fontsize, color='black')
 
 kwant.plot(nanowire2, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
            lead_site_size=site_size, lead_color=lead_color, lead_site_lw=site_lw, lead_hop_lw=hop_lw,
@@ -127,7 +127,7 @@ ax1.plot(fermi, G0[:, 0], color='#9A32CD', label=f'$0$')
 ax1.plot(fermi, G_half[:, 0], color='#3F6CFF', label=f'${flux_half[0] :.2f}$ ')
 
 ax1.legend(ncol=1, loc='upper left', frameon=False, fontsize=20, columnspacing=0.3, handlelength=0.75, labelspacing=0.2,  bbox_to_anchor=(0.35, 0.9))
-ax1.text(0.46, 12.4, '$\\underline{\phi}$', fontsize=fontsize)
+ax1.text(0.46, 12.4, '$\\underline{\phi/\phi_0}$', fontsize=fontsize)
 # ax1.text(0.4, 1.5, '$\Delta E_F=0$', fontsize=fontsize)
 ax1.text(0.4, 2.5, f'$w= 0.1$', fontsize=fontsize)
 
@@ -135,15 +135,15 @@ y_axis_ticks = [i for i in range(0, 14, 2)]
 y_axis_labels = [str(i) for i in range(0, 14, 2)]
 ax1.set_xlim(fermi[0], fermi[-1])
 ax1.set_ylim(0, 14)
-ax1.tick_params(which='major', width=0.75, labelsize=fontsize, color='white')
-ax1.tick_params(which='major', length=6, labelsize=fontsize, color='white')
-ax1.set_xlabel("$E_F^{nw}$", fontsize=fontsize, labelpad=-1, color='white')
-ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize, labelpad=-1, color='white')
+ax1.tick_params(which='major', width=0.75, labelsize=fontsize, color='black')
+ax1.tick_params(which='major', length=6, labelsize=fontsize, color='black')
+ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1, color='black')
+ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize, labelpad=-1, color='black')
 ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
-ax1.tick_params(axis='both', colors='white')
+ax1.tick_params(axis='both', colors='black')
 fig1.savefig('fig1-layer-dis.pdf', format='pdf')
 
-fig2 = plt.figure(figsize=(6, 6), facecolor='black')
+fig2 = plt.figure(figsize=(6, 6))
 gs = GridSpec(1, 1, figure=fig2, wspace=0.2, hspace=0.3)
 ax1 = fig2.add_subplot(gs[0, 0], facecolor='black', projection='3d')
 kwant.plot(nanowire3, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
@@ -151,9 +151,9 @@ kwant.plot(nanowire3, site_size=site_size, site_lw=site_lw, site_color=site_colo
            site_edgecolor=None, lead_site_edgecolor=None, ax=ax1, num_lead_cells=5)
 ax1.set_axis_off()
 
-fig3 = plt.figure(figsize=(6, 6), facecolor='black')
+fig3 = plt.figure(figsize=(6, 6))
 gs = GridSpec(1, 1, figure=fig3, wspace=0.2, hspace=0.3)
-ax2 = fig3.add_subplot(gs[0, 0], facecolor='black', projection='3d')
+ax2 = fig3.add_subplot(gs[0, 0], projection='3d')
 kwant.plot(nanowire4, site_size=site_size, site_lw=site_lw, site_color=site_color, hop_lw=hop_lw, hop_color=hop_color,
            site_edgecolor=None, ax=ax2)
 ax2.set_axis_off()

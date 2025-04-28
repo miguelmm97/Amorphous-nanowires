@@ -74,27 +74,27 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 color_list = ['dodgerblue', 'limegreen', 'm', 'r', 'orange']
 fontsize = 20
-# palette = seaborn.color_palette(palette='magma', n_colors=len(Nz))
-# palette1 = seaborn.color_palette(palette='magma', n_colors=len(Nz2))
-# palette2 = seaborn.color_palette(palette='magma', n_colors=len(width))
+palette = seaborn.color_palette(palette='magma', n_colors=len(Nz))
+palette1 = seaborn.color_palette(palette='magma', n_colors=len(Nz2))
+palette2 = seaborn.color_palette(palette='magma', n_colors=len(width))
 
-magma = cm.get_cmap('magma')
-palette = [magma(i) for i in np.linspace(0.3, 1.0, len(Nz))]
-palette1 = [magma(i) for i in np.linspace(0.3, 1.0, len(Nz2))]
-palette2 = [magma(i) for i in np.linspace(0.3, 1.0, len(width))]
+# magma = cm.get_cmap('magma')
+# palette = [magma(i) for i in np.linspace(0.3, 1.0, len(Nz))]
+# palette1 = [magma(i) for i in np.linspace(0.3, 1.0, len(Nz2))]
+# palette2 = [magma(i) for i in np.linspace(0.3, 1.0, len(width))]
 
-plt.rcParams.update({
-    'axes.facecolor': 'black',
-    'figure.facecolor': 'black',
-    'savefig.facecolor': 'black',
-    'axes.edgecolor': 'white',
-    'axes.labelcolor': 'white',
-    'xtick.color': 'white',
-    'ytick.color': 'white',
-    'text.color': 'white',
-    'legend.edgecolor': 'white',
-    'legend.facecolor': 'black',
-})
+# plt.rcParams.update({
+#     'axes.facecolor': 'black',
+#     'figure.facecolor': 'black',
+#     'savefig.facecolor': 'black',
+#     'axes.edgecolor': 'white',
+#     'axes.labelcolor': 'white',
+#     'xtick.color': 'white',
+#     'ytick.color': 'white',
+#     'text.color': 'white',
+#     'legend.edgecolor': 'white',
+#     'legend.facecolor': 'black',
+# })
 
 
 # Figure 1
@@ -120,7 +120,7 @@ ax1.set_ylim(0, 1.25)
 ax1.set(yticks=[0, 0.5, 1])
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
-ax1.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
+ax1.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax1.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize )
@@ -140,7 +140,7 @@ ax2.text(0.6, 1.8, '$\\underline{L}$', fontsize=fontsize)
 # ax2.text(4, 1.8, f'$w={width[0] :.2f}$', fontsize=fontsize)
 ax2.text(0.1, 1.9, f'$(b)$', fontsize=fontsize)
 
-ax2.set_xlabel("$\phi$", fontsize=fontsize)
+ax2.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax2.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
 ax2.set_xlim(flux[0], flux[-1])
 ax2.set_ylim(0, np.max(G) + 0.2)

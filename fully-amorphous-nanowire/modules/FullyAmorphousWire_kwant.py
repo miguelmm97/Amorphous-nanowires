@@ -48,12 +48,13 @@ tau_0, tau_x, tau_y, tau_z = sigma_0, sigma_x, sigma_y, sigma_z
 
 
 # Hopping functions
-def hopping(t, lamb, lamb_z, d, phi, theta, cutoff_dist):
+def hopping(t, lamb, lamb_z, d, phi, theta, cutoff_dist, nonchiral_term=0.):
     f_cutoff = np.heaviside(cutoff_dist - d, 1) * np.exp(-d + 1)
     normal_hopp = - t * np.kron(sigma_x, tau_0)
     spin_orbit_xy = 1j * 0.5 * lamb * np.kron(sigma_z * np.sin(theta), np.cos(phi) * tau_y - np.sin(phi) * tau_x)
     spin_orbit_z = - 1j * 0.5 * lamb_z * np.cos(theta) * np.kron(sigma_y, tau_0)
-    return f_cutoff * (normal_hopp + spin_orbit_xy + spin_orbit_z)
+    break_chiral = nonchiral_term * np.kron(sigma_z, tau_z)
+    return f_cutoff * (normal_hopp + spin_orbit_xy + spin_orbit_z + break_chiral)
 
 def onsite(eps):
     return eps * np.kron(sigma_x, tau_0)
@@ -150,7 +151,7 @@ class FullyAmorphousWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, interface_z=0.5, interface_r=1.3):
+def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, interface_z=0.5, interface_r=1.3, nonchiral_term=0.):
 
     # Load parameters into the builder namespace
     try:
@@ -175,9 +176,9 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, int
         index_neigh = lattice_tree.neighbours[index0].index(index1)
         d, phi, theta = displacement3D_kwant(site1, site0)
         if lattice_tree.K_hopp < 1e-12:
-            return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
+            return hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r, nonchiral_term) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
         else:
-            return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r)  + np.kron(sigma_0, tau_0) *
+            return (hopping(t, lamb, lamb_z, d, phi, theta, lattice_tree.r, nonchiral_term)  + np.kron(sigma_0, tau_0) *
                 lattice_tree.disorder[index0, index_neigh]) * Peierls_kwant(site1, site0, flux, lattice_tree.area)
 
     # Initialise kwant system

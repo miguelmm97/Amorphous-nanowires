@@ -72,18 +72,18 @@ palette = seaborn.color_palette(palette='viridis_r', n_colors=250)
 palette = [palette[0], palette[50], palette[100], palette[150], palette[200], palette[-1]]
 
 # Key style modifications for dark theme
-plt.rcParams.update({
-    'axes.facecolor': 'black',
-    'figure.facecolor': 'black',
-    'savefig.facecolor': 'black',
-    'axes.edgecolor': 'white',
-    'axes.labelcolor': 'white',
-    'xtick.color': 'white',
-    'ytick.color': 'white',
-    'text.color': 'white',
-    'legend.edgecolor': 'white',
-    'legend.facecolor': 'black',
-})
+# plt.rcParams.update({
+#     'axes.facecolor': 'black',
+#     'figure.facecolor': 'black',
+#     'savefig.facecolor': 'black',
+#     'axes.edgecolor': 'white',
+#     'axes.labelcolor': 'white',
+#     'xtick.color': 'white',
+#     'ytick.color': 'white',
+#     'text.color': 'white',
+#     'legend.edgecolor': 'white',
+#     'legend.facecolor': 'black',
+# })
 
 
 
@@ -125,7 +125,7 @@ ax3.text(0.02, 4.8, f'$w= {width3}$',  fontsize=fontsize_in)
 ax3.text(0.02, 6, f'$(c)$',  fontsize=fontsize_in)
 ax3.set(yticks=[0, 2, 4, 6], yticklabels=[])
 ax3.legend(ncol=1, frameon=False, fontsize=fontsize, loc='upper left', columnspacing=0.3, handlelength=0.75, labelspacing=0.2, bbox_to_anchor=(0.35, 0.45))
-ax3.text(0.38, 3, '$\\underline{\phi}$', fontsize=fontsize_in)
+ax3.text(0.34, 3, '$\\underline{\phi/\phi_0}$', fontsize=fontsize_in)
 
 # Upper panel: Format
 # y_axis_ticks = [i for i in range(0, 8, 2)]
@@ -139,7 +139,7 @@ for ax in ax_vec:
     ax.set(xticks=[0, 0.25, 0.5], xticklabels=['0', '0.25', '0.5'])
     ax.tick_params(which='major', width=0.75, labelsize=fontsize)
     ax.tick_params(which='major', length=6, labelsize=fontsize)
-    ax.set_xlabel("$E_F^{nw}$", fontsize=fontsize)
+    ax.set_xlabel("$E_F$", fontsize=fontsize)
 
 
 
@@ -177,7 +177,7 @@ ax5.text(0.3, 0.1, f'$(e)$',  fontsize=fontsize_in)
 ax5.set_ylim([0, 0.15])
 ax5.set_xlim(0, 5)
 ax5.set_ylabel("$E_g$", fontsize=fontsize, labelpad=-20)
-ax5.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
+ax5.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax5.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax5.tick_params(which='major', length=6, labelsize=fontsize)
 ax5.tick_params(which='minor', width=0.75, labelsize=fontsize)
@@ -199,7 +199,7 @@ ax4.plot(flux, G_array[0, 0, :], color='#3F6CFF', linestyle='solid')
 ax4.plot(flux, gap_array[0, :], color='#3F6CFF', linestyle='dashed')
 # 4x1.plot(flux, np.ones((len(G_array[0, 0, :]))), color='grey', linestyle='dashed')
 ax4.set_ylabel("$G(2e^2/h)$", fontsize=fontsize, color='white')
-ax4.set_xlabel("$\phi$", fontsize=fontsize, color='white')
+ax4.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, color='white')
 ax4.set(xticks=[0, 1, 2, 3, 4])
 ax4.tick_params(axis='both', colors='white')
 ax4.set_ylim([0, 1.05])
