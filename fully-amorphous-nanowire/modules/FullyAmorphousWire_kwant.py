@@ -4,10 +4,12 @@
 from numpy import pi
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, quad
+from functools import partial
 
 # Kwant
 import kwant
 import tinyarray as ta
+from kwant.kpm import jackson_kernel
 
 # Managing logging
 import logging
@@ -119,7 +121,7 @@ def Peierls_kwant(site1, site0, flux, area):
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
 
-Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
+Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refers to the site from 
 which we hopp.
 """
 
@@ -518,4 +520,94 @@ def local_marker_periodic(x_array, y_array, z_array, P, S, Nx, Ny, Nz):
         local_marker[i] = (8 * pi / 3) * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
 
     return local_marker
+
+
+#%% Kernel polynomial method for the local marker
+def kpm_vector_generator(H, state, max_moments):
+
+    # 0th moment in the expansion: Just the quantum state to whihc we are applying the operator
+    alpha = state
+    n = 0
+    yield alpha
+
+    # 1st moment in the expansion: Applying the Hamiltonian
+    n += 1
+    alpha_prev = alpha.copy()
+    alpha = H @ alpha
+    yield alpha
+
+    # nth moments of the expansion: Follows by the recurrence of the Chebyshev polynomials
+    n += 1
+    while n < max_moments:
+        alpha_save = alpha.copy()
+        alpha = 2 * H @ alpha - alpha_prev
+        alpha_prev = alpha_save
+        yield alpha
+        n += 1
+
+def OPDM_KPM(state, num_moments, H, Ef=0, bounds=None):
+
+    # Rescaling of H and energies for the Kernel Polynomial Expansion
+    num_moments = num_moments
+    H_rescaled, (a, b) = kwant.kpm._rescale(H, 0.05, None, bounds)
+    phi_f = np.arccos((Ef - b) / a)
+
+    # Calculation of the coefficients in the expansion using the Jackson Kernel
+    g = jackson_kernel(np.ones(num_moments))
+    g[0] = 0
+    m = np.arange(num_moments)
+    m[0] = 1
+    coefs = -2 * g * (np.sin(m * phi_f) / (m * np.pi))
+
+    # Calculation of the OPDM (projector) applied onto vector as described in PRR 2, 013229 (2020)
+    P_vec = (1 - phi_f/np.pi) * state - sum(c * vec for c, vec
+                             in zip(coefs, kpm_vector_generator(H_rescaled, state, num_moments)))
+    return P_vec
+
+def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=10, num_vecs=10, bounds=None):
+
+    # Region where we calculate the local marker
+    cutoff = 0.4 * 0.5
+    project_to_region = partial(bulk, x=x, y=y, z=z, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
+
+    # Operators involved in the calculation of the local marker
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+    X = np.reshape(X, (len(X), 1))
+    Y = np.reshape(Y, (len(Y), 1))
+    Z = np.reshape(Z, (len(Z), 1))
+
+    # Calculation using the stochastic trace + KPM algorithm
+    TrM = 0.
+    for _ in range(num_vecs):
+
+        # Random initial state supported in the region that wetrace over
+        state = project_to_region(np.exp(2j * np.pi * np.random.random((H.shape[0]))))
+
+        # <random\ local marker\ random>
+        m  = P(S @ (X * P(Y @ state))).T.conj() @ P(Z * P(state))
+        m += P(S @ (Z * P(X @ state))).T.conj() @ P(Y * P(state))
+        m += P(S @ (Y * P(Z @ state))).T.conj() @ P(X * P(state))
+        m -= P(S @ (X * P(Z @ state))).T.conj() @ P(Y * P(state))
+        m -= P(S @ (Z * P(Y @ state))).T.conj() @ P(X * P(state))
+        m -= P(S @ (Y * P(X @ state))).T.conj() @ P(Z * P(state))
+        TrM += m
+
+    return (8 * pi / 3) * np.imag(TrM) / num_vecs
+
+def bulk(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
+
+    # Selecting a region on the bulk
+    x_pos, y_pos = x - 0.5 * Nx, y - 0.5 * Ny
+    cond1 = np.abs(x_pos) < rx
+    cond2 = np.abs(y_pos) < ry
+    cond3 = (0.5 * Nz - rz) < z
+    cond4 = (0.5 * Nz + rz) > z
+    cond = cond1 * cond2 * cond3 * cond4
+
+    # Weighted state on the bulk region
+    state[~cond] = 0.
+    return state
+
+
 
