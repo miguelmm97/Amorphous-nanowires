@@ -560,54 +560,97 @@ def OPDM_KPM(state, num_moments, H, Ef=0, bounds=None):
     coefs = -2 * g * (np.sin(m * phi_f) / (m * np.pi))
 
     # Calculation of the OPDM (projector) applied onto vector as described in PRR 2, 013229 (2020)
-    P_vec = (1 - phi_f/np.pi) * state - sum(c * vec for c, vec
+    P_vec = (1 - phi_f/np.pi) * state + sum(c * vec for c, vec
                              in zip(coefs, kpm_vector_generator(H_rescaled, state, num_moments)))
     return P_vec
 
-def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=10, num_vecs=10, bounds=None):
+def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=10, bounds=None):
 
     # Region where we calculate the local marker
     cutoff = 0.4 * 0.5
-    project_to_region = partial(bulk, x=x, y=y, z=z, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
+    project_to_region = partial(bulk_state, x=x, y=y, z=z, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
 
     # Operators involved in the calculation of the local marker
     P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
     X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
-    X = np.reshape(X, (len(X), 1))
-    Y = np.reshape(Y, (len(Y), 1))
-    Z = np.reshape(Z, (len(Z), 1))
+    XX, YY, ZZ = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+    XX = np.reshape(XX, (len(XX), 1))
+    YY = np.reshape(YY, (len(YY), 1))
+    ZZ = np.reshape(ZZ, (len(ZZ), 1))
+
+    # Checks
+    eps, _, rho = spectrum(H)
+    # state = project_to_region(state=np.exp(2j * np.pi * np.random.random((2048))))
+    # A = rho @ state
+    # B = P(state)
+    # C = np.sum(np.abs(np.real(A - B)) + np.abs(np.imag(A - B)))
+
+
 
     # Calculation using the stochastic trace + KPM algorithm
     TrM = 0.
-    for _ in range(num_vecs):
+    m_rho_operator, m_rho, m = 0., 0., 0.
+    for i in range(num_vecs):
+        print(i)
+        # Random initial state supported in the region that we trace over
+        # state, Nsites = project_to_region(state=np.exp(2j * np.pi * np.random.random((H.shape[0]))))
+        state = np.exp(2j * np.pi * np.random.random((H.shape[0])))
+        Nsites = len(x)
 
-        # Random initial state supported in the region that wetrace over
-        state = project_to_region(np.exp(2j * np.pi * np.random.random((H.shape[0]))))
 
-        # <random\ local marker\ random>
-        m  = P(S @ (X * P(Y @ state))).T.conj() @ P(Z * P(state))
-        m += P(S @ (Z * P(X @ state))).T.conj() @ P(Y * P(state))
-        m += P(S @ (Y * P(Z @ state))).T.conj() @ P(X * P(state))
-        m -= P(S @ (X * P(Z @ state))).T.conj() @ P(Y * P(state))
-        m -= P(S @ (Z * P(Y @ state))).T.conj() @ P(X * P(state))
-        m -= P(S @ (Y * P(X @ state))).T.conj() @ P(Z * P(state))
-        TrM += m
+        # Check equivalence of KPM and rho
+        check1 = np.sum(np.abs(np.real(rho @ state - P(state))) + np.abs(np.imag(rho @ state - P(state))))
+
+        # Check equivalence of the ways of writting the invariant
+        m_rho += (Y * (rho @ (X * (S @ (rho @ state))))).T.conj() @ (rho @ (Z * (rho @ state)))
+        m_rho += (X * (rho @ (Z * (S @ (rho @ state))))).T.conj() @ (rho @ (Y * (rho @ state)))
+        m_rho += (Z * (rho @ (Y * (S @ (rho @ state))))).T.conj() @ (rho @ (X * (rho @ state)))
+        m_rho -= (Z * (rho @ (X * (S @ (rho @ state))))).T.conj() @ (rho @ (Y * (rho @ state)))
+        m_rho -= (Y * (rho @ (Z * (S @ (rho @ state))))).T.conj() @ (rho @ (X * (rho @ state)))
+        m_rho -= (X * (rho @ (Y * (S @ (rho @ state))))).T.conj() @ (rho @ (Z * (rho @ state)))
+        PS, XP, YP, ZP = rho @ S, XX * rho, YY * rho, ZZ * rho
+        m_rho_operator += state.T.conj() @ (PS @ XP @ YP @ ZP + PS @ ZP @ XP @ YP + PS @ YP @ ZP @ XP - PS @ XP @ ZP @ YP - PS @ ZP @ YP @ XP - PS @ YP @ XP @ ZP) @ state
+        check2 = np.sum(np.abs(m_rho_operator - m_rho))
+
+        # Check equivalence invariant with KPM method
+        P_psi = P(state)
+        SP_psi = S @ P_psi
+        PXP_psi = P(X * P_psi)
+        PYP_psi = P(Y * P_psi)
+        PZP_psi = P(Z * P_psi)
+        PXSP_psi = P(X * SP_psi)
+        PYSP_psi = P(Y * SP_psi)
+        PZSP_psi = P(Z * SP_psi)
+        m += (Y * PXSP_psi).T.conj() @ PZP_psi
+        m += (X * PZSP_psi).T.conj() @ PYP_psi
+        m += (Z * PYSP_psi).T.conj() @ PXP_psi
+        m -= (Z * PXSP_psi).T.conj() @ PYP_psi
+        m -= (Y * PZSP_psi).T.conj() @ PXP_psi
+        m -= (X * PYSP_psi).T.conj() @ PZP_psi
+        check3 = np.sum(np.abs(m_rho_operator - m) + np.imag(m_rho_operator - m))
+        check4 = np.sum(np.abs(m_rho - m) + np.imag(m_rho - m))
+
+        # TrM += m
+    m_rho = (8 * pi / 3) * np.imag(m_rho) / (num_vecs * Nsites)
+    m = (8 * pi / 3) * np.imag(m) / (num_vecs * Nsites)
+    m_rho_operator = (8 * pi / 3) * np.imag(m_rho_operator) / (num_vecs * Nsites)
 
     return (8 * pi / 3) * np.imag(TrM) / num_vecs
 
-def bulk(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
+def bulk_state(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
 
     # Selecting a region on the bulk
-    x_pos, y_pos = x - 0.5 * Nx, y - 0.5 * Ny
+    x_pos, y_pos, z_pos = x - 0.5 * Nx, y - 0.5 * Ny, z - 0.5 * Nz
     cond1 = np.abs(x_pos) < rx
     cond2 = np.abs(y_pos) < ry
-    cond3 = (0.5 * Nz - rz) < z
-    cond4 = (0.5 * Nz + rz) > z
-    cond = cond1 * cond2 * cond3 * cond4
+    cond3 = np.abs(z_pos) < ry
+    cond = cond1 * cond2 * cond3
+    Nsites = len(cond[cond])
+    cond = np.repeat(cond, 4)
 
     # Weighted state on the bulk region
     state[~cond] = 0.
-    return state
+    return state, Nsites
 
 
 
