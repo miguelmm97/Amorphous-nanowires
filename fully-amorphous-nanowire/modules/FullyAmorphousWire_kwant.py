@@ -573,69 +573,24 @@ def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=
     # Operators involved in the calculation of the local marker
     P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
     X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
-    XX, YY, ZZ = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
-    XX = np.reshape(XX, (len(XX), 1))
-    YY = np.reshape(YY, (len(YY), 1))
-    ZZ = np.reshape(ZZ, (len(ZZ), 1))
-
-    # Checks
-    eps, _, rho = spectrum(H)
-    # state = project_to_region(state=np.exp(2j * np.pi * np.random.random((2048))))
-    # A = rho @ state
-    # B = P(state)
-    # C = np.sum(np.abs(np.real(A - B)) + np.abs(np.imag(A - B)))
-
-
 
     # Calculation using the stochastic trace + KPM algorithm
-    TrM = 0.
-    m_rho_operator, m_rho, m = 0., 0., 0.
+    M = 0.
     for i in range(num_vecs):
-        print(i)
+
         # Random initial state supported in the region that we trace over
-        # state, Nsites = project_to_region(state=np.exp(2j * np.pi * np.random.random((H.shape[0]))))
-        state = np.exp(2j * np.pi * np.random.random((H.shape[0])))
-        Nsites = len(x)
+        loger_kwant.info(f'Random vector {i}/ {num_vecs - 1}')
+        state, Nsites = project_to_region(state=np.exp(2j * np.pi * np.random.random((H.shape[0]))))
 
-
-        # Check equivalence of KPM and rho
-        check1 = np.sum(np.abs(np.real(rho @ state - P(state))) + np.abs(np.imag(rho @ state - P(state))))
-
-        # Check equivalence of the ways of writting the invariant
-        m_rho += (Y * (rho @ (X * (S @ (rho @ state))))).T.conj() @ (rho @ (Z * (rho @ state)))
-        m_rho += (X * (rho @ (Z * (S @ (rho @ state))))).T.conj() @ (rho @ (Y * (rho @ state)))
-        m_rho += (Z * (rho @ (Y * (S @ (rho @ state))))).T.conj() @ (rho @ (X * (rho @ state)))
-        m_rho -= (Z * (rho @ (X * (S @ (rho @ state))))).T.conj() @ (rho @ (Y * (rho @ state)))
-        m_rho -= (Y * (rho @ (Z * (S @ (rho @ state))))).T.conj() @ (rho @ (X * (rho @ state)))
-        m_rho -= (X * (rho @ (Y * (S @ (rho @ state))))).T.conj() @ (rho @ (Z * (rho @ state)))
-        PS, XP, YP, ZP = rho @ S, XX * rho, YY * rho, ZZ * rho
-        m_rho_operator += state.T.conj() @ (PS @ XP @ YP @ ZP + PS @ ZP @ XP @ YP + PS @ YP @ ZP @ XP - PS @ XP @ ZP @ YP - PS @ ZP @ YP @ XP - PS @ YP @ XP @ ZP) @ state
-        check2 = np.sum(np.abs(m_rho_operator - m_rho))
-
-        # Check equivalence invariant with KPM method
+        # Calculation of the invariant
         P_psi = P(state)
         SP_psi = S @ P_psi
-        PXP_psi = P(X * P_psi)
-        PYP_psi = P(Y * P_psi)
-        PZP_psi = P(Z * P_psi)
-        PXSP_psi = P(X * SP_psi)
-        PYSP_psi = P(Y * SP_psi)
-        PZSP_psi = P(Z * SP_psi)
-        m += (Y * PXSP_psi).T.conj() @ PZP_psi
-        m += (X * PZSP_psi).T.conj() @ PYP_psi
-        m += (Z * PYSP_psi).T.conj() @ PXP_psi
-        m -= (Z * PXSP_psi).T.conj() @ PYP_psi
-        m -= (Y * PZSP_psi).T.conj() @ PXP_psi
-        m -= (X * PYSP_psi).T.conj() @ PZP_psi
-        check3 = np.sum(np.abs(m_rho_operator - m) + np.imag(m_rho_operator - m))
-        check4 = np.sum(np.abs(m_rho - m) + np.imag(m_rho - m))
+        PXP_psi, PYP_psi, PZP_psi = P(X * P_psi),  P(Y * P_psi),  P(Z * P_psi)
+        PXSP_psi, PYSP_psi, PZSP_psi = P(X * SP_psi), P(Y * SP_psi),  P(Z * SP_psi)
+        M +=  (Y * PXSP_psi).T.conj() @ PZP_psi + (X * PZSP_psi).T.conj() @ PYP_psi + (Z * PYSP_psi).T.conj() @ PXP_psi
+        M += -(Z * PXSP_psi).T.conj() @ PYP_psi - (Y * PZSP_psi).T.conj() @ PXP_psi - (X * PYSP_psi).T.conj() @ PZP_psi
 
-        # TrM += m
-    m_rho = (8 * pi / 3) * np.imag(m_rho) / (num_vecs * Nsites)
-    m = (8 * pi / 3) * np.imag(m) / (num_vecs * Nsites)
-    m_rho_operator = (8 * pi / 3) * np.imag(m_rho_operator) / (num_vecs * Nsites)
-
-    return (8 * pi / 3) * np.imag(TrM) / num_vecs
+    return (8 * pi / 3) * np.imag(M) / (num_vecs * Nsites)
 
 def bulk_state(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
 

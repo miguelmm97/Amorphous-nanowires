@@ -45,7 +45,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 8, 8, 8
+Nx, Ny, Nz = 10, 10, 75
 r          = 1.3
 width      = np.linspace(0.000001, 0.4, 10)
 t          = 1
@@ -84,19 +84,21 @@ for i, w in enumerate(width):
     x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
     S = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
 
-    # Local marker through exact diagonalization
-    loger_main.info('Calculating bulk marker through exact diagonalization...')
-    eps, _, rho = spectrum(H)
+    # Local marker through KPM + Stochastic trace algorithm
+    loger_main.info('Calculating bulk marker through KPM algorithm')
+    bulk_marker_KPM[i] = local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=5, bounds=None)
+    loger_main.info(f'width: {i}/{len(width) - 1}, marker KPM: {bulk_marker_KPM[i] :.5f}')
+
+    # # Local marker through exact diagonalization
+    # loger_main.info('Calculating bulk marker through exact diagonalization...')
+    # eps, _, rho = spectrum(H)
     # marker = local_marker(x, y, z, rho, S)
     # x_cut, y_cut, z_cut, marker_cut = bulk(x, y, z, rx, ry, rz, Nx, Ny, Nz, marker)
     # bulk_marker[i] = np.mean(marker_cut)
     # loger_main.info(f'width: {i}/{len(width) - 1}, marker ED: {bulk_marker[i] :.5f}')
 
 
-    # Local marker through KPM + Stochastic trace algorithm
-    loger_main.info('Calculating bulk marker through KPM algorithm')
-    bulk_marker_KPM[i] = local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=1000, num_vecs=10, bounds=None)
-    loger_main.info(f'width: {i}/{len(width) - 1}, marker KPM: {bulk_marker_KPM[i] :.5f}')
+
 
 
 
