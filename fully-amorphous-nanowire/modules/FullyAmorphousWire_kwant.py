@@ -5,6 +5,7 @@ from numpy import pi
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, quad
 from functools import partial
+from scipy.sparse import diags
 
 # Kwant
 import kwant
@@ -564,15 +565,17 @@ def OPDM_KPM(state, num_moments, H, Ef=0, bounds=None):
                              in zip(coefs, kpm_vector_generator(H_rescaled, state, num_moments)))
     return P_vec
 
-def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=10, bounds=None):
+def local_marker_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=10, bounds=None):
 
     # Region where we calculate the local marker
     cutoff = 0.4 * 0.5
-    project_to_region = partial(bulk_state, x=x, y=y, z=z, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
+    project_to_region = partial(bulk_state, syst, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
 
     # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
     P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
-    X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+    [X, Y, Z] = position_operator_OBC(syst)
+    # X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
 
     # Calculation using the stochastic trace + KPM algorithm
     M = 0.
@@ -585,20 +588,21 @@ def local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=
         # Calculation of the invariant
         P_psi = P(state)
         SP_psi = S @ P_psi
-        PXP_psi, PYP_psi, PZP_psi = P(X * P_psi),  P(Y * P_psi),  P(Z * P_psi)
-        PXSP_psi, PYSP_psi, PZSP_psi = P(X * SP_psi), P(Y * SP_psi),  P(Z * SP_psi)
-        M +=  (Y * PXSP_psi).T.conj() @ PZP_psi + (X * PZSP_psi).T.conj() @ PYP_psi + (Z * PYSP_psi).T.conj() @ PXP_psi
-        M += -(Z * PXSP_psi).T.conj() @ PYP_psi - (Y * PZSP_psi).T.conj() @ PXP_psi - (X * PYSP_psi).T.conj() @ PZP_psi
+        PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+        PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+        M +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+        M += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
 
     return (8 * pi / 3) * np.imag(M) / (num_vecs * Nsites)
 
-def bulk_state(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
+def bulk_state(syst, rx, ry, rz, Nx, Ny, Nz, state):
 
     # Selecting a region on the bulk
-    x_pos, y_pos, z_pos = x - 0.5 * Nx, y - 0.5 * Ny, z - 0.5 * Nz
+    pos = np.array([s.pos for s in syst.sites])
+    x_pos, y_pos, z_pos = pos[:, 0] - 0.5 * Nx, pos[:, 1] - 0.5 * Ny, pos[:, 2] - 0.5 * Nz
     cond1 = np.abs(x_pos) < rx
     cond2 = np.abs(y_pos) < ry
-    cond3 = np.abs(z_pos) < ry
+    cond3 = np.abs(z_pos) < rz
     cond = cond1 * cond2 * cond3
     Nsites = len(cond[cond])
     cond = np.repeat(cond, 4)
@@ -607,5 +611,12 @@ def bulk_state(x, y, z, rx, ry, rz, Nx, Ny, Nz, state):
     state[~cond] = 0.
     return state, Nsites
 
+def position_operator_OBC(syst):
+    operators = []
+    norbs = syst.sites[0].family.norbs
+    pos = np.array([s.pos for s in syst.sites])
+    for c in range(pos.shape[1]):
+        operators.append(diags(np.repeat(pos[:, c], norbs), format='csr'))
+    return operators
 
 

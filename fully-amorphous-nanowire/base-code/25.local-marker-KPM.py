@@ -3,7 +3,7 @@
 # Math and plotting
 import numpy as np
 from numpy.linalg import eigh
-import scipy.sparse.linalg as sla
+import scipy.sparse
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
@@ -13,7 +13,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, spectrum, local_marker, local_marker_KPM
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, spectrum, local_marker, local_marker_KPM, position_operator_OBC
 
 import sys
 from datetime import date
@@ -45,7 +45,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 10, 10, 75
+Nx, Ny, Nz = 12, 12, 150
 r          = 1.3
 width      = np.linspace(0.000001, 0.4, 10)
 t          = 1
@@ -79,14 +79,12 @@ for i, w in enumerate(width):
     lattice.build_lattice(restrict_connectivity=False)
     lattice.generate_disorder(K_hopp=0., K_onsite=0.)
     nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
-    H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value, mu=0.))
-    site_pos = np.array([site.pos for site in nanowire.id_by_site])
-    x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
-    S = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
+    S = scipy.sparse.kron(np.eye(Nx * Ny * Nz), np.kron(sigma_z, sigma_z), format='csr')
+    # S = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
 
     # Local marker through KPM + Stochastic trace algorithm
     loger_main.info('Calculating bulk marker through KPM algorithm')
-    bulk_marker_KPM[i] = local_marker_KPM(x, y, z, H, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=5, bounds=None)
+    bulk_marker_KPM[i] = local_marker_KPM(nanowire, S, Nx, Ny, Nz, Ef=0., num_moments=1000, num_vecs=5, bounds=None)
     loger_main.info(f'width: {i}/{len(width) - 1}, marker KPM: {bulk_marker_KPM[i] :.5f}')
 
     # # Local marker through exact diagonalization
