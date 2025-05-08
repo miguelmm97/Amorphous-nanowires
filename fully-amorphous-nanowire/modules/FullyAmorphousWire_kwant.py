@@ -5,7 +5,7 @@ from numpy import pi
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, quad
 from functools import partial
-from scipy.sparse import diags
+from scipy.sparse import diags, csr_matrix
 
 # Kwant
 import kwant
@@ -171,8 +171,11 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, int
     # Hopping and onsite functions
     def onsite_potential(site, mu):
         index = site.tag[0]
-        return onsite(eps) + mu * np.kron(sigma_0, tau_0) + \
-            np.kron(sigma_0, tau_0) * lattice_tree.disorder[index, index]
+        if lattice_tree.K_onsite < 1e-12:
+            return onsite(eps) + mu * np.kron(sigma_0, tau_0)
+        else:
+            return onsite(eps) + mu * np.kron(sigma_0, tau_0) + \
+                np.kron(sigma_0, tau_0) * lattice_tree.onsite_disorder[index]
 
     def hopp(site1, site0, flux):
         index0, index1 = site0.tag[0], site1.tag[0]
@@ -565,7 +568,7 @@ def OPDM_KPM(state, num_moments, H, Ef=0, bounds=None):
                              in zip(coefs, kpm_vector_generator(H_rescaled, state, num_moments)))
     return P_vec
 
-def local_marker_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=10, bounds=None):
+def local_marker_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=10, bounds=None):
 
     # Region where we calculate the local marker
     cutoff = 0.4 * 0.5
@@ -574,7 +577,7 @@ def local_marker_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=50, num_vecs=10, bo
     # Operators involved in the calculation of the local marker
     H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
     P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
-    [X, Y, Z] = position_operator_OBC(syst)
+    [X, Y, Z] = position_operator_OBC(syst)[0]
     # X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
 
     # Calculation using the stochastic trace + KPM algorithm
@@ -617,6 +620,35 @@ def position_operator_OBC(syst):
     pos = np.array([s.pos for s in syst.sites])
     for c in range(pos.shape[1]):
         operators.append(diags(np.repeat(pos[:, c], norbs), format='csr'))
-    return operators
+    return operators, pos
 
+def local_marker_per_site_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=10, bounds=None):
 
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC(syst)
+    local_marker = np.zeros((int(Nx * Ny * Nz), ), dtype=np.complex128)
+
+    # Calculation using the stochastic trace + KPM algorithm
+    for i in range(int(Nx * Ny * Nz)):
+        loger_kwant.info(f'site: {i}/ {int(Nx * Ny * Nz)}')
+
+        for j in range(4):
+            # States localised in the site
+            state = np.zeros((Nx * Ny * Nz * 4, ), dtype=np.complex128)
+            state[i * 4 + j] = 1.
+            # state = csr_matrix(state).T
+
+            # Calculation of the invariant
+            P_psi = P(state)
+            SP_psi = S @ P_psi
+            PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+            PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+            local_marker[i] +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+            local_marker[i] += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+        local_marker[i] = (8 * pi / 3) * np.imag(local_marker[i])
+        loger_kwant.info(f'marker: {local_marker[i]}')
+
+    return local_marker, pos

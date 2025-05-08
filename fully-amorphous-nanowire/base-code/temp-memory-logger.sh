@@ -1,9 +1,10 @@
 #!/bin/bash
 
+process_variable=487245
 
 while :
 do
-  cat /proc/1483404/status | grep VmRSS
-  cat /proc/1483404/status | grep VmRSS >> mem-local-marker-Nx=12.txt
+  cat "/proc/${process_variable}/status" | grep VmRSS
+  cat "/proc/${process_variable}/status" | grep VmRSS >> mem-G-vs-N=14.txt
   sleep 5
 done

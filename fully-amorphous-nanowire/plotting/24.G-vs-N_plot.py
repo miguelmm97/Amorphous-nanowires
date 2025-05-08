@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp8.h5']
+file_list = ['Exp9.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N')
 
 # Parameters
@@ -24,12 +24,14 @@ lamb         = data_dict[file_list[0]]['Parameters']['lamb']
 lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z']
 mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
 
+
 # Simulation data
 Nx            = data_dict[file_list[0]]['Simulation']['Nx']
 Ny            = data_dict[file_list[0]]['Simulation']['Ny']
 flux          = data_dict[file_list[0]]['Simulation']['flux']
 width         = data_dict[file_list[0]]['Simulation']['width']
 G_array       = data_dict[file_list[0]]['Simulation']['G_array']
+K_onsite     = data_dict[file_list[0]]['Simulation']['K_onsite']
 
 
 
@@ -57,7 +59,7 @@ for i in range(G_array.shape[0]):
 
 # Figure 1: Format
 ax1.legend(ncol=2, frameon=False, fontsize=10)
-fig1.suptitle(f'$\mu_l= {mu_leads}$, $E_f= {Ef}$, $r= {r}$, $L= {Nz}$, $w= {width}$', y=0.93, fontsize=20)
+fig1.suptitle(f'$\mu_l= {mu_leads}$, $E_f= {Ef}$, $r= {r}$, $L= {Nz}$, $w= {width}$, $K= {K_onsite:.2f}$', y=0.93, fontsize=20)
 ax1.set_xlim(flux[0], flux[-1])
 ax1.set_ylim(0, 3)
 ax1.tick_params(which='major', width=0.75, labelsize=10)

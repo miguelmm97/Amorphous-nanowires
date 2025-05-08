@@ -180,7 +180,7 @@ def take_cut_from_parent_wire(parent, Nx_new=None, Ny_new=None, Nz_new=None, kee
     lattice.build_lattice()
     if keep_disorder:
         lattice.K_hopp, lattice.K_onsite = parent.K_hopp, parent.K_onsite
-        lattice.set_disorder(disorder=parent.disorder)
+        lattice.set_disorder(onsite_disorder=parent.onsite_disorder, disorder=parent.disorder)
     return lattice
 
 @dataclass
@@ -201,6 +201,7 @@ class AmorphousLattice_3d:
     K_onsite: float       = None                      # Strength of the onsite disorder distribution
     K_hopp:   float       = None                      # Strength of the hopping disorder distribution
     disorder: np.ndarray  = None                      # Disorder matrix
+    onsite_disorder: np.ndarray = None                # Disorder array for the only onsite case (much more efficient)
 
     # Class fields that can only be set internally
     Nsites: int = field(init=False)                         # Number of sites in the cross-section
@@ -258,7 +259,14 @@ class AmorphousLattice_3d:
             if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-    def generate_disorder(self, K_onsite=0., K_hopp=0.):
+        self.K_onsite, self.K_hopp = 0., 0.
+
+    def generate_onsite_disorder(self, K_onsite):
+        loger_amorphous.trace('Generating disorder configuration...')
+        self.K_onsite = K_onsite
+        self.onsite_disorder = np.random.uniform(-self.K_onsite, self.K_onsite, self.Nsites)
+
+    def generate_full_disorder(self, K_onsite=0., K_hopp=0.):
 
         loger_amorphous.trace('Generating disorder configuration...')
         self.K_onsite, self.K_hopp = K_onsite, K_hopp
@@ -270,6 +278,7 @@ class AmorphousLattice_3d:
         disorder_matrix = disorder_matrix + disorder_matrix.T
         disorder_matrix = disorder_matrix + np.diag(aux_diag)
         self.disorder = disorder_matrix
+        self.onsite_disorder = aux_diag
 
     def get_boundary(self):
 
@@ -388,8 +397,9 @@ class AmorphousLattice_3d:
     def set_configuration(self, x, y, z):
         self.x, self.y, self.z = x, y, z
 
-    def set_disorder(self, disorder):
+    def set_disorder(self, onsite_disorder, disorder):
         self.disorder = disorder
+        self.onsite_disorder = onsite_disorder
 
     def erase_configuration(self):
         self.x, self.y, self.z = None, None, None

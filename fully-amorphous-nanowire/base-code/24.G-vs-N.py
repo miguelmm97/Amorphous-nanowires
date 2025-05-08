@@ -2,6 +2,7 @@
 
 # Math and plotting
 import numpy as np
+import scipy.sparse
 
 # Kwant
 import kwant
@@ -43,7 +44,7 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-Nz               = 100                        # Length
+Nz               = 50                        # Length
 Nx               = np.linspace(8, 15, 8, dtype=np.int32)[::-1]   # Sites in the cross-section
 Ny               = Nx                         # Sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
@@ -52,16 +53,17 @@ eps              = 4 * t                      # Onsite orbital hopping (in units
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
-flux             = np.linspace(0, 5, 250)     # Magnetic flux
+flux             = np.linspace(0, 1, 100)     # Magnetic flux
 width            = 0.15                        # Amorphous width 0.0001, 0.02, 0.05,
 Ef               = 0.02                       # Fermi energy
-K_onsite         = 1                        # Onsite disorder
+K_onsite         = 0.1                        # Onsite disorder
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
 kwant_nw_dict = {}
 lattice_dict = {}
 G_array = np.zeros((len(Nx), len(flux)), dtype=np.float64)
+sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 #%% Main
 
 # Generate parent nanowire
@@ -70,13 +72,19 @@ full_lattice.build_lattice()
 X = full_lattice.x
 Y = full_lattice.y
 Z = full_lattice.z
-full_lattice.generate_disorder(K_onsite=K_onsite, K_hopp=0.)
+full_lattice.generate_onsite_disorder(K_onsite=K_onsite)
 
 for i, n in enumerate(Nx):
 
     # Taking a cut of the parent cross-section
     lattice = take_cut_from_parent_wire(full_lattice, Nx_new=n, Ny_new=n, keep_disorder=True)
     nanowire = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
+
+    # Checks for chiral symmetry
+    # closed_wire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
+    # H = closed_wire.hamiltonian_submatrix(params=dict(flux=0., mu=-Ef))
+    # S = np.kron(np.eye(Nx[0] * Ny[0] * Nz), np.kron(sigma_z, sigma_z))
+    # loger_main.info(f'Chiral symmetry: {np.allclose(S @ H @ S , -H)}')
 
     # Calculating conductance
     for j, phi in enumerate(flux):
