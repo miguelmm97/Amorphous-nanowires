@@ -13,7 +13,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, local_marker_per_site_KPM
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, local_marker_per_site_KPM, local_marker_per_site_cross_section_KPM
 
 import sys
 from datetime import date
@@ -45,9 +45,11 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 8, 8, 8
+z0 = 3.5
+z1 = 4.5
+Nx, Ny, Nz = 18, 18, 100
 r          = 1.3
-width      = 0.00001
+width      = 0.4
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -67,7 +69,8 @@ S = scipy.sparse.kron(np.eye(Nx * Ny * Nz), np.kron(sigma_z, sigma_z), format='c
 
 # Local marker through KPM + Stochastic trace algorithm
 loger_main.info('Calculating bulk marker through KPM algorithm')
-local_marker, pos = local_marker_per_site_KPM(nanowire, S, Nx, Ny, Nz, Ef=0., num_moments=1000, num_vecs=5, bounds=None)
+# local_marker, pos = local_marker_per_site_KPM(nanowire, S, Nx, Ny, Nz, Ef=0., num_moments=1000, num_vecs=5, bounds=None)
+local_marker, x, y, z = local_marker_per_site_cross_section_KPM(nanowire, S, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=1000, bounds=None)
 
 
 #%% Saving data
@@ -84,7 +87,11 @@ with h5py.File(filepath, 'w') as f:
     simulation = f.create_group('Simulation')
     store_my_data(simulation, 'local_marker', local_marker)
     store_my_data(simulation, 'width',    width)
-    store_my_data(simulation, 'position', pos)
+    store_my_data(simulation, 'x', x)
+    store_my_data(simulation, 'y', y)
+    store_my_data(simulation, 'z', z)
+    store_my_data(simulation, 'z0',           z0)
+    store_my_data(simulation, 'z1',           z1)
 
 
     # Parameters folder

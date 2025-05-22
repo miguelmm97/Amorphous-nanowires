@@ -44,8 +44,18 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-Nz               = 50                        # Length
-Nx               = np.linspace(8, 15, 8, dtype=np.int32)[::-1]   # Sites in the cross-section
+
+#%% Loading data
+file_list = ['Exp16.h5']
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N')
+
+# Simulation data
+x = data_dict[file_list[0]]['Simulation']['x']
+y = data_dict[file_list[0]]['Simulation']['y']
+z = data_dict[file_list[0]]['Simulation']['z']
+
+Nz               = 200                        # Length
+Nx               = np.linspace(10, 15, 6, dtype=np.int32)[::-1]   # Sites in the cross-section
 Ny               = Nx                         # Sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
@@ -53,10 +63,10 @@ eps              = 4 * t                      # Onsite orbital hopping (in units
 lamb             = 1 * t                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                    # Spin-orbit coupling along z direction
 mu_leads         = - 1 * t                    # Chemical potential at the leads
-flux             = np.linspace(0, 1, 100)     # Magnetic flux
-width            = 0.15                        # Amorphous width 0.0001, 0.02, 0.05,
-Ef               = 0.02                       # Fermi energy
-K_onsite         = 0.1                        # Onsite disorder
+flux             = np.linspace(0, 5, 500)     # Magnetic flux
+width            = 0.15                       # Amorphous width 0.0001, 0.02, 0.05,
+Ef               = 0.0                       # Fermi energy
+K_onsite         = 0.0                        # Onsite disorder
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
@@ -68,6 +78,7 @@ sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 
 # Generate parent nanowire
 full_lattice = AmorphousLattice_3d(Nx=np.max(Nx), Ny=np.max(Ny), Nz=Nz, w=width, r=r)
+full_lattice.set_configuration(x, y, z)
 full_lattice.build_lattice()
 X = full_lattice.x
 Y = full_lattice.y

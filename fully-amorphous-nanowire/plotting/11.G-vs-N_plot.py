@@ -11,7 +11,7 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp9.h5']
+file_list = ['Exp16.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N')
 
 # Parameters
@@ -56,12 +56,13 @@ ax1 = fig1.add_subplot(gs[0, 0])
 for i in range(G_array.shape[0]):
     label = f'$N_z= {Nx[i]}$'
     ax1.plot(flux, G_array[i, :], color=palette1[i], linestyle='solid', label=label)
+ax1.plot(flux, np.ones((len(flux), )), color='k', linestyle='dashed')
 
 # Figure 1: Format
 ax1.legend(ncol=2, frameon=False, fontsize=10)
 fig1.suptitle(f'$\mu_l= {mu_leads}$, $E_f= {Ef}$, $r= {r}$, $L= {Nz}$, $w= {width}$, $K= {K_onsite:.2f}$', y=0.93, fontsize=20)
 ax1.set_xlim(flux[0], flux[-1])
-ax1.set_ylim(0, 3)
+ax1.set_ylim(0, 1.2)
 ax1.tick_params(which='major', width=0.75, labelsize=10)
 ax1.tick_params(which='major', length=6, labelsize=10)
 ax1.set_xlabel("$\phi/\phi_0$", fontsize=fontsize)

@@ -43,14 +43,14 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny           = 10, 10                                     # Number of sites in the cross-section
+Nx, Ny           = 7, 7                                     # Number of sites in the cross-section
 r                = 1.3                                        # Nearest-neighbour cutoff distance
 t                = 1                                          # Hopping
 eps              = 4 * t                                      # Onsite orbital hopping (in units of t)
 lamb             = 1 * t                                      # Spin-orbit coupling in the cross-section (in units of t)
 lamb_z           = 1.8 * t                                    # Spin-orbit coupling along z direction
 mu_leads         = - 0 * t                                    # Chemical potential at the leads
-width            = 0                                          # Amorphous width 0.0001, 0.02, 0.05,
+width            = 0.1                                          # Amorphous width 0.0001, 0.02, 0.05,
 Nz               = 100                                        # Length of the wire
 flux             = np.linspace(0, 1.5, 9)                     # Flux
 kz               = np.linspace(-pi, pi, 1001)
@@ -92,7 +92,7 @@ ax_vec = [ax1_1, ax1_2, ax1_3, ax1_4, ax1_5, ax1_6, ax1_7, ax1_8, ax1_9]
 for i, phi in enumerate(flux):
     ax = ax_vec[i]
     ax.plot(kz, bands_array[i], color='dodgerblue', linewidth=0.5)
-    ax.plot(kz, 0.04 * np.ones(kz.shape), '--', color='Black', alpha=0.2)
+    ax.plot(kz, 0.02 * np.ones(kz.shape), '--', color='Black', alpha=0.2)
 
     ax.set_xlabel('$k/a$')
     ax.set_ylabel('$E(k)/t$')

@@ -43,7 +43,7 @@ loger_main.addHandler(stream_handler)
 
 
 #%% Variables
-Nx, Ny, Nz       = 10, 10, 100                # Number of sites in the cross-section
+Nx, Ny, Nz       = 7, 7, 100                # Number of sites in the cross-section
 r                = 1.3                        # Nearest-neighbour cutoff distance
 t                = 1                          # Hopping
 eps              = 4 * t                      # Onsite orbital hopping (in units of t)
@@ -52,7 +52,7 @@ lamb_z           = 1.8 * t                    # Spin-orbit coupling along z dire
 mu_leads         = - 1 * t                    # Chemical potential at the leads
 flux             = np.linspace(0, 5, 250)     # Magnetic flux
 width            = [0.1]  # np.linspace(1e-5, 0.4, 5)  # Amorphous width 0.0001, 0.02, 0.05,
-Ef               = [0.02]                      # Fermi energy
+Ef               = [0.0]                      # Fermi energy
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 
 # Preallocation
@@ -70,9 +70,8 @@ for i, w in enumerate(width):
     loger_main.info('Generating amorphous lattice...')
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
     lattice.build_lattice()
-    lattice.generate_disorder()
     lattice_dict[i] = lattice
-    kwant_nw_dict[i] = promote_to_kwant_nanowire3d(lattice, params_dict, nonchiral_term=0.05).finalized()
+    kwant_nw_dict[i] = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
     X[i, :], Y[i, :], Z[i, :] = lattice.x, lattice.y, lattice.z
     loger_main.info('Nanowire promoted to Kwant successfully.')
 

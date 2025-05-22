@@ -141,9 +141,34 @@ class AmorphousLattice_2d:
 
 
     # Methods for building the lattice
-    def generate_configuration(self, from_x=None, from_y=None):
+    # def generate_configuration(self, from_x=None, from_y=None):
+    #
+    #     loger_amorphous.info('Generating lattice and neighbour tree...')
+    #
+    #     # Dimension of the Hilbert space and sites
+    #     self.Nsites = int(self.Nx * self.Ny)
+    #     list_sites = np.arange(0, self.Nsites)
+    #     x_crystal = list_sites % self.Nx
+    #     y_crystal = list_sites // self.Nx
+    #
+    #     # Positions of x and y coordinates on the amorphous lattice
+    #     if from_x is not None and from_y is not None:
+    #         self.x, self.y = from_x, from_y
+    #     else:
+    #         self.x, self.y = gaussian_point_set_2D(x_crystal, y_crystal, self.w)
+    #     coords = np.array([self.x, self.y])
+    #
+    #     # Neighbour tree and accepting/discarding the configuration
+    #     self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
+    #     for i in range(self.Nsites):
+    #         self.neighbours[i].remove(i)
+    #         if len(self.neighbours[i]) < 6:
+    #             raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
 
-        loger_amorphous.info('Generating lattice and neighbour tree...')
+
+    def generate_configuration(self, from_x=None, from_y=None, restrict_connectivity=False):
+
+        loger_amorphous.trace('Generating lattice and neighbour tree...')
 
         # Dimension of the Hilbert space and sites
         self.Nsites = int(self.Nx * self.Ny)
@@ -162,8 +187,17 @@ class AmorphousLattice_2d:
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
         for i in range(self.Nsites):
             self.neighbours[i].remove(i)
-            if len(self.neighbours[i]) < 2:
+            dist = []
+            for j, site in enumerate(self.neighbours[i]):
+                dist.append((self.x[i] - self.x[site]) ** 2 + (self.y[i] - self.y[site]) ** 2)
+            sorted_idx = sorted(range(len(dist)), key=lambda s: dist[s])[:4]
+            self.neighbours[i] = [self.neighbours[i][k] for k in sorted_idx]
+            if restrict_connectivity and len(self.neighbours[i]) < 2:
                 raise ValueError('Connectivity of the lattice too low. Trying a different configuration...')
+        for i in range(self.Nsites):
+            for j in self.neighbours[i]:
+                if i not in self.neighbours[j]:
+                    self.neighbours[i].remove(j)
 
     def build_lattice(self, from_x=None, from_y=None, n_tries=0):
 
@@ -172,7 +206,7 @@ class AmorphousLattice_2d:
 
         try:
             self.generate_configuration(from_x=from_x, from_y=from_y)
-            self.get_boundary()
+            # self.get_boundary()
             loger_amorphous.info('Configuration accepted!')
         except Exception as error:
             loger_amorphous.warning(f'{error}')
@@ -253,8 +287,8 @@ class AmorphousLattice_2d:
         # Neighbour links
         for site in range(self.Nsites):
             for n in self.neighbours[site]:
-                plt.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], 'royalblue', linewidth=1, alpha=0.2)
-                plt.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
+                plt.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], 'royalblue', linewidth=2, alpha=0.2)
+                # plt.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
 
         # Boundary
         try:
@@ -263,7 +297,7 @@ class AmorphousLattice_2d:
                     site1, site2 = self.boundary[j], self.boundary[0]
                 else:
                     site1, site2 = self.boundary[j], self.boundary[j + 1]
-                plt.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
+                # plt.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], 'm', linewidth=2, alpha=1)
         except AttributeError:
             loger_amorphous.warning('Boundary has not been calculated before plotting')
             pass

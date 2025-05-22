@@ -13,7 +13,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, spectrum, local_marker, local_marker_KPM_bulk
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, local_marker_KPM_rshell
 
 import sys
 from datetime import date
@@ -45,31 +45,24 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 15, 15, 200
+Nx, Ny, Nz = 20, 20, 100
 r          = 1.3
-width      = np.linspace(0.000001, 0.4, 10)
+width      = [0.000001, 0.1, 0.2, 0.3, 0.4]
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
 lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 flux_value = 0
-cutoff = 0.4 * 0.5
-rx, ry, rz = cutoff * Nx, cutoff * Ny, cutoff * Nz
 
-bulk_marker = np.zeros((len(width), ))
-bulk_marker_KPM = np.zeros((len(width), ))
+# Radii distribution
+diagonal =  np.sqrt(2 * (0.5 * (Nx - 1)) ** 2)
+r_min, r_max, z_min = 0, diagonal + 0.1 * diagonal, 0.2 * (Nz - 1)
+bin_edges = np.concatenate((np.arange(0, np.ceil((Nx - 1) * 0.5) + 1), np.array([r_max])))
+local_marker = np.zeros((len(width), len(bin_edges) - 1))
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
 
 #%% Main
-def bulk(x, y, z, rx, ry, rz, Nx, Ny, Nz, local_marker):
-    x_pos, y_pos = x - 0.5 * Nx, y - 0.5 * Ny
-    cond1 = np.abs(x_pos) < rx
-    cond2 = np.abs(y_pos) < ry
-    cond3 = (0.5 * Nz - rz) < z
-    cond4 = (0.5 * Nz + rz) > z
-    cond = cond1 * cond2 * cond3 * cond4
-    return x[cond], y[cond], z[cond], local_marker[cond]
 
 # Fully amorphous wire
 for i, w in enumerate(width):
@@ -79,29 +72,18 @@ for i, w in enumerate(width):
     lattice.build_lattice(restrict_connectivity=False)
     nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
     S = scipy.sparse.kron(np.eye(Nx * Ny * Nz), np.kron(sigma_z, sigma_z), format='csr')
-    # S = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
 
     # Local marker through KPM + Stochastic trace algorithm
-    loger_main.info('Calculating bulk marker through KPM algorithm')
-    bulk_marker_KPM[i] = local_marker_KPM_bulk(nanowire, S, Nx, Ny, Nz, Ef=0., num_moments=5000, num_vecs=5, bounds=None)
-    loger_main.info(f'width: {i}/{len(width) - 1}, marker KPM: {bulk_marker_KPM[i] :.5f}')
+    for j, (r0, r1) in enumerate(zip(bin_edges[:-1], bin_edges[1:])):
 
-    # # Local marker through exact diagonalization
-    # loger_main.info('Calculating bulk marker through exact diagonalization...')
-    # eps, _, rho = spectrum(H)
-    # marker = local_marker(x, y, z, rho, S)
-    # x_cut, y_cut, z_cut, marker_cut = bulk(x, y, z, rx, ry, rz, Nx, Ny, Nz, marker)
-    # bulk_marker[i] = np.mean(marker_cut)
-    # loger_main.info(f'width: {i}/{len(width) - 1}, marker ED: {bulk_marker[i] :.5f}')
-
-
-
-
+        loger_main.info('Calculating bulk marker through KPM algorithm')
+        local_marker[i, j] = local_marker_KPM_rshell(nanowire, S, r0, r1, z_min, Nx, Ny, Nz, num_moments=5000, num_vecs=5)
+        loger_main.info(f'width: {i}/{len(width) - 1}, radius: {j}/{len(bin_edges) - 1}, marker KPM: {local_marker[i, j] :.5f}')
 
 
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-marker-vs-width'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-marker-per-site'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')
@@ -112,22 +94,23 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'local_marker', bulk_marker)
-    store_my_data(simulation, 'width',   width)
+    store_my_data(simulation, 'local_marker',  local_marker)
+    store_my_data(simulation, 'bin_edges',     bin_edges)
+    store_my_data(simulation, 'width',         width)
+    store_my_data(simulation, 'z_min',         z_min)
 
 
     # Parameters folder
     parameters = f.create_group('Parameters')
-    store_my_data(parameters, 'flux',  flux_value)
-    store_my_data(parameters, 'Nx',      Nx)
-    store_my_data(parameters, 'Ny',      Ny)
-    store_my_data(parameters, 'Nz',      Nz)
-    store_my_data(parameters, 'r ',      r)
-    store_my_data(parameters, 't ',      t)
-    store_my_data(parameters, 'eps',     eps)
-    store_my_data(parameters, 'lamb',    lamb)
-    store_my_data(parameters, 'lamb_z',  lamb_z)
-    store_my_data(parameters, 'cutoff', cutoff)
+    store_my_data(parameters, 'flux',          flux_value)
+    store_my_data(parameters, 'Nx',            Nx)
+    store_my_data(parameters, 'Ny',            Ny)
+    store_my_data(parameters, 'Nz',            Nz)
+    store_my_data(parameters, 'r ',            r)
+    store_my_data(parameters, 't ',            t)
+    store_my_data(parameters, 'eps',           eps)
+    store_my_data(parameters, 'lamb',          lamb)
+    store_my_data(parameters, 'lamb_z',        lamb_z)
 
     # Attributes
     attr_my_data(parameters, "Date",       str(date.today()))

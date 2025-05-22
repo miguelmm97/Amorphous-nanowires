@@ -13,7 +13,7 @@ import kwant
 # modules
 from modules.functions import *
 from modules.AmorphousLattice_3d import AmorphousLattice_3d
-from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, spectrum, local_marker
+from modules.FullyAmorphousWire_kwant import promote_to_kwant_nanowire3d, OPDM_per_site_cross_section_KPM
 
 import sys
 from datetime import date
@@ -45,9 +45,11 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 6, 6, 50
+z0 = 39.5
+z1 = 42.5
+Nx, Ny, Nz = 12, 12, 80
 r          = 1.3
-width      = 0.2
+width      = 0.4
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -63,20 +65,13 @@ loger_main.info(f'Generating lattice')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=width, r=r)
 lattice.build_lattice(restrict_connectivity=False)
 nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
-S = scipy.sparse.kron(np.eye(Nx * Ny * Nz), np.kron(sigma_z, sigma_z), format='csr')
 
-H = nanowire.hamiltonian_submatrix(params=dict(flux=flux_value, mu=0.))
-eps, _, rho = spectrum(H)
-
-# Local marker
-site_pos = np.array([site.pos for site in nanowire.id_by_site])
-x, y, z = site_pos[:, 0], site_pos[:, 1], site_pos[:, 2]
-sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
-chiral_sym = np.kron(np.eye(len(x)), np.kron(sigma_z, sigma_z))
-marker = local_marker(x, y, z, rho, chiral_sym)
+# Local marker through KPM + Stochastic trace algorithm
+loger_main.info('Calculating OPDM')
+OPDM_r, r_3d, indices, x, y, z = OPDM_per_site_cross_section_KPM(nanowire, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=1000, bounds=None)
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-marker-per-site'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-OPDM'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')
@@ -87,9 +82,15 @@ with h5py.File(filepath, 'w') as f:
 
     # Simulation folder
     simulation = f.create_group('Simulation')
-    store_my_data(simulation, 'local_marker', marker)
-    store_my_data(simulation, 'width',    width)
-    store_my_data(simulation, 'position', site_pos)
+    store_my_data(simulation, 'OPDM_r',  np.array(OPDM_r))
+    store_my_data(simulation, 'r_3d',    np.array(r_3d))
+    store_my_data(simulation, 'width',     width)
+    store_my_data(simulation, 'x',             x)
+    store_my_data(simulation, 'y',             y)
+    store_my_data(simulation, 'z',             z)
+    store_my_data(simulation, 'z0',           z0)
+    store_my_data(simulation, 'z1',           z1)
+    store_my_data(simulation, 'indices', np.array(indices))
 
 
     # Parameters folder
