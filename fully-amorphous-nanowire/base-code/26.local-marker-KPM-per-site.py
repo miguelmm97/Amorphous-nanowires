@@ -45,11 +45,11 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-z0 = 3.5
-z1 = 4.5
-Nx, Ny, Nz = 18, 18, 100
+z0 = 23.5
+z1 = 26.5
+Nx, Ny, Nz = 8, 8, 1000
 r          = 1.3
-width      = 0.4
+width      = 0.3
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t

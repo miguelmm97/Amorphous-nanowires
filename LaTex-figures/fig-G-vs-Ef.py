@@ -40,8 +40,9 @@ font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 color_list = ['limegreen', 'dodgerblue', 'm', 'r', 'orange']
-palette = seaborn.color_palette(palette='viridis_r', n_colors=100)
-palette = [palette[0], palette[33], palette[66] , palette[-1]]
+palette0 = seaborn.color_palette(palette='viridis_r', n_colors=100)
+palette = [palette0[0], palette0[33], palette0[66], palette0[-1]]
+palette2 = [palette0[10], palette0[43], palette0[76], 'k']
 marker_list=['o', 's', 'd', 'p', '*', 'h', '>', '<', 'X']
 markersize = 5
 fontsize=20
@@ -55,7 +56,9 @@ ax1 = fig1.add_subplot(gs[0, 0])
 # Upper panel: Plots
 for i in range(G0.shape[-1]):
     ax1.plot(fermi, G0[:, i], color=palette[i], label=f'${width[i] :.2f}$')#, alpha=0.75)
-    ax1.plot(fermi, Ghalf[:, i], color=palette[i], linestyle='dotted', linewidth=2)
+    ax1.plot(fermi, Ghalf[:, i], color=palette[i], linestyle='dashed', alpha=0.7)
+    # ax1.plot(fermi[::10], G0[:, i][::10], color=palette[i], marker='o', markersize=3, linestyle='None')#, alpha=0.75)
+    # ax1.plot(fermi[::10], Ghalf[:, i][::10], color=palette[i], markersize=3, marker='o', linestyle='None')
 
 ax1.text(0.12, 9.7, '$\\underline{w}$', fontsize=fontsize)
 ax1.text(0.44, 9.7, '$\phi_{\mathrm{max}}$', fontsize=fontsize)

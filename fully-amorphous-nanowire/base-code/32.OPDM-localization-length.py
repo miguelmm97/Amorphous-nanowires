@@ -46,10 +46,10 @@ loger_main.addHandler(stream_handler)
 #%% Variables
 
 z0 = 39.5
-z1 = 42.5
-Nx, Ny, Nz = 12, 12, 80
+z1 = 40.5
+Nx, Ny, Nz = 8, 8, 150
 r          = 1.3
-width      = 0.4
+width      = 0.05
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -71,7 +71,7 @@ loger_main.info('Calculating OPDM')
 OPDM_r, r_3d, indices, x, y, z = OPDM_per_site_cross_section_KPM(nanowire, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=1000, bounds=None)
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-OPDM'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-OPDM'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')

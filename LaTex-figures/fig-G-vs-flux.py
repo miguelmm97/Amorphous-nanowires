@@ -8,6 +8,7 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import seaborn
+import matplotlib as mpl
 from matplotlib.ticker import ScalarFormatter, LogLocator
 # modules
 from modules.functions import *
@@ -95,7 +96,7 @@ palette = [palette[0], palette[50], palette[100], palette[130], palette[-1]]
 
 # Figure 1: Definition
 fig1 = plt.figure(figsize=(8, 6))
-gs = GridSpec(2, 4, figure=fig1, wspace=0.5, hspace=0.2)
+gs = GridSpec(2, 5, figure=fig1, wspace=0.5, hspace=0.3)
 ax1 = fig1.add_subplot(gs[0, :])
 ax2 = fig1.add_subplot(gs[1, 0])
 ax3 = fig1.add_subplot(gs[1, 1], projection='3d')
@@ -137,78 +138,82 @@ ax1.tick_params(which='minor', length=3, labelsize=fontsize)
 
 
 
-ax3.scatter(cuts_top['2'][:, 0], cuts_top['2'][:, 1], cuts_top['2'][:, 2], facecolor='white', edgecolor='black')
-ax3.scatter(cuts_top['2'][:, 0], cuts_top['2'][:, 1], cuts_top['2'][:, 2], c=DoS_top['2'], cmap=color_map, vmin=min_value, vmax=max_value)
+ax3.scatter(np.round(cuts_top['2'][:, 0], 2), np.round(cuts_top['2'][:, 1], 2), np.round(cuts_top['2'][:, 2], 2), facecolor='white', edgecolor='black', rasterized=True)
+ax3.scatter(np.round(cuts_top['2'][:, 0], 2), np.round(cuts_top['2'][:, 1], 2), np.round(cuts_top['2'][:, 2], 2), c=DoS_top['2'], cmap=color_map, vmin=min_value, vmax=max_value, rasterized=True)
 ax3.set_box_aspect((3, 3, 10))
 ax3.set_axis_off()
 pos3 = ax3.get_position()
-ax3.set_position([pos3.x0, pos3.y0 - 0.07, 0.2, 0.3])
+ax3.set_position([pos3.x0 - 0.02, pos3.y0 - 0.15, 0.25, 0.4])
 
-ax4.scatter(cuts_loc['2'][:, 0], cuts_loc['2'][:, 1], cuts_loc['2'][:, 2], facecolor='white', edgecolor='black')
-ax4.scatter(cuts_loc['2'][:, 0], cuts_loc['2'][:, 1], cuts_loc['2'][:, 2], c=DoS_loc['2'], cmap=color_map, vmin=min_value, vmax=max_value)
+ax4.scatter(np.round(cuts_loc['2'][:, 0], 2), np.round(cuts_loc['2'][:, 1], 2), np.round(cuts_loc['2'][:, 2], 2), facecolor='white', edgecolor='black', rasterized=True)
+ax4.scatter(np.round(cuts_loc['2'][:, 0], 2), np.round(cuts_loc['2'][:, 1], 2), np.round(cuts_loc['2'][:, 2], 2), c=DoS_loc['2'], cmap=color_map, vmin=min_value, vmax=max_value, rasterized=True)
 ax4.set_box_aspect((3, 3, 10))
 ax4.set_axis_off()
 pos4 = ax4.get_position()
-ax4.set_position([pos4.x0, pos4.y0 - 0.07, 0.2, 0.3])
+ax4.set_position([pos4.x0, pos4.y0 - 0.15, 0.25, 0.4])
 
-ax5.scatter(cuts_bound['2'][:, 0], cuts_bound['2'][:, 1], cuts_bound['2'][:, 2], facecolor='white', edgecolor='black')
-ax5.scatter(cuts_bound['2'][:, 0], cuts_bound['2'][:, 1], cuts_bound['2'][:, 2], c=DoS_bound['2'], cmap=color_map, vmin=min_value, vmax=max_value)
+ax5.scatter(np.round(cuts_bound['2'][:, 0], 2), np.round(cuts_bound['2'][:, 1], 2), np.round(cuts_bound['2'][:, 2], 2), facecolor='white', edgecolor='black', rasterized=True)
+ax5.scatter(np.round(cuts_bound['2'][:, 0], 2), np.round(cuts_bound['2'][:, 1], 2), np.round(cuts_bound['2'][:, 2], 2), c=DoS_bound['2'], cmap=color_map, vmin=min_value, vmax=max_value, rasterized=True)
 ax5.set_box_aspect((3, 3, 10))
 ax5.set_axis_off()
 pos5 = ax5.get_position()
-ax5.set_position([pos5.x0, pos5.y0 - 0.07, 0.2, 0.3])
+ax5.set_position([pos5.x0  + 0.02, pos5.y0 - 0.15, 0.25, 0.4])
 
 # scatter_ax3 = fig1.add_axes([0.315, 0.3, 0.05, 0.05])
-scatter_ax3 = fig1.add_axes([0.38, 0.4, 0.05, 0.05])
+scatter_ax3 = fig1.add_axes([0.3, 0.38, 0.05, 0.05])
 scatter_ax3.scatter([0], [0], color=palette[2], s=100, marker='o', edgecolor='black')
 scatter_ax3.set_xticks([])
 scatter_ax3.set_yticks([])
 scatter_ax3.set_axis_off()
-scatter_ax4 = fig1.add_axes([0.595, 0.4, 0.05, 0.05])
+scatter_ax4 = fig1.add_axes([0.49, 0.38, 0.05, 0.05])
 scatter_ax4.scatter([0], [0], color=palette[1], s=100, marker='^', edgecolor='black')
 scatter_ax4.set_xticks([])
 scatter_ax4.set_yticks([])
 scatter_ax4.set_axis_off()
-scatter_ax5 = fig1.add_axes([0.81, 0.4, 0.05, 0.05])
+scatter_ax5 = fig1.add_axes([0.68, 0.38, 0.05, 0.05])
 scatter_ax5.scatter([0], [0], color=palette[-1], s=200, marker='*', edgecolor='black')
 scatter_ax5.set_xticks([])
 scatter_ax5.set_yticks([])
 scatter_ax5.set_axis_off()
 
 
-cbar_ax = fig1.add_subplot(gs[1, 1:])
+cbar_ax = fig1.add_subplot(gs[1, 4])
 divider = make_axes_locatable(cbar_ax)
-cax = divider.append_axes("bottom", size="10%", pad=0)
-cbar = fig1.colorbar(colormap, cax=cax, orientation='horizontal', format='%.0e', ticks=[0., 0.0001, 0.0002, 0.0003])
+cax = divider.append_axes("right", size="10%", pad=-2)
+cbar = fig1.colorbar(colormap, cax=cax, orientation='vertical', ticks=[0., 0.0001, 0.0002, 0.0003])
 cbar_ax.set_axis_off()
-cbar.set_label(label='$\\vert \psi (r)\\vert ^2$', labelpad=1, fontsize=20)
+cbar.set_label(label='$\\vert \psi (r)\\vert ^2$', labelpad=10, fontsize=20)
 cbar.ax.tick_params(which='major', width=0.75, labelsize=fontsize)
-cbar.ax.set_xticklabels(['0', '1e-4', '2e-4', '3e-4'])
+cbar.ax.set_yticklabels(['0', '1', '2', '3'])
+cbar.ax.set_title(r'$\quad \quad \times 10^{-4}$', x=0.8, fontsize=fontsize-10)
 #
 
-ax2.text(7, 0.85, '$(c)$', fontsize=fontsize)
-ax2.text(12, 0.85, '$(d)$', fontsize=fontsize)
-ax2.text(17, 0.85, '$(e)$', fontsize=fontsize)
-ax2.text(2.1, 0.85, '$(b)$', fontsize=fontsize)
+scatter_ax3.text(-0.13, -0.02, '$(c)$', fontsize=fontsize)
+# ax2.text(12, 0.85, '$(d)$', fontsize=fontsize)
+# ax2.text(17, 0.85, '$(e)$', fontsize=fontsize)
+ax2.text(2.1, 0.7, '$(b)$', fontsize=fontsize)
 ax2.plot(N, bulk_tot_density[0, :], marker='o', linestyle='solid', color=palette[2])
 ax2.plot(N, bulk_tot_density[1, :], marker='^', linestyle='solid', color=palette[1])
 ax2.plot(N, bulk_tot_density[2, :], marker='*', linestyle='solid', color=palette[-1])
 ax2.set_xlabel('$R$', fontsize=fontsize, labelpad=-1)
-ax2.set_ylabel('DoS', fontsize=fontsize)
-ax2.set_ylim(0, 1)
+ax2.set_ylabel('DoS', fontsize=fontsize, labelpad=-10)
+label = ax2.yaxis.get_label()
+x, y = label.get_position()
+label.set_position((x, y + 0.2))
+# ax2.set_ylim(0, 1)
 ax2.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax2.tick_params(which='major', length=6, labelsize=fontsize)
 ax2.tick_params(which='minor', width=0.75, labelsize=fontsize)
 ax2.tick_params(which='minor', length=3, labelsize=fontsize)
-majorsy = [0, 0.5, 1]
-minorsy = [0.25, 0.75]
-ax2.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
-ax2.yaxis.set_minor_locator(ticker.FixedLocator(minorsy))
+# majorsy = [0, 0.5, 1]
+# minorsy = [0.25, 0.75]
+# ax2.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
+# ax2.yaxis.set_minor_locator(ticker.FixedLocator(minorsy))
+ax2.set_yscale('log')
 #majorsx = [0.5, 1]
 #minorsx = [0.75]
 #ax2.xaxis.set_major_locator(ticker.FixedLocator(majorsx))
 #ax2.xaxis.set_minor_locator(ticker.FixedLocator(minorsx))
-
 
 fig1.savefig('fig-G-vs-flux.pdf', format='pdf')
 plt.show()

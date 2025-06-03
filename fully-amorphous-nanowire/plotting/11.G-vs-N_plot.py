@@ -11,8 +11,8 @@ from modules.functions import *
 
 
 #%% Loading data
-file_list = ['Exp16.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N')
+file_list = ['Exp16.h5', 'Exp17.h5']
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-cond-vs-N')
 
 # Parameters
 Nz           = data_dict[file_list[0]]['Parameters']['Nz']
@@ -32,7 +32,7 @@ flux          = data_dict[file_list[0]]['Simulation']['flux']
 width         = data_dict[file_list[0]]['Simulation']['width']
 G_array       = data_dict[file_list[0]]['Simulation']['G_array']
 K_onsite     = data_dict[file_list[0]]['Simulation']['K_onsite']
-
+G_array2       = data_dict[file_list[0]]['Simulation']['G_array']
 
 
 #%% Figures
@@ -56,6 +56,7 @@ ax1 = fig1.add_subplot(gs[0, 0])
 for i in range(G_array.shape[0]):
     label = f'$N_z= {Nx[i]}$'
     ax1.plot(flux, G_array[i, :], color=palette1[i], linestyle='solid', label=label)
+    ax1.plot(flux[::2], G_array2[i, ::2], color=palette1[i], linestyle='None', label=None, marker='x')
 ax1.plot(flux, np.ones((len(flux), )), color='k', linestyle='dashed')
 
 # Figure 1: Format

@@ -47,7 +47,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Loading data
 file_list = ['Exp16.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N')
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-cond-vs-N')
 
 # Simulation data
 x = data_dict[file_list[0]]['Simulation']['x']
@@ -107,7 +107,7 @@ for i, n in enumerate(Nx):
 
 #%% Saving data
 
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-N'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-cond-vs-N'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')

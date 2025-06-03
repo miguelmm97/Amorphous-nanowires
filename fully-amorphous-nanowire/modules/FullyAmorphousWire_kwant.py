@@ -774,6 +774,45 @@ def OPDM_per_site_cross_section_KPM(syst, Nx, Ny, Nz, z0, z1, Ef=0., num_moments
     return OPDM_r, r_3d, site_indices, pos[:, 0][cond], pos[:, 1][cond], pos[:, 2][cond]
 
 
+def OPDM_per_site_z_direction_KPM(syst, Nx, Ny, Nz, z0, z1, r_cutoff=0.2, Ef=0., num_moments=500, bounds=None):
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC(syst)
+
+    # Cross-section we are interested in
+    cond1 = pos[:, 2] < z1
+    cond2 = z0 < pos[:, 2]
+    cond3 = np.abs(pos[:, 0] - 0.5 * (Nx - 1)) < r_cutoff * Nx / 2
+    cond4 = np.abs(pos[:, 1] - 0.5 * (Ny - 1)) < r_cutoff * Ny / 2
+    cond = cond1 * cond2 * cond3 * cond4
+    indices = [i for i in range(int(Nx * Ny * Nz)) if cond[i]]
+    OPDM_r = np.zeros((len(indices), ), dtype=np.complex128)
+    r_3d = np.zeros((len(indices), ), dtype=np.complex128)
+    site_indices = []
+
+    # Calculation using the stochastic trace + KPM algorithm
+    # for i, idx1 in enumerate(indices):
+    i = 50
+    idx1 = indices[i]
+    for j, idx2 in enumerate(indices):
+        loger_kwant.info(f'sites: ({i}, {j})/ ({len(indices)}, {len(indices)})')
+        for orb1 in range(4):
+            for orb2 in range(4):
+                # States |x_i y_i z_i, alpha=0>
+                state1 = np.zeros((Nx * Ny * Nz * 4,), dtype=np.complex128)
+                state2 = np.zeros((Nx * Ny * Nz * 4,), dtype=np.complex128)
+                state1[idx1 * 4 + orb1], state2[idx2 * 4 + orb2] = 1., 1.
+                # Calculation of <x|rho|y>
+                aux = state2.conj().T @ P(state1)
+                OPDM_r[j] += np.real(aux) ** 2 + np.imag(aux) ** 2
+        rad = np.sqrt(((pos[i, 0] - pos[j, 0]) ** 2) + ((pos[i, 1] - pos[j, 1]) ** 2) + ((pos[i, 2] - pos[j, 2]) ** 2))
+        r_3d[j] = rad
+        site_indices.append([i, j])
+        loger_kwant.info(f'OPDM: {OPDM_r[j] :.15f}, r: {r_3d[j] :.1f}')
+    return OPDM_r, r_3d, site_indices, pos[:, 0][cond], pos[:, 1][cond], pos[:, 2][cond]
+
 
 
 # def local_marker_per_site_cross_section_KPM(syst, S, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=500, num_vecs=5, bounds=None):

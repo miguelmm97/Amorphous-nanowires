@@ -19,8 +19,8 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['Exp19.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cluster-marker-per-site-statistics')
+file_list = ['Exp24.h5']
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/data-cluster-marker-per-site/data-cluster-marker-per-site-statistics')
 
 # Parameters
 Nx           = data_dict[file_list[0]]['Parameters']['Nx']
@@ -126,10 +126,13 @@ ax1.legend()
 fig2.suptitle(f'$N= {Nx}$, $L= {Nz}$, $w={width :.2f}$', y=0.93, fontsize=20)
 
 # for i, (probs, markers) in enumerate(zip(prob_dist, bins_marker)):
-for key in prob_dist.keys():
-    probs = [prob_dist[key][i] for i in range(len(prob_dist[key])) if np.abs(prob_dist[key][i]) > 1e-6]
-    bins = [bins_marker[key][i] for i in range(len(bins_marker[key])) if np.abs(prob_dist[key][i]) > 1e-6]
-    ax2.plot(bins, probs, marker='o', color=palette[int(key)], label=f'$r= {avg_radius[int(key)] :.2f}$')
+keys = np.array([int(item) for item in prob_dist.keys()])
+keys = np.sort(keys)
+for i, key in enumerate(keys):
+    probs = [prob_dist[str(key)][i] for i in range(len(prob_dist[str(key)])) if np.abs(prob_dist[str(key)][i]) > 1e-6]
+    bins = [bins_marker[str(key)][i] for i in range(len(bins_marker[str(key)])) if np.abs(prob_dist[str(key)][i]) > 1e-6]
+    # ax2.plot(bins, probs, marker='o', color=palette[int(key)], label=f'$r= {avg_radius[int(key)] :.2f}$')
+    ax2.plot(bins, probs, marker='o', color=palette[i], label=f'$r= {avg_radius[i] :.2f}$')
 ax2.plot(np.ones((10, )) * (-1), np.linspace(0, 10, 10), color='grey', linestyle='dashed')
 ax2.plot(np.zeros((10, )), np.linspace(0, 10, 10), color='grey', linestyle='dashed')
 ax2.set_ylim(0, 0.5)
@@ -146,12 +149,12 @@ ax2.legend(ncol=3)
 fig3 = plt.figure(figsize=(8, 8))
 gs = GridSpec(len(avg_radius), 1, figure=fig3, wspace=0., hspace=0.3)
 
-for key in prob_dist.keys():
+for i, key in enumerate(keys):
 
-    ax = fig3.add_subplot(gs[int(key), 0])
-    probs = [prob_dist[key][i] for i in range(len(prob_dist[key])) if np.abs(prob_dist[key][i]) > 1e-6]
-    bins = [bins_marker[key][i] for i in range(len(bins_marker[key])) if np.abs(prob_dist[key][i]) > 1e-6]
-    ax.plot(bins, probs, marker='o', markersize=3.5, color=palette[int(key)], label=f'$r= {avg_radius[int(key)] :.2f}$')
+    ax = fig3.add_subplot(gs[i, 0])
+    probs = [prob_dist[str(key)][i] for i in range(len(prob_dist[str(key)])) if np.abs(prob_dist[str(key)][i]) > 1e-6]
+    bins = [bins_marker[str(key)][i] for i in range(len(bins_marker[str(key)])) if np.abs(prob_dist[str(key)][i]) > 1e-6]
+    ax.plot(bins, probs, marker='o', markersize=3.5, color=palette[i], label=f'$r= {avg_radius[i] :.2f}$')
     ax.plot(np.ones((10, )) * (-1), np.linspace(0, 10, 10), color='grey', linestyle='dashed')
     ax.plot(np.zeros((10, )), np.linspace(0, 10, 10), color='grey', linestyle='dashed')
     ax.set_ylim(0, 0.5)
@@ -161,7 +164,7 @@ for key in prob_dist.keys():
     ax.tick_params(which='major', length=6, labelsize=fontsize)
     ax.set_yticks(ticks=[0, 0.5], labels=[])
 
-    if int(key)==len(avg_radius) - 1:
+    if key==len(avg_radius) - 1:
         xticks = np.arange(-2, 8)
         xlabels = [str(i) for i in xticks]
         ax.set_xticks(ticks=xticks, labels=xlabels)

@@ -45,7 +45,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Variables
 
-Nx, Ny, Nz = 15, 15, 200
+Nx, Ny, Nz = 8, 8, 1000
 r          = 1.3
 width      = np.linspace(0.000001, 0.4, 10)
 t          = 1

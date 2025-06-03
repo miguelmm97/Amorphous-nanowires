@@ -35,9 +35,9 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Loading data
-file_list = ['exp-14.h5'] #, 'exp-23.h5', 'exp-24.h5', 'exp-25.h5', 'exp-26.h5', 'exp-27.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cluster-marker-per-site')
-
+file_list = ['exp-0.h5', 'exp-2.h5',  'exp-3.h5',  'exp-4.h5']
+# file_list = ['exp-14.h5', 'exp-15.h5', 'exp-16.h5', 'exp-17.h5', 'exp-18.h5', 'exp-19.h5', 'exp-20.h5']
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/data-cluster-marker-per-site/data-12')
 # Parameters
 Nx           = data_dict[file_list[0]]['Parameters']['Nx']
 Ny           = data_dict[file_list[0]]['Parameters']['Nx']
@@ -74,22 +74,21 @@ r_min, r_max = radius.min(), radius.max()
 bin_edges = np.linspace(r_min, r_max, num_bins + 1)
 bin_indices = np.digitize(radius, bin_edges) - 1
 binned_samples = [[] for _ in range(num_bins)]
-avg_radius = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 for idx, bin_idx in enumerate(bin_indices):
     if 0 <= bin_idx < num_bins:
-        if not math.isnan(marker[idx]) and np.abs(marker[idx]) < 30:
+        if not math.isnan(marker[idx]): # and np.abs(marker[idx]) < 30:
             binned_samples[bin_idx].append(marker[idx])
 binned_samples = [np.array(bin) for bin in binned_samples]
 
-prob_dist = {}
+avg_radius0 = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+prob_dist, avg_radius = {}, []
 bin_marker_list = {}
 for i, lst in enumerate(binned_samples):
     if len(lst) != 0:
         counts, bin_edges = np.histogram(lst, bins='auto')
         bin_marker_list[i] = (0.5 * (bin_edges[:-1] + bin_edges[1:]))
         prob_dist[i] = counts / len(lst)
-    else:
-        np.delete(avg_radius[i])
+        avg_radius.append(avg_radius0[i])
 
 # Statistics of the distribution: Average and standard deviation
 avg_marker = np.array([np.mean(binned_samples[i]) for i in range(len(binned_samples))if len(binned_samples[i]) != 0])
@@ -97,7 +96,7 @@ std_marker = np.array([np.std(binned_samples[i]) for i in range(len(binned_sampl
 
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-cluster-marker-per-site-statistics'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/data-cluster-marker-per-site/data-cluster-marker-per-site-statistics'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')

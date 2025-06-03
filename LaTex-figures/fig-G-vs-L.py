@@ -20,7 +20,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['draft-fig8.h5', 'draft-fig-8-perfect-mode.h5']
+file_list = ['draft-fig8.h5', 'draft-fig-8-perfect-mode.h5', 'Exp16.h5', 'Exp17.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
 
 # Plot 1
@@ -35,6 +35,16 @@ flux2   = data_dict[file_list[1]]['Simulation']['flux']
 width2  = data_dict[file_list[1]]['Simulation']['width']
 Nz2      = data_dict[file_list[1]]['Simulation']['Nz']
 G2      = data_dict[file_list[1]]['Simulation']['G_array']
+
+# Plot 3
+flux3   = data_dict[file_list[2]]['Simulation']['flux']
+width3  = data_dict[file_list[2]]['Simulation']['width']
+N3      = data_dict[file_list[2]]['Simulation']['Nx']
+G3      = data_dict[file_list[2]]['Simulation']['G_array']
+L3      = data_dict[file_list[2]]['Parameters']['Nz']
+K3      = data_dict[file_list[2]]['Simulation']['K_onsite']
+G4      = data_dict[file_list[3]]['Simulation']['G_array']
+K4      = data_dict[file_list[3]]['Simulation']['K_onsite']
 
 
 # Exponential fit
