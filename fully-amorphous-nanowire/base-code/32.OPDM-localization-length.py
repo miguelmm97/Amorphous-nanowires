@@ -47,9 +47,9 @@ loger_main.addHandler(stream_handler)
 
 z0 = 39.5
 z1 = 40.5
-Nx, Ny, Nz = 8, 8, 150
+Nx, Ny, Nz = 10, 10, 80
 r          = 1.3
-width      = 0.05
+width      = 0.4
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -57,6 +57,7 @@ lamb_z     = 1.8 * t
 params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'lamb_z': lamb_z}
 flux_value = 0
 sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex128)
+
 
 #%% Main
 
@@ -68,7 +69,7 @@ nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False)
 
 # Local marker through KPM + Stochastic trace algorithm
 loger_main.info('Calculating OPDM')
-OPDM_r, r_3d, indices, x, y, z = OPDM_per_site_cross_section_KPM(nanowire, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=1000, bounds=None)
+OPDM_r, r, indices, x, y, z = OPDM_per_site_cross_section_KPM(nanowire, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=1000, bounds=None, n_sample=5)
 
 #%% Saving data
 data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-OPDM'
@@ -83,7 +84,7 @@ with h5py.File(filepath, 'w') as f:
     # Simulation folder
     simulation = f.create_group('Simulation')
     store_my_data(simulation, 'OPDM_r',  np.array(OPDM_r))
-    store_my_data(simulation, 'r_3d',    np.array(r_3d))
+    store_my_data(simulation, 'r',    np.array(r))
     store_my_data(simulation, 'width',     width)
     store_my_data(simulation, 'x',             x)
     store_my_data(simulation, 'y',             y)

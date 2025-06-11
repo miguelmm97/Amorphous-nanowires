@@ -4,6 +4,7 @@
 import logging
 import colorlog
 from colorlog import ColoredFormatter
+import numpy as np
 
 # Managing data
 import h5py
@@ -142,4 +143,14 @@ def store_my_dict(file, dict):
         except Exception as ex:
             logger_functions.warning(f'Failed to write key {key} in {file} because of exception: {ex}')
 
-
+def bin_my_samples(x, y, num_bins=10):
+    x_min, x_max = x.min(), x.max()
+    bin_edges = np.linspace(x_min, x_max, num_bins + 1)
+    bin_indices = np.digitize(x, bin_edges) - 1
+    binned_samples = [[] for _ in range(num_bins)]
+    x_bin = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    for idx, bin_idx in enumerate(bin_indices):
+        if 0 <= bin_idx < num_bins:
+            binned_samples[bin_idx].append(y[idx])
+    binned_samples = [np.array(bin) for bin in binned_samples]
+    return x_bin, binned_samples
