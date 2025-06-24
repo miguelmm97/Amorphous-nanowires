@@ -21,7 +21,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['Exp7.h5', 'Exp8.h5', 'Exp9.h5', 'Exp10.h5']
+file_list = ['Exp39.h5', 'Exp40.h5', 'Exp41.h5', 'Exp42.h5'] # ['Exp7.h5', 'Exp8.h5', 'Exp9.h5', 'Exp10.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/'
                                     'data-cluster-marker-per-site/data-cluster-marker-per-site-statistics')
 
@@ -46,7 +46,7 @@ marker          = [data_dict[file]['Simulation']['marker'] for file in file_list
 width           = [data_dict[file]['Simulation']['width'] for file in file_list]
 avg_marker      = [data_dict[file]['Simulation']['avg_marker'] for file in file_list]
 std_marker      = [data_dict[file]['Simulation']['std_marker'] for file in file_list]
-avg_radius      = [data_dict[file]['Simulation']['avg_radius'] for file in file_list]
+r_edges         = [data_dict[file]['Simulation']['r_bin_edges'] for file in file_list]
 prob_dist       = [data_dict[file]['prob_dist'] for file in file_list]
 bins_marker     = [data_dict[file]['bins_marker'] for file in file_list]
 
@@ -86,9 +86,9 @@ for i in range(len(file_list)):
     ax_scatt = fig1.add_subplot(outer_gs[0, i])
     ax_probs = fig1.add_subplot(outer_gs[1:, i])
     ax_scatt.scatter(x[i], y[i], c=marker[i], norm=divnorm, cmap=cmap, s=1)
-    palette = seaborn.color_palette(palette='magma_r', n_colors=len(avg_radius[i]))
-    cmap_probs = LinearSegmentedColormap.from_list('stab_colormap', palette, N=len(avg_radius[i]))
-    colormap_cbar_probs = cm.ScalarMappable(norm=Normalize(vmin=min(avg_radius[i]), vmax=max(avg_radius[i])), cmap=cmap_probs)
+    palette = seaborn.color_palette(palette='magma_r', n_colors=len(r_edges[i]))
+    cmap_probs = LinearSegmentedColormap.from_list('stab_colormap', palette, N=len(r_edges[i]))
+    colormap_cbar_probs = cm.ScalarMappable(norm=Normalize(vmin=min(r_edges[i]), vmax=max(r_edges[i])), cmap=cmap_probs)
 
     # Style
     ax_scatt.set_xlim(-np.max(x[i]) - 0.2, np.max(x[i]) + 0.2)
@@ -113,7 +113,7 @@ for i in range(len(file_list)):
 
     # Probability distribution plots
     ax_probs.set_axis_off()
-    inner_gs = gridspec.GridSpecFromSubplotSpec(len(avg_radius[i]), 1, subplot_spec=outer_gs[1:, i], wspace=0.1, hspace=0.0)
+    inner_gs = gridspec.GridSpecFromSubplotSpec(len(r_edges[i]), 1, subplot_spec=outer_gs[1:, i], wspace=0.1, hspace=0.0)
     keys = np.sort(np.array([int(item) for item in prob_dist[i].keys()]))
     keys = [str(key) for key in keys]
     for j, key in enumerate(keys):
@@ -121,7 +121,7 @@ for i in range(len(file_list)):
         probs = [prob_dist[i][key][k]   for k in range(len(prob_dist[i][key]))   if np.abs(prob_dist[i][key][k]) > 1e-6]
         bins =  [bins_marker[i][key][k] for k in range(len(bins_marker[i][key])) if np.abs(prob_dist[i][key][k]) > 1e-6]
         ax = fig1.add_subplot(inner_gs[j, 0])
-        ax.plot(bins, probs, marker='None', color=palette[j], label=f'$r= {avg_radius[i][j] :.2f}$')
+        ax.plot(bins, probs, marker='None', color=palette[j], label=f'$r= {r_edges[i][j] :.2f}$')
         ax.fill_between(bins, probs, color=palette[j], alpha=0.5)
         ax.plot(np.ones((10,)) * (-1), np.linspace(0, 10, 10), color='grey', linestyle='dashed', alpha=0.3)
         ax.plot(np.zeros((10,)), np.linspace(0, 10, 10), color='grey', linestyle='dashed', alpha=0.3)
@@ -159,11 +159,11 @@ for i in range(len(file_list)):
         cax_scatt.yaxis.set_ticks_position('right')
         cax_scatt.tick_params(which='major', width=0.75, labelsize=fontsize)
 
-        cax_probs = inset_axes(ax_probs, width='5%', height='100%', loc='center right', bbox_to_anchor=(0.1, 0.0, 1, 1),
+        cax_probs = inset_axes(ax_probs, width='5%', height='95%', loc='center right', bbox_to_anchor=(0.1, 0.028, 1, 1),
                          bbox_transform=ax_probs.transAxes, borderpad=0)
-        cbar = fig1.colorbar(colormap_cbar_probs, cax=cax_probs, orientation='vertical', boundaries=avg_radius[i])
+        cbar = fig1.colorbar(colormap_cbar_probs, cax=cax_probs, orientation='vertical', boundaries=r_edges[i])
         cax_probs.set_xticks([])
-        cax_probs.set_yticks(ticks=[*avg_radius[i][:]], labels=[f'${rad :.1f}$' for rad in avg_radius[i]])
+        cax_probs.set_yticks(ticks=[*r_edges[i][:]], labels=[f'${rad :.1f}$' for rad in r_edges[i]])
         cax_probs.set_ylabel('$r$', labelpad=-1, fontsize=20)
         cax_probs.yaxis.set_label_position('right')
         cax_probs.yaxis.set_ticks_position('right')

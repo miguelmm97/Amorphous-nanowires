@@ -258,15 +258,14 @@ class AmorphousLattice_2d:
             self.plot_lattice(ax1)
             plt.show()
 
-    def plot_lattice(self, ax, sitecolor='deepskyblue', linkcolor='blue', boundarycolor='black'):
-
-
+    def plot_lattice(self, ax, sitecolor='deepskyblue', linkcolor='blue', boundarycolor='black',
+                     alpha_site=1, alpha_link=1, alpha_boundary=1):
         # Neighbour links
         for site in range(self.Nsites):
             for n in self.neighbours[site]:
-                ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], color=linkcolor, linewidth=1, alpha=0.2)
-                ax.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
-
+                ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], color=linkcolor,
+                        alpha=alpha_link, linewidth=1)
+                # ax.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
         # Boundary
         try:
             for j in range(0, len(self.boundary)):
@@ -274,13 +273,37 @@ class AmorphousLattice_2d:
                     site1, site2 = self.boundary[j], self.boundary[0]
                 else:
                     site1, site2 = self.boundary[j], self.boundary[j + 1]
-                ax.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], color=boundarycolor, linewidth=2, alpha=1)
+                ax.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], color=boundarycolor,
+                        alpha=alpha_boundary, linewidth=2)
         except AttributeError:
             loger_amorphous.warning('Boundary has not been calculated before plotting')
             pass
-
         # Lattice sites
-        ax.scatter(self.x, self.y, color=sitecolor, s=50)
+        ax.scatter(self.x, self.y, color=sitecolor, s=50, alpha=alpha_site)
+
+    # def plot_lattice(self, ax, sitecolor='deepskyblue', linkcolor='blue', boundarycolor='black'):
+    #
+    #
+    #     # Neighbour links
+    #     for site in range(self.Nsites):
+    #         for n in self.neighbours[site]:
+    #             ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], color=linkcolor, linewidth=1, alpha=0.2)
+    #             ax.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
+    #
+    #     # Boundary
+    #     try:
+    #         for j in range(0, len(self.boundary)):
+    #             if j == len(self.boundary) - 1:
+    #                 site1, site2 = self.boundary[j], self.boundary[0]
+    #             else:
+    #                 site1, site2 = self.boundary[j], self.boundary[j + 1]
+    #             ax.plot([self.x[site1], self.x[site2]], [self.y[site1], self.y[site2]], color=boundarycolor, linewidth=2, alpha=1)
+    #     except AttributeError:
+    #         loger_amorphous.warning('Boundary has not been calculated before plotting')
+    #         pass
+    #
+    #     # Lattice sites
+    #     ax.scatter(self.x, self.y, color=sitecolor, s=50)
 
     # Setters and erasers
     def set_configuration(self, x, y):

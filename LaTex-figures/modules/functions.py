@@ -4,11 +4,12 @@
 import logging
 import colorlog
 from colorlog import ColoredFormatter
+import numpy as np
 
 # Managing data
 import h5py
 import os
-import numpy as np
+
 
 # %% Logging setup
 def addLoggingLevel(levelName, levelNum, methodName=None):
@@ -82,7 +83,7 @@ def attr_my_data(dataset, attr_name, attr):
     except Exception as ex:
         logger_functions.warning(f'Failed to write {attr_name} in {dataset} because of exception: {ex}')
 
-def load_my_data(file_list, directory, avoid_field=None):
+def load_my_data(file_list, directory):
     # Generate a dict with 1st key for filenames, 2nd key for datasets in the files
     data_dict = {}
 
@@ -97,28 +98,27 @@ def load_my_data(file_list, directory, avoid_field=None):
                 # Reading subgroups/datasets from the group
                 data_dict[file][group] = {}
                 for subgroup in f[group].keys():
-                    if subgroup != avoid_field:
+                    try:
+                        # Reading datasets in the subgroup
+                        data_dict[file][group][subgroup] = {}
+                        for dataset in f[group][subgroup].keys():
+                            if isinstance(f[group][subgroup][dataset][()], bytes):
+                                data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()].decode()
+                            else:
+                                data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()]
+                    except AttributeError:
                         try:
-                            # Reading datasets in the subgroup
-                            data_dict[file][group][subgroup] = {}
-                            for dataset in f[group][subgroup].keys():
-                                if isinstance(f[group][subgroup][dataset][()], bytes):
-                                    data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()].decode()
-                                else:
-                                    data_dict[file][group][subgroup][dataset] = f[group][subgroup][dataset][()]
+                            # Reading datasets from the group
+                            if isinstance(f[group][subgroup][()], bytes):
+                                data_dict[file][group][subgroup] = f[group][subgroup][()].decode()
+                            else:
+                                data_dict[file][group][subgroup] = f[group][subgroup][()]
+                        # Case when there is no group
                         except AttributeError:
-                            try:
-                                # Reading datasets from the group
-                                if isinstance(f[group][subgroup][()], bytes):
-                                    data_dict[file][group][subgroup] = f[group][subgroup][()].decode()
-                                else:
-                                    data_dict[file][group][subgroup] = f[group][subgroup][()]
-                            # Case when there is no group
-                            except AttributeError:
-                                if isinstance(f[group][()], bytes):
-                                    data_dict[file][group] = f[group][()].decode()
-                                else:
-                                    data_dict[file][group] = f[group][()]
+                            if isinstance(f[group][()], bytes):
+                                data_dict[file][group] = f[group][()].decode()
+                            else:
+                                data_dict[file][group] = f[group][()]
     return data_dict
 
 def load_my_attr(file_list, directory, dataset):
@@ -143,4 +143,14 @@ def store_my_dict(file, dict):
         except Exception as ex:
             logger_functions.warning(f'Failed to write key {key} in {file} because of exception: {ex}')
 
-
+def bin_my_samples(x, y, num_bins=10):
+    x_min, x_max = x.min(), x.max()
+    bin_edges = np.linspace(x_min, x_max, num_bins + 1)
+    bin_indices = np.digitize(x, bin_edges) - 1
+    binned_samples = [[] for _ in range(num_bins)]
+    x_bin = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    for idx, bin_idx in enumerate(bin_indices):
+        if 0 <= bin_idx < num_bins:
+            binned_samples[bin_idx].append(y[idx])
+    binned_samples = [np.array(bin) for bin in binned_samples]
+    return x_bin, binned_samples

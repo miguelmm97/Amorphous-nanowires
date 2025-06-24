@@ -5,6 +5,7 @@ import numpy as np
 from numpy.linalg import eigh
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+import seaborn
 
 # Kwant
 import kwant
@@ -48,7 +49,7 @@ Nz         = 8
 Nx         = 8
 Ny         = 8
 r          = 1.3
-width      = np.linspace(0.000001, 0.5, 10)
+width      = np.linspace(0.000001, 0.8, 20)
 t          = 1
 eps        = 4 * t
 lamb       = 1 * t
@@ -99,7 +100,7 @@ for i, w in enumerate(width):
     # Generating lattice structure of the wire
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w, r=r)
     lattice.build_lattice()
-    lattice.generate_disorder(K_onsite=0., K_hopp=0)
+    lattice.generate_onsite_disorder(K_onsite=0.3)
     nanowire = promote_to_kwant_nanowire3d(lattice, params_dict, attach_leads=False).finalized()
 
     # Spectrum of the closed system
@@ -131,3 +132,29 @@ for i, w in enumerate(width):
     marker_bulk_avg_AIII[i] = np.mean(marker_bulk_AIII)
     loger_main.info(f'width: {i}/{len(width) - 1}, bulk AII marker: {marker_bulk_avg_AII[i] :.4f}, bulk AIII marker: {marker_bulk_avg_AIII[i] :.4f}')
 
+
+
+#%% Figures
+font = {'family': 'serif', 'color': 'black', 'weight': 'normal', 'size': 22, }
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+color_list = ['dodgerblue', 'limegreen', 'm', 'r', 'orange']
+fontsize = 20
+
+# Figure 1
+fig1 = plt.figure(figsize=(8, 6))
+gs = GridSpec(1, 1, figure=fig1, wspace=0.1)
+ax1 = fig1.add_subplot(gs[0, 0])
+
+# Plot
+ax1.plot(np.linspace(0, np.max(width), 10), np.zeros((10, )), '--', color='Black', alpha=0.2)
+ax1.plot(width, marker_bulk_avg_AII, marker='o', linestyle='solid', color='red', label='AII')
+ax1.plot(width, marker_bulk_avg_AIII, marker='o', linestyle='solid', color='blue', label='AIII')
+
+ax1.legend()
+ax1.set_xlabel('$w$', fontsize=fontsize)
+ax1.set_ylabel('$\overline{\\nu}$', fontsize=fontsize, labelpad=-5)
+ax1.set_ylim([-1, 0.2])
+ax1.set_xlim([0, 0.8])
+
+plt.show()

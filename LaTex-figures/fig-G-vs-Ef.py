@@ -71,7 +71,7 @@ ax1.add_patch(arrow1)
 ax1.add_patch(arrow2)
 
 ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1)
-ax1.set_ylabel("$G[2e^2/h]$", fontsize=fontsize)
+ax1.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
 ax1.set_xlim(fermi[0], 1)
 ax1.set_ylim(0, np.max(G0[:, 1]))
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)

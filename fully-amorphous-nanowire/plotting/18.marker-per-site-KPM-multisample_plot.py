@@ -19,7 +19,7 @@ from modules.colorbar_marker import *
 
 
 #%% Loading data
-file_list = ['Exp24.h5']
+file_list = ['Exp26.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/data-cluster-marker-per-site/data-cluster-marker-per-site-statistics')
 
 # Parameters
@@ -176,7 +176,7 @@ for i, key in enumerate(keys):
 
 fig3.text(0.04, 0.5, '$P(\\nu)$', va='center', rotation='vertical', fontsize=fontsize)
 
-# fig1.savefig(f'../figures/wire-cross-section-16-w4.pdf', format='pdf')
+fig1.savefig(f'../figures/wire-cross-section-branchcut.pdf', format='pdf')
 # fig2.savefig(f'../figures/wire-stats-16-w4.pdf', format='pdf')
 # fig3.savefig(f'../figures/wire-probs-16-w4.pdf', format='pdf')
 plt.show()

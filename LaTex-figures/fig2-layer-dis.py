@@ -130,7 +130,7 @@ ax3.text(0.34, 3, '$\\underline{\phi/\phi_0}$', fontsize=fontsize_in)
 # Upper panel: Format
 # y_axis_ticks = [i for i in range(0, 8, 2)]
 # y_axis_labels = [str(i) for i in range(0, 8, 2)]
-ax1.set_ylabel("$G(2e^2/h)$",fontsize=fontsize)
+ax1.set_ylabel("$G(e^2/h)$",fontsize=fontsize)
 # ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 ax_vec = [ax1, ax2, ax3]
 for ax in ax_vec:
@@ -165,7 +165,7 @@ ax4.text(0.3, 1.5, f'$(d)$',  fontsize=fontsize_in)
 
 ax4.set_ylim([0, 1.75])
 ax4.set_xlim(0, 5)
-ax4.set_ylabel("$G(2e^2/h)$", fontsize=fontsize)
+ax4.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
 # ax4.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
 ax4.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax4.tick_params(which='major', length=6, labelsize=fontsize)
@@ -198,7 +198,7 @@ ax4 = fig2.add_subplot(gs2[:2, :])
 ax4.plot(flux, G_array[0, 0, :], color='#3F6CFF', linestyle='solid')
 ax4.plot(flux, gap_array[0, :], color='#3F6CFF', linestyle='dashed')
 # 4x1.plot(flux, np.ones((len(G_array[0, 0, :]))), color='grey', linestyle='dashed')
-ax4.set_ylabel("$G(2e^2/h)$", fontsize=fontsize, color='white')
+ax4.set_ylabel("$G(e^2/h)$", fontsize=fontsize, color='white')
 ax4.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, color='white')
 ax4.set(xticks=[0, 1, 2, 3, 4])
 ax4.tick_params(axis='both', colors='white')

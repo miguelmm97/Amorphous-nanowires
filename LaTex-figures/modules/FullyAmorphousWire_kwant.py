@@ -4,10 +4,14 @@
 from numpy import pi
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, quad
+from functools import partial
+from scipy.sparse import diags, csr_matrix
+import random
 
 # Kwant
 import kwant
 import tinyarray as ta
+from kwant.kpm import jackson_kernel
 
 # Managing logging
 import logging
@@ -118,7 +122,7 @@ def Peierls_kwant(site1, site0, flux, area):
 Note that in the following hoppings are always defined down up, that is from x to x+1, y to y+1 z to z+1, so that we
 get the angles correctly. Kwant then takes the complex conjugate for the reverse ones.
 
-Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refes to the site from 
+Note also that in kwant the hoppings are defined like (latt(), latt()) where the second entry refers to the site from 
 which we hopp.
 """
 
@@ -167,8 +171,11 @@ def promote_to_kwant_nanowire3d(lattice_tree, param_dict, attach_leads=True, int
     # Hopping and onsite functions
     def onsite_potential(site, mu):
         index = site.tag[0]
-        return onsite(eps) + mu * np.kron(sigma_0, tau_0) + \
-            np.kron(sigma_0, tau_0) * lattice_tree.disorder[index, index]
+        if lattice_tree.K_onsite < 1e-12:
+            return onsite(eps) + mu * np.kron(sigma_0, tau_0)
+        else:
+            return onsite(eps) + mu * np.kron(sigma_0, tau_0) + \
+                np.kron(sigma_0, tau_0) * lattice_tree.onsite_disorder[index]
 
     def hopp(site1, site0, flux):
         index0, index1 = site0.tag[0], site1.tag[0]
@@ -517,4 +524,308 @@ def local_marker_periodic(x_array, y_array, z_array, P, S, Nx, Ny, Nz):
         local_marker[i] = (8 * pi / 3) * np.imag(np.trace(M[idx: idx + 4, idx: idx + 4]))
 
     return local_marker
+
+
+#%% Kernel polynomial method for the local marker
+def kpm_vector_generator(H, state, max_moments):
+
+    # 0th moment in the expansion: Just the quantum state to whihc we are applying the operator
+    alpha = state
+    n = 0
+    yield alpha
+
+    # 1st moment in the expansion: Applying the Hamiltonian
+    n += 1
+    alpha_prev = alpha.copy()
+    alpha = H @ alpha
+    yield alpha
+
+    # nth moments of the expansion: Follows by the recurrence of the Chebyshev polynomials
+    n += 1
+    while n < max_moments:
+        alpha_save = alpha.copy()
+        alpha = 2 * H @ alpha - alpha_prev
+        alpha_prev = alpha_save
+        yield alpha
+        n += 1
+
+def OPDM_KPM(state, num_moments, H, Ef=0, bounds=None):
+
+    # Rescaling of H and energies for the Kernel Polynomial Expansion
+    num_moments = num_moments
+    H_rescaled, (a, b) = kwant.kpm._rescale(H, 0.05, None, bounds)
+    phi_f = np.arccos((Ef - b) / a)
+
+    # Calculation of the coefficients in the expansion using the Jackson Kernel
+    g = jackson_kernel(np.ones(num_moments))
+    g[0] = 0
+    m = np.arange(num_moments)
+    m[0] = 1
+    coefs = -2 * g * (np.sin(m * phi_f) / (m * np.pi))
+
+    # Calculation of the OPDM (projector) applied onto vector as described in PRR 2, 013229 (2020)
+    P_vec = (1 - phi_f/np.pi) * state + sum(c * vec for c, vec
+                             in zip(coefs, kpm_vector_generator(H_rescaled, state, num_moments)))
+    return P_vec
+
+def local_marker_KPM_bulk(syst, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=10, bounds=None):
+
+    # Region where we calculate the local marker
+    cutoff = 0.4 * 0.5
+    project_to_region = partial(bulk_state, syst, rx=cutoff * Nx, ry=cutoff * Ny, rz=cutoff * Nz, Nx=Nx, Ny=Ny, Nz=Nz)
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z] = position_operator_OBC(syst)[0]
+    # X, Y, Z = np.repeat(x, 4), np.repeat(y, 4), np.repeat(z, 4)
+
+    # Calculation using the stochastic trace + KPM algorithm
+    M = 0.
+    for i in range(num_vecs):
+
+        # Random initial state supported in the region that we trace over
+        loger_kwant.info(f'Random vector {i}/ {num_vecs - 1}')
+        state, Nsites = project_to_region(state=np.exp(2j * np.pi * np.random.random((H.shape[0]))))
+
+        # Calculation of the invariant
+        P_psi = P(state)
+        SP_psi = S @ P_psi
+        PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+        PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+        M +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+        M += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+    return (8 * pi / 3) * np.imag(M) / (num_vecs * Nsites)
+
+def local_marker_per_site_KPM(syst, S, Nx, Ny, Nz, Ef=0., num_moments=500, num_vecs=5, bounds=None):
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC(syst)
+    local_marker = np.zeros((int(Nx * Ny * Nz), ), dtype=np.complex128)
+
+    # Calculation using the stochastic trace + KPM algorithm
+    for i in range(int(Nx * Ny * Nz)):
+        loger_kwant.info(f'site: {i}/ {int(Nx * Ny * Nz)}')
+
+        local_state = np.zeros((Nx * Ny * Nz * 4,), dtype=np.complex128)
+        local_state[i * 4: i * 4 + 4] = 1. / np.sqrt(4)
+
+        M = 0.
+        for j in range(num_vecs):
+            # Random initial state supported in the region that we trace over
+            loger_kwant.info(f'Random vector {i}/ {num_vecs - 1}')
+            random_state = np.exp(2j * np.pi * np.random.random((H.shape[0])))
+
+            # Calculation of the invariant
+            P_psi = P(local_state * random_state)
+            SP_psi = S @ P_psi
+            PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+            PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+            M +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+            M += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+        local_marker[i] = (8 * pi / 3) * np.imag(M) / num_vecs
+        loger_kwant.info(f'marker: {local_marker[i]}')
+
+    return local_marker, pos
+
+def local_marker_per_site_cross_section_KPM(syst, S, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=500, bounds=None):
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC(syst, Nx, Ny, Nz)
+
+    # Cross-section we are interested in
+    cond1 = pos[:, 2] < z1
+    cond2 = z0 < pos[:, 2]
+    cond = cond1 * cond2
+    indices = [i for i in range(int(Nx * Ny * Nz)) if cond[i]]
+    local_marker = np.zeros((len(indices), ), dtype=np.complex128)
+
+    # Calculation using the stochastic trace + KPM algorithm
+    for i, idx in enumerate(indices):
+        loger_kwant.info(f'site: {i}/ {len(indices)}')
+
+        for j in range(4):
+            # States localised in the site
+            state = np.zeros((Nx * Ny * Nz * 4, ), dtype=np.complex128)
+            state[idx * 4 + j] = 1.
+            # state = csr_matrix(state).T
+
+            # Calculation of the invariant
+            P_psi = P(state)
+            SP_psi = S @ P_psi
+            PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+            PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+            local_marker[i] +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+            local_marker[i] += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+        local_marker[i] = (8 * pi / 3) * np.imag(local_marker[i])
+        loger_kwant.info(f'marker: {local_marker[i]}')
+
+    return local_marker, pos[:, 0][cond], pos[:, 1][cond], pos[:, 2][cond]
+
+def OPDM_per_site_cross_section_KPM(syst, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=500, bounds=None, n_sample=10):
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC_asymmetric(syst)
+
+    # Cross-section we are interested in
+    cond1 = pos[:, 2] < z1
+    cond2 = z0 < pos[:, 2]
+    cond = cond1 * cond2
+    indices = [i for i in range(int(Nx * Ny * Nz)) if cond[i]]
+    site_sample = random.sample(indices, n_sample)
+    OPDM_r = np.zeros((len(indices) * n_sample, ), dtype=np.complex128)
+    r = np.zeros((len(indices) * n_sample, ), dtype=np.complex128)
+    site_indices = []
+
+    # Calculation using the KPM algorithm
+    for i, site1 in enumerate(site_sample):
+        for j, site2 in enumerate(indices):
+            loger_kwant.info(f'sites: ({i}, {j})/ ({len(site_sample)}, {len(indices)})')
+
+            # Calculation of the matrix norm of rho(x, y): || rho(x, y) ||² = |\sum_{alpha, beta} rho_{alpha, beta}|²
+            for orb1 in range(4):
+                state1 = np.zeros((Nx * Ny * Nz * 4,), dtype=np.complex128)
+                state1[site1 * 4 + orb1] = 1.
+                for orb2 in range(4):
+                    state2 = np.zeros((Nx * Ny * Nz * 4,), dtype=np.complex128)
+                    state2[site2 * 4 + orb2] = 1.
+
+                    # Calculation of <x, alpha|rho|y, beta>
+                    aux = state2.conj().T @ P(state1)
+                    OPDM_r[i * len(indices) + j] += np.real(aux) ** 2 + np.imag(aux) ** 2
+
+            r[i * len(indices) + j] = np.sqrt(((pos[site1, 0] - pos[site2, 0]) ** 2) + ((pos[site1, 1] - pos[site2, 1]) ** 2))
+            site_indices.append([site1, site2])
+            loger_kwant.info(f'OPDM: {OPDM_r[i * n_sample + j] :.15f}, r: {r[j] :.1f}')
+
+    return OPDM_r, r, site_indices, pos[:, 0][cond], pos[:, 1][cond], pos[:, 2][cond]
+
+def local_marker_KPM_rshell(syst, S, r_min, r_max, z_min, Nx, Ny, Nz, z_max=None, Ef=0., num_moments=500, num_vecs=10, bounds=None):
+
+    # Region where we calculate the local marker
+    project_to_region = partial(rshell_state, syst, r_min=r_min, r_max=r_max, z_min=z_min, Nx=Nx, Ny=Ny, Nz=Nz, z_max=z_max)
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z] = position_operator_OBC(syst)[0]
+
+    # Calculation using the stochastic trace + KPM algorithm
+    M = 0.
+    for i in range(num_vecs):
+
+        # Random initial state supported in the region that we trace over
+        loger_kwant.info(f'Random vector {i}/ {num_vecs - 1}')
+        state, Nsites = project_to_region(state=np.exp(2j * np.pi * np.random.random((H.shape[0]))))
+
+        # Calculation of the invariant
+        P_psi = P(state)
+        SP_psi = S @ P_psi
+        PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+        PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+        M +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+        M += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+    return (8 * pi / 3) * np.imag(M) / (num_vecs * Nsites)
+
+def bulk_state(syst, rx, ry, rz, Nx, Ny, Nz, state):
+
+    # Selecting a region on the bulk
+    pos = np.array([s.pos for s in syst.sites])
+    x_pos, y_pos, z_pos = pos[:, 0] - 0.5 * (Nx-1), pos[:, 1] - 0.5 * (Ny-1), pos[:, 2] - 0.5 * (Nz-1)
+    cond1 = np.abs(x_pos) < rx
+    cond2 = np.abs(y_pos) < ry
+    cond3 = np.abs(z_pos) < rz
+    cond = cond1 * cond2 * cond3
+    Nsites = len(cond[cond])
+    cond = np.repeat(cond, 4)
+
+    # Weighted state on the bulk region
+    state[~cond] = 0.
+    return state, Nsites
+
+def rshell_state(syst, r_min, r_max, z_min, Nx, Ny, Nz, state, z_max=None):
+
+    pos = np.array([s.pos for s in syst.sites])
+    radius = np.sqrt(((pos[:, 0] - 0.5 * (Nx - 1)) ** 2) + ((pos[:, 1] - 0.5 * (Ny - 1)) ** 2))
+    cond1 = r_min < radius
+    cond2 = radius < r_max
+    cond4 = pos[:, 2] > z_min
+    if z_max is None:
+        cond3 = pos[:, 2] < (Nz - 1 - z_min)
+    else:
+        cond3 = pos[:, 2] < z_max
+    cond = cond1 * cond2 * cond3 * cond4
+    Nsites = len(cond[cond])
+    cond = np.repeat(cond, 4)
+    state[~cond] = 0.
+    return state, Nsites
+
+def position_operator_OBC_symmetric(syst, Nx, Ny, Nz):
+    operators = []
+    norbs = syst.sites[0].family.norbs
+    pos = np.array([s.pos for s in syst.sites])
+    for c in range(pos.shape[1]):
+        if c==0:
+            N = Nx
+        elif c==1:
+            N = Ny
+        else:
+            N = Nz
+        operators.append(diags(np.repeat(pos[:, c] - 0.5 * (N - 1), norbs), format='csr'))
+    return operators, pos
+
+def position_operator_OBC_asymmetric(syst):
+    operators = []
+    norbs = syst.sites[0].family.norbs
+    pos = np.array([s.pos for s in syst.sites])
+    for c in range(pos.shape[1]):
+        operators.append(diags(np.repeat(pos[:, c], norbs), format='csr'))
+    return operators, pos
+
+def local_marker_per_site_cross_section_KPM_try(syst, S, Nx, Ny, Nz, z0, z1, Ef=0., num_moments=500, bounds=None):
+
+    # Operators involved in the calculation of the local marker
+    H = syst.hamiltonian_submatrix(params=dict(flux=0., mu=0.), sparse=True).tocsr()
+    P = partial(OPDM_KPM, num_moments=num_moments, H=H, Ef=Ef, bounds=bounds)
+    [X, Y, Z], pos = position_operator_OBC_try(syst)
+
+    # Cross-section we are interested in
+    cond1 = pos[:, 2] < z1
+    cond2 = z0 < pos[:, 2]
+    cond = cond1 * cond2
+    indices = [i for i in range(int(Nx * Ny * Nz)) if cond[i]]
+    local_marker = np.zeros((len(indices), ), dtype=np.complex128)
+
+    # Calculation using the stochastic trace + KPM algorithm
+    for i, idx in enumerate(indices):
+        loger_kwant.info(f'site: {i}/ {len(indices)}')
+
+        for j in range(4):
+            # States localised in the site
+            state = np.zeros((Nx * Ny * Nz * 4, ), dtype=np.complex128)
+            state[idx * 4 + j] = 1.
+            # state = csr_matrix(state).T
+
+            # Calculation of the invariant
+            P_psi = P(state)
+            SP_psi = S @ P_psi
+            PXP_psi, PYP_psi, PZP_psi = P(X @ P_psi),  P(Y @ P_psi),  P(Z @ P_psi)
+            PXSP_psi, PYSP_psi, PZSP_psi = P(X @ SP_psi), P(Y @ SP_psi),  P(Z @ SP_psi)
+            local_marker[i] +=  (Y @ PXSP_psi).T.conj() @ PZP_psi + (X @ PZSP_psi).T.conj() @ PYP_psi + (Z @ PYSP_psi).T.conj() @ PXP_psi
+            local_marker[i] += -(Z @ PXSP_psi).T.conj() @ PYP_psi - (Y @ PZSP_psi).T.conj() @ PXP_psi - (X @ PYSP_psi).T.conj() @ PZP_psi
+
+        local_marker[i] = (8 * pi / 3) * np.imag(local_marker[i])
+        loger_kwant.info(f'marker: {local_marker[i]}')
+
+    return local_marker, pos[:, 0][cond], pos[:, 1][cond], pos[:, 2][cond]
 

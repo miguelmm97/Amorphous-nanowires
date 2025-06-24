@@ -128,7 +128,7 @@ ax1.set_ylim(0, 1.5)
 ax1.set(xticks=[0, 1, 2, 3, 4, 5])
 majorsy = [0, 0.5, 1, 1.5]
 ax1.yaxis.set_major_locator(ticker.FixedLocator(majorsy))
-ax1.set_ylabel("$G(2e^2/h)$", fontsize=fontsize)
+ax1.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
 ax1.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)

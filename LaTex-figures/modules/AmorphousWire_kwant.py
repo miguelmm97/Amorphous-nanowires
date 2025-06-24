@@ -3,7 +3,7 @@
 # Math and plotting
 from numpy import pi
 import numpy as np
-from scipy.integrate import quad
+from scipy.integrate import cumulative_trapezoid, quad
 
 # Kwant
 import kwant
@@ -142,6 +142,26 @@ def Peierls_kwant(site1, site0, flux, area):
         I = quad(integrand, x1, x2, args=(m, x1, y1))[0]
     return np.exp(2 * pi * 1j * flux * I / area)
 
+def select_perfect_transmission_flux(nanowire, flux0=0.0, flux_end=1.5, Nflux=100, Ef=0., mu_leads=0.):
+
+    loger_kwant.trace(f'Calculating flux that gives perfect conductance for this sample...')
+    flux = np.linspace(flux0, flux_end, Nflux)
+
+    Gmax = 0.
+    flux_max = flux0
+    for i, phi in enumerate(flux):
+        S0 = kwant.smatrix(nanowire, 0., params=dict(flux=phi, mu=-Ef, mu_leads=mu_leads - Ef))
+        G = S0.transmission(1, 0)
+        loger_kwant.info(f'Flux: {i} / {Nflux - 1}, Conductance: {G :.2f}')
+        if G > Gmax:
+            Gmax = G
+            flux_max = phi
+            # if Gmax > 0.98:
+            #     break
+        else:
+            pass
+
+    return flux_max, Gmax
 
 
 """
@@ -179,7 +199,7 @@ class AmorphousCrossSectionWire_ScatteringRegion(kwant.builder.SiteFamily):
     def __hash__(self):
         return 1
 
-def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True, mu_leads=0.):
+def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=True):
 
     # Load parameters into the builder namespace
     try:
@@ -193,10 +213,14 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
     # Create lattice structure for the scattering region from the amorphous cross-section
     latt = AmorphousCrossSectionWire_ScatteringRegion(norbs=4, cross_section=cross_section, name='scatt_region')
 
+    def onsite_potential(site, mu):
+        index = site.tag[0]
+        return onsite(eps) + mu * np.kron(sigma_0, tau_0)
+
     # Initialise kwant system
     loger_kwant.info('Creating kwant scattering region...')
     syst = kwant.Builder()
-    syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite(eps)
+    syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite_potential
 
     # Hopping functions
     hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
@@ -217,12 +241,12 @@ def promote_to_kwant_nanowire(cross_section, n_layers, param_dict, attach_leads=
             syst[((latt(i, z + 1), latt(i, z)) for z in range(n_layers - 1))] = hopp_z_up
 
     if attach_leads:
-        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict, mu_leads=mu_leads)
+        complete_system = attach_cubic_leads(syst, cross_section, latt, n_layers, param_dict)
     else:
         complete_system = syst
     return complete_system
 
-def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, mu_leads=0.):
+def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict):
 
     # Load parameters into the builder namespace
     try:
@@ -233,7 +257,8 @@ def attach_cubic_leads(scatt_region, cross_section, latt, n_layers, param_dict, 
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
-    onsite_leads = onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
+    def onsite_leads(site, mu_leads):
+        return onsite(eps) + mu_leads * np.kron(sigma_0, tau_0)
 
     # Hoppings
     def hopp_x_up(site1, site0, flux):
@@ -437,5 +462,5 @@ def thermal_average(G, Ef, kBT):
         E_interval = Ef[j - sample_th: j + sample_th]
         G_interval = G[j - sample_th: j + sample_th]
         integrand = - G_interval * df_FD(E_interval, Ef[j], kBT)
-        G_th[i] = np.trapz(integrand, E_interval)
+        G_th[i] = cumulative_trapezoid(integrand, E_interval)[-1]
     return G_th, Ef_th
