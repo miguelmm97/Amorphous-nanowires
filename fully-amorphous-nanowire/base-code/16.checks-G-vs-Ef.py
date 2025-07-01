@@ -15,7 +15,7 @@ file_list = ['Exp35.h5', 'Exp36.h5','Exp37.h5', 'Exp38.h5', 'Exp34.h5', 'Exp30.h
              'Exp41.h5', 'Exp42.h5', 'Exp43.h5',  'Exp44.h5', 'Exp46.h5',
              'Exp52.h5', 'Exp53.h5', 'Exp54.h5', 'Exp55.h5', 'Exp57.h5',
              'Exp58.h5', 'Exp59.h5', 'Exp60.h5', 'Exp61.h5', 'Exp62.h5', 'Exp64.h5', 'Exp65.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-Ef')
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-cond-vs-Ef')
 
 # Nz = 200, Nx = 10, w=0.15, Ef=(0, 2)
 Nx           = data_dict[file_list[0]]['Parameters']['Nx']
@@ -271,21 +271,21 @@ K_25            = data_dict[file_list[24]]['Simulation']['K_onsite']
 
 
 # Bottom and top of the bands
-kz = np.linspace(-pi, pi, 101)
-wire_kwant = infinite_nanowire_kwant(10, 10, params_dict, mu_leads=-4.).finalized()
-bands = kwant.physics.Bands(wire_kwant, params=dict(flux=0))
-bottom_bands = bands(0)
-top_bands = bands(pi)
-bands = [bands(k) for k in kz]
+# kz = np.linspace(-pi, pi, 101)
+# wire_kwant = infinite_nanowire_kwant(10, 10, params_dict, mu_leads=-4.).finalized()
+# bands = kwant.physics.Bands(wire_kwant, params=dict(flux=0))
+# bottom_bands = bands(0)
+# top_bands = bands(pi)
+# bands = [bands(k) for k in kz]
 
 # Number of open channels in the leads
-Nchannels_lead = np.zeros(np.shape(fermi_9))
-for i, E in enumerate(fermi_9):
-    if E < bottom_bands[-1]:
-        channel_openings = len(np.where((E > bottom_bands))[0])
-    if E < top_bands[-1]:
-        channel_closings = len(np.where((E > top_bands))[0])
-    Nchannels_lead[i] = channel_openings - channel_closings
+# Nchannels_lead = np.zeros(np.shape(fermi_9))
+# for i, E in enumerate(fermi_9):
+#     if E < bottom_bands[-1]:
+#         channel_openings = len(np.where((E > bottom_bands))[0])
+#     if E < top_bands[-1]:
+#         channel_closings = len(np.where((E > top_bands))[0])
+#     Nchannels_lead[i] = channel_openings - channel_closings
 
 # Number of states per energy in the closed system
 tol = 10 * (fermi_8[2] - fermi_8[0])
@@ -453,22 +453,22 @@ ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 
 
 # Bands
-fig2 = plt.figure(figsize=(10, 10))
-gs = GridSpec(1, 1, figure=fig2)
-ax1 = fig2.add_subplot(gs[0, 0])
-
-ax1.plot(kz, bands, color='dodgerblue', linewidth=0.5)
-ax1.plot(kz, 0. * np.ones(kz.shape), '--', color='Black', alpha=0.2)
-ax1.plot(kz, 1 * np.ones(kz.shape), '--', color='Black', alpha=0.2)
-
-ax1.set_xlabel('$k/a$')
-ax1.set_ylabel('$E(k)/t$')
-# ax1.set_xlim(-0.2, 0.2)
-# ax1.set_ylim(-0.2, 0.2)
-ax1.tick_params(which='major', width=0.75, labelsize=10)
-ax1.tick_params(which='major', length=6, labelsize=10)
-
-
+# fig2 = plt.figure(figsize=(10, 10))
+# gs = GridSpec(1, 1, figure=fig2)
+# ax1 = fig2.add_subplot(gs[0, 0])
+#
+# ax1.plot(kz, bands, color='dodgerblue', linewidth=0.5)
+# ax1.plot(kz, 0. * np.ones(kz.shape), '--', color='Black', alpha=0.2)
+# ax1.plot(kz, 1 * np.ones(kz.shape), '--', color='Black', alpha=0.2)
+#
+# ax1.set_xlabel('$k/a$')
+# ax1.set_ylabel('$E(k)/t$')
+# # ax1.set_xlim(-0.2, 0.2)
+# # ax1.set_ylim(-0.2, 0.2)
+# ax1.tick_params(which='major', width=0.75, labelsize=10)
+# ax1.tick_params(which='major', length=6, labelsize=10)
+#
+#
 
 
 

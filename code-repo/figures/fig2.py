@@ -4,22 +4,21 @@
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import seaborn
-from matplotlib.patches import FancyArrowPatch
 
 # modules
-from modules.functions import *
+from functions import *
 
 
 #%% Loading data
-file_list = ['draft-fig2-avg-osc-w-002.h5', 'draft-fig2-avg-osc-w-005.h5', 'draft-fig2-avg-osc-w-01.h5',
-             'Exp4.h5', 'Exp5.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
+file_list = ['fig2-avg-osc-w-002.h5', 'fig2-avg-osc-w-005.h5', 'fig2-avg-osc-w-01.h5',
+             'fig2-GvsW.h5', 'fig2-G-highW.h5']
+data_dict = load_my_data(file_list, '../data')
 
 # Parameters
-width1 = data_dict[file_list[0]]['Parameters']['width']
-width2 = data_dict[file_list[1]]['Parameters']['width']
-width3 = data_dict[file_list[2]]['Parameters']['width']
-flux0 = data_dict[file_list[2]]['Parameters']['flux0']
+width1    = data_dict[file_list[0]]['Parameters']['width']
+width2    = data_dict[file_list[1]]['Parameters']['width']
+width3    = data_dict[file_list[2]]['Parameters']['width']
+flux0     = data_dict[file_list[2]]['Parameters']['flux0']
 flux_half = data_dict[file_list[2]]['Parameters']['flux_half']
 
 # Simulation data
@@ -52,6 +51,7 @@ width        = data_dict[file_list[3]]['Simulation']['width']
 Ef           = data_dict[file_list[3]]['Parameters']['Ef']
 G_high_w     = data_dict[file_list[4]]['Simulation']['G_array']
 gap_high_w   = data_dict[file_list[4]]['Simulation']['gap_array']
+
 #%% Figures
 
 # Style sheet
@@ -71,24 +71,8 @@ lead_color = 'r'
 palette = seaborn.color_palette(palette='viridis_r', n_colors=250)
 palette = [palette[0], palette[50], palette[100], palette[150], palette[200], palette[-1]]
 
-# Key style modifications for dark theme
-# plt.rcParams.update({
-#     'axes.facecolor': 'black',
-#     'figure.facecolor': 'black',
-#     'savefig.facecolor': 'black',
-#     'axes.edgecolor': 'white',
-#     'axes.labelcolor': 'white',
-#     'xtick.color': 'white',
-#     'ytick.color': 'white',
-#     'text.color': 'white',
-#     'legend.edgecolor': 'white',
-#     'legend.facecolor': 'black',
-# })
 
-
-
-
-# Figure 1: Definition
+# Definition
 fig1 = plt.figure(figsize=(8, 8))
 gs = GridSpec(5, 3, figure=fig1, wspace=0.2, hspace=1.5)
 ax1 = fig1.add_subplot(gs[0:2, 0])
@@ -98,10 +82,10 @@ gs2 = gs[2:, :].subgridspec(3, 3, hspace=0.3)
 ax4 = fig1.add_subplot(gs2[:2, :])
 ax5 = fig1.add_subplot(gs2[2, :])
 
+
 # Upper panel: Plots
 ax1.plot(fermi, G0_1, color='#9A32CD')
 ax1.plot(fermi, G_half_1, color='#3F6CFF', alpha=0.5)
-# ax1.text(0.2, 1, f'$N_s=300$', fontsize=fontsize_in)
 ax1.fill_between(fermi, error10_bottom, error10_top, color='#9A32CD', alpha=0.2)
 ax1.fill_between(fermi, error11_bottom, error11_top, color='#3F6CFF', alpha=0.2)
 ax1.text(0.02, 4.8, f'$w= {width1}$',  fontsize=fontsize_in)
@@ -112,7 +96,6 @@ ax2.plot(fermi, G0_2, label=f'$\phi / \phi_0= {flux0}$', color='#9A32CD')
 ax2.plot(fermi, G_half_2, label=f'$\phi / \phi_0= {flux_half}$', color='#3F6CFF', alpha=0.5)
 ax2.fill_between(fermi, error20_bottom, error20_top, color='#9A32CD', alpha=0.2)
 ax2.fill_between(fermi, error21_bottom, error21_top, color='#3F6CFF', alpha=0.2)
-# ax2.text(0.2, 1, '$\Delta E_F=1$', fontsize=fontsize_in)
 ax2.set(yticks=[0, 2, 4, 6], yticklabels=[])
 ax2.text(0.02, 4.8, f'$w= {width2}$',  fontsize=fontsize_in)
 ax2.text(0.02, 6, f'$(b)$',  fontsize=fontsize_in)
@@ -128,10 +111,7 @@ ax3.legend(ncol=1, frameon=False, fontsize=fontsize, loc='upper left', columnspa
 ax3.text(0.34, 3, '$\\underline{\phi/\phi_0}$', fontsize=fontsize_in)
 
 # Upper panel: Format
-# y_axis_ticks = [i for i in range(0, 8, 2)]
-# y_axis_labels = [str(i) for i in range(0, 8, 2)]
 ax1.set_ylabel("$\\overline{G}(e^2/h)$",fontsize=fontsize)
-# ax1.set(yticks=y_axis_ticks, yticklabels=y_axis_labels)
 ax_vec = [ax1, ax2, ax3]
 for ax in ax_vec:
     ax.set_xlim(fermi[0], 0.5)
@@ -143,75 +123,40 @@ for ax in ax_vec:
 
 
 
-# Lower panel: Plots
+# Lower panel: Conductance/ gap vs magnetic flux and
 for i in range(G_array.shape[1]):
     label = f'${width[i] :.2f}$'
     ax4.plot(flux, G_array[0, i, :], color=palette[i], linestyle='solid', label=label)
     ax5.plot(flux, gap_array[i, :], color=palette[i], linestyle='solid', label=None)
+ax4.plot(flux, 1 * np.ones(flux.shape), '--', color='Black', alpha=0.2)
 ax4.plot(flux, G_high_w[0, 0, :], color='Purple', linestyle='dotted', label='$0.25$', alpha=0.5)
 ax5.plot(flux, gap_high_w[0, :], color='Purple', linestyle='dotted', label=None)
 
-
-ax4.plot(flux, 1 * np.ones(flux.shape), '--', color='Black', alpha=0.2)
+ax4.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
+ax5.set_ylabel("$E_g$", fontsize=fontsize, labelpad=-20)
+ax5.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
+ax4.set_ylim([0, 1.75])
+ax4.set_xlim(0, 5)
+ax5.set_ylim([0, 0.15])
+ax5.set_xlim(0, 5)
 
 ax4.text(1.8, 1.4, '$\\underline{w}$', fontsize=fontsize)
 ax4.legend(loc='upper left', ncol=3, alignment='left', frameon=False, fontsize=fontsize, columnspacing=0.4, handlelength=1, labelspacing=0.2,bbox_to_anchor=(0.4, 1.05))
-# ax4.text(4.2, 1.5, '$E_F^{nw}=$' + f'${Ef[0]}$', fontsize=fontsize)
-# ax4.text(4.2, 1.15,  '$E_F^{lead}=$' + f'${Ef[0] + 1}$', fontsize=fontsize)
 ax4.text(0.3, 1.5, f'$(d)$',  fontsize=fontsize_in)
-# ax4.text(0.1, 0.55, f'$E_g$',  fontsize=fontsize_in)
-# arrow = FancyArrowPatch((0.15, 0.5),(0.1, 0.2), arrowstyle='->', color='black', linewidth=1, mutation_scale=10)
-# ax4.add_patch(arrow)
+ax5.text(0.3, 0.1, f'$(e)$',  fontsize=fontsize_in)
 
-ax4.set_ylim([0, 1.75])
-ax4.set_xlim(0, 5)
-ax4.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
-# ax4.set_xlabel("$\phi$", fontsize=fontsize, labelpad=-10)
 ax4.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax4.tick_params(which='major', length=6, labelsize=fontsize)
 ax4.tick_params(which='minor', width=0.75, labelsize=fontsize)
 ax4.tick_params(which='minor', length=3, labelsize=fontsize)
 ax4.set(xticks=[0, 1, 2, 3, 4, 5], xticklabels=[])
-
-ax5.text(0.3, 0.1, f'$(e)$',  fontsize=fontsize_in)
-ax5.set_ylim([0, 0.15])
-ax5.set_xlim(0, 5)
-ax5.set_ylabel("$E_g$", fontsize=fontsize, labelpad=-20)
-ax5.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, labelpad=-10)
 ax5.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax5.tick_params(which='major', length=6, labelsize=fontsize)
 ax5.tick_params(which='minor', width=0.75, labelsize=fontsize)
 ax5.tick_params(which='minor', length=3, labelsize=fontsize)
 ax5.set(yticks=[0, 0.15])
 
-# Poster
-fig2 = plt.figure(figsize=(8, 8), facecolor='black')
-gs = GridSpec(5, 3, figure=fig2)
-ax1 = fig2.add_subplot(gs[0, 0])
-ax2 = fig2.add_subplot(gs[0:2, 1])
-ax3 = fig2.add_subplot(gs[0:2, 2])
-gs2 = gs[2:, :].subgridspec(3, 3, hspace=0.3)
-ax4 = fig2.add_subplot(gs2[:2, :])
-# ax5 = fig2.add_subplot(gs2[2, :])
 
-
-ax4.plot(flux, G_array[0, 0, :], color='#3F6CFF', linestyle='solid')
-ax4.plot(flux, gap_array[0, :], color='#3F6CFF', linestyle='dashed')
-# 4x1.plot(flux, np.ones((len(G_array[0, 0, :]))), color='grey', linestyle='dashed')
-ax4.set_ylabel("$G(e^2/h)$", fontsize=fontsize, color='white')
-ax4.set_xlabel("$\phi/\phi_0$", fontsize=fontsize, color='white')
-ax4.set(xticks=[0, 1, 2, 3, 4])
-ax4.tick_params(axis='both', colors='white')
-ax4.set_ylim([0, 1.05])
-ax4.set_xlim(0, 4.5)
-ax4.tick_params(which='major', width=0.75, labelsize=fontsize)
-ax4.tick_params(which='major', length=6, labelsize=fontsize)
-ax4.tick_params(which='minor', width=0.75, labelsize=fontsize)
-ax4.tick_params(which='minor', length=3, labelsize=fontsize)
-
-
-
-fig1.savefig('fig2-layer-dis.pdf', format='pdf')
-fig2.savefig('fig-poster.pdf', format='pdf')
+fig1.savefig('fig2.pdf', format='pdf')
 plt.show()
 

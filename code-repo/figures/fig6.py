@@ -1,22 +1,19 @@
 #%% modules setup
 
 # Math and plotting
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import seaborn
-from matplotlib.patches import FancyArrowPatch
 
 # modules
-from modules.functions import *
+from functions import *
 
 
 #%% Loading data
-file_list = ['Exp69.h5', 'Exp76.h5',  'Exp77.h5', 'Exp80.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-latex-figures')
+file_list = ['fig6-GvsEf.h5', 'fig6-G-N10.h5',  'fig6-G-N15.h5', 'fig6-G-N20.h5']
+data_dict = load_my_data(file_list, '../data')
 
 # Parameters
-
 Nx           = data_dict[file_list[0]]['Parameters']['Nx']
 Ny           = data_dict[file_list[0]]['Parameters']['Ny']
 Nz            = data_dict[file_list[0]]['Parameters']['Nz']
@@ -35,11 +32,10 @@ width         = data_dict[file_list[0]]['Simulation']['width']
 G1_inset      = data_dict[file_list[1]]['Simulation']['G_0']
 G2_inset      = data_dict[file_list[2]]['Simulation']['G_0']
 G3_inset      = data_dict[file_list[3]]['Simulation']['G_0']
-fermi_inset  = data_dict[file_list[3]]['Simulation']['fermi']
-fermi_inset2  = data_dict[file_list[2]]['Simulation']['fermi']
-N1           = data_dict[file_list[1]]['Parameters']['Nx']
-N2           = data_dict[file_list[2]]['Parameters']['Nx']
-N3           = data_dict[file_list[3]]['Parameters']['Nx']
+fermi_inset   = data_dict[file_list[3]]['Simulation']['fermi']
+N1            = data_dict[file_list[1]]['Parameters']['Nx']
+N2            = data_dict[file_list[2]]['Parameters']['Nx']
+N3            = data_dict[file_list[3]]['Parameters']['Nx']
 
 
 #%% Figures
@@ -63,55 +59,47 @@ ax1 = fig1.add_subplot(gs[0, 0])
 ax1_inset = ax1.inset_axes([0.1, 0.72, 0.3, 0.25])
 
 
-# Upper panel: Plots
+# Conductance vs Fermi energy
 for i in range(G0.shape[-1]):
-    ax1.plot(fermi, G0[:, i], color=palette[i], label=f'${width[i] :.2f}$')#, alpha=0.75)
+    ax1.plot(fermi, G0[:, i], color=palette[i], label=f'${width[i] :.2f}$')
     ax1.plot(fermi, Ghalf[:, i], color=palette[i], linestyle='dashed', alpha=0.7)
-    # ax1.plot(fermi[::10], G0[:, i][::10], color=palette[i], marker='o', markersize=3, linestyle='None')#, alpha=0.75)
-    # ax1.plot(fermi[::10], Ghalf[:, i][::10], color=palette[i], markersize=3, marker='o', linestyle='None')
+
 
 ax1.text(0.09, 6.05, '$\\underline{w}$', fontsize=fontsize)
-# ax1.text(0.44, 9.7, '$\phi_{\mathrm{max}}$', fontsize=fontsize)
-# ax1.text(0.3, 8.5, '$\phi=0$', fontsize=fontsize)
 ax1.text(0.7, 6, '$\phi_{\mathrm{max}}$', fontsize=fontsize)
 ax1.text(0.7, 5.2, '$\phi=0$', fontsize=fontsize)
 ax1.plot(0.65, 6, marker='_', color='k', markersize=20)
-# ax1.plot(0.65, 5, marker='_', color='k', markersize=10)
-# ax1.text(0.756, 6.5, '$\Delta E_F=0$', fontsize=fontsize)
 ax1.legend(loc='upper left', frameon=False, fontsize=fontsize, bbox_to_anchor=(0.0, 0.6), handlelength=0.8,
            columnspacing=0.3, labelspacing=0.2, handletextpad=0.4)
-# arrow1 = FancyArrowPatch((0.367, 8.41), (0.452, 7.97), arrowstyle='->', color='black', linewidth=1, mutation_scale=10)
-# arrow2 = FancyArrowPatch((0.482, 9.5), (0.528, 8.97), arrowstyle='->', color='black', linewidth=1, mutation_scale=10)
-# ax1.add_patch(arrow1)
-# ax1.add_patch(arrow2)
+
 
 ax1.set_xlabel("$E_F$", fontsize=fontsize, labelpad=-1)
 ax1.set_ylabel("$G(e^2/h)$", fontsize=fontsize)
 ax1.set_xlim(fermi[0], 0.8)
 ax1.set_ylim(0, np.max(G0[:, 1]))
+
 ax1.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1.tick_params(which='major', length=6, labelsize=fontsize)
 
-
-ax1_inset.plot(fermi_inset2 * N1, G1_inset, color=palette3[0], label=f'${N1}$', linestyle='solid', alpha=0.8)
-ax1_inset.plot(fermi_inset2 * N2, G2_inset, color=palette3[1], label=f'${N2}$', linestyle='solid', alpha=0.8)
+# Inset: G for different N
+ax1_inset.plot(fermi_inset * N1, G1_inset, color=palette3[0], label=f'${N1}$', linestyle='solid', alpha=0.8)
+ax1_inset.plot(fermi_inset * N2, G2_inset, color=palette3[1], label=f'${N2}$', linestyle='solid', alpha=0.8)
 ax1_inset.plot(fermi_inset * N3, G3_inset, color=palette3[2], label=f'${N3}$', linestyle='solid', alpha=0.8)
 
+ax1_inset.set_xlabel("$E_FN$", fontsize=fontsize, labelpad=-15)
+ax1_inset.set_ylabel("$G(e^2/h)$", fontsize=fontsize-2, labelpad=-10)
 ax1.text(0.375, 9.7, '$\\underline{N}$', fontsize=fontsize)
 ax1_inset.legend(loc='upper left', ncol=1, frameon=False, fontsize=fontsize, columnspacing=0.3, handlelength=0.75,
                  labelspacing=0.2, handletextpad=0.4,  bbox_to_anchor=(0.93, 0.9))
+
 y_axis_ticks = [0, 14]
 x_axis_ticks = [0, 20]
 ax1_inset.set_xlim(0, 20)
 ax1_inset.set_ylim(0, 14)
 ax1_inset.tick_params(which='major', width=0.75, labelsize=fontsize)
 ax1_inset.tick_params(which='major', length=6, labelsize=fontsize)
-ax1_inset.set_xlabel("$E_FN$", fontsize=fontsize, labelpad=-15)
-ax1_inset.set_ylabel("$G(e^2/h)$", fontsize=fontsize-2, labelpad=-10)
 ax1_inset.set(yticks=y_axis_ticks)
 ax1_inset.set(xticks=x_axis_ticks)
 
-
-
-fig1.savefig('fig-G-vs-Ef.pdf', format='pdf', backend='pgf')
+fig1.savefig('fig6.pdf', format='pdf', backend='pgf')
 plt.show()

@@ -42,7 +42,7 @@ loger_main.addHandler(stream_handler)
 
 #%% Loading data
 file_list = ['Exp25.h5']
-data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/data-cond-vs-flux-fully-amorphous')
+data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-cond-vs-flux-fully-amorphous')
 
 # Parameters
 Ef           = data_dict[file_list[0]]['Parameters']['Ef']
@@ -81,8 +81,8 @@ loger_main.info('Generating lattice for the topological state...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_top, r=r)
 lattice.set_configuration(x[index_top, :], y[index_top, :], z[index_top, :])
 lattice.build_lattice(restrict_connectivity=False)
-lattice.generate_disorder(K_hopp=0., K_onsite=0.)
-nanowire_top = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+# lattice.generate_disorder(K_hopp=0., K_onsite=0.)
+nanowire_top = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
 site_pos_top = np.array([site.pos for site in nanowire_top.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
@@ -90,8 +90,8 @@ loger_main.info('Generating lattice for the localised state...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_loc, r=r)
 lattice.set_configuration(x[index_loc, :], y[index_loc, :], z[index_loc, :])
 lattice.build_lattice(restrict_connectivity=False)
-lattice.generate_disorder(K_hopp=0., K_onsite=0.)
-nanowire_loc = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+# lattice.generate_disorder(K_hopp=0., K_onsite=0.)
+nanowire_loc = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
 site_pos_loc = np.array([site.pos for site in nanowire_loc.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
@@ -99,8 +99,8 @@ loger_main.info('Generating lattice for the bound state...')
 lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=Nz, w=w_bound, r=r)
 lattice.set_configuration(x[index_bound, :], y[index_bound, :], z[index_bound, :])
 lattice.build_lattice(restrict_connectivity=False)
-lattice.generate_disorder(K_hopp=0., K_onsite=0.)
-nanowire_bound = promote_to_kwant_nanowire3d(lattice, params_dict, mu_leads=mu_leads).finalized()
+# lattice.generate_disorder(K_hopp=0., K_onsite=0.)
+nanowire_bound = promote_to_kwant_nanowire3d(lattice, params_dict).finalized()
 site_pos_bound = np.array([site.pos for site in nanowire_bound.id_by_site])
 loger_main.info('Nanowire promoted to Kwant successfully.')
 
@@ -108,9 +108,9 @@ loger_main.info('Nanowire promoted to Kwant successfully.')
 
 #%% Main: Wavefunctions for the different states
 loger_main.info('Calculating scattering wave functions...')
-top_state = kwant.wave_function(nanowire_top, energy=Ef[0], params=dict(flux=flux_top))
-loc_state = kwant.wave_function(nanowire_loc, energy=Ef[0], params=dict(flux=flux_loc))
-bound_state = kwant.wave_function(nanowire_bound, energy=Ef[0], params=dict(flux=flux_bound))
+top_state = kwant.wave_function(nanowire_top, energy=Ef[0], params=dict(flux=flux_top, mu=-Ef[0], mu_leads=mu_leads-Ef[0]))
+loc_state = kwant.wave_function(nanowire_loc, energy=Ef[0], params=dict(flux=flux_loc,  mu=-Ef[0], mu_leads=mu_leads-Ef[0]))
+bound_state = kwant.wave_function(nanowire_bound, energy=Ef[0], params=dict(flux=flux_bound,  mu=-Ef[0], mu_leads=mu_leads-Ef[0]))
 loger_main.info('Scattering wave functions calculated successfully')
 
 system_list = [nanowire_top, nanowire_loc, nanowire_bound]
@@ -125,7 +125,7 @@ loger_main.info('Calculating total local bulk DoS...')
 for i, n in enumerate(N):
     loger_main.info(f'Section {i} / {len(N)}')
     def bulk(site):
-        x, y = site.pos[0] - 0.5 * Nx, site.pos[1] - 0.5 * Ny
+        x, y = site.pos[0] - 0.5 * (Nx-1), site.pos[1] - 0.5 * (Ny-1)
         z = site.pos[2]
         cond1 = np.abs(x) < n
         cond2 = np.abs(y) < n
@@ -153,8 +153,8 @@ key_list = ['top', 'loc', 'bound']
 
 # Cuts of the wires
 def bulk(syst, rad):
-    new_sites_x = tuple([site for site in syst.id_by_site if np.abs(site.pos[0] - 0.5 * Nx) < rad])
-    new_sites = tuple([site for site in new_sites_x if np.abs(site.pos[1] - 0.5 * Ny) < rad])
+    new_sites_x = tuple([site for site in syst.id_by_site if np.abs(site.pos[0] - 0.5 * (Nx-1)) < rad])
+    new_sites = tuple([site for site in new_sites_x if np.abs(site.pos[1] - 0.5 * (Ny-1)) < rad])
     new_sites_pos = np.array([site.pos for site in new_sites])
     return new_sites, new_sites_pos
 
@@ -175,7 +175,7 @@ for state in bulk_density.keys():
 
 
 #%% Saving data
-data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/data-bulk-dos'
+data_dir = '/home/mfmm/Projects/amorphous-nanowires/data/local-simulations/data-bulk-dos'
 file_list = os.listdir(data_dir)
 expID = get_fileID(file_list, common_name='Exp')
 filename = '{}{}{}'.format('Exp', expID, '.h5')

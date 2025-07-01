@@ -148,7 +148,8 @@ for i in range(0, len(N) - 1):
 lgnd = ax1.legend(loc='upper left', ncol=1, frameon=False, fontsize=fontsize, handlelength=1, columnspacing=0.5, labelspacing=0.2, bbox_to_anchor=(0.05, 0.77))
 ax1.text(0.135, -0.17, '$\\underline{N}$', fontsize=fontsize)
 ax1.text(0.5, -0.55, f'$N_s = {100}$', fontsize=fontsize)
-ax1.text(0.5, -0.65, f'$\\vert x_i \\vert < 0.2 N_i$', fontsize=fontsize)
+# ax1.text(0.5, -0.65, f'$x_i^0 = (N_i - 1) / 2$', fontsize=fontsize)
+ax1.text(0.5, -0.65, f'$\\vert x_i - x_i^0\\vert < 0.2 N_i$', fontsize=fontsize)
 ax1.text(0.5, -0.75, f'$L = 150$', fontsize=fontsize)
 
 # Labels and limits
