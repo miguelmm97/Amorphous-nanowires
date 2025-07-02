@@ -26,7 +26,7 @@ r               = data_dict[file_list[0]]['Parameters']['r ']
 t               = data_dict[file_list[0]]['Parameters']['t ']
 eps             = data_dict[file_list[0]]['Parameters']['eps']
 lamb            = data_dict[file_list[0]]['Parameters']['lamb']
-lamb_z          = data_dict[file_list[0]]['Parameters']['lamb_z']
+lamb_z          = data_dict[file_list[0]]['Parameters']['lamb_z'] # referred to as eta in the main text
 
 # Simulation data
 z0              = [data_dict[file]['Simulation']['z0'] for file in file_list]

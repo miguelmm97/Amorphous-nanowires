@@ -58,7 +58,7 @@ cutoff       = data_dict[file_list[0]]['Parameters']['cutoff']
 t            = data_dict[file_list[0]]['Parameters']['t']
 eps          = data_dict[file_list[0]]['Parameters']['eps']
 lamb         = data_dict[file_list[0]]['Parameters']['lamb']
-lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z']
+lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z'] # referred to as eta in the main text
 error_bar_up    = avg_marker + 0.5 * std_marker
 error_bar_down  = avg_marker - 0.5 * std_marker
 

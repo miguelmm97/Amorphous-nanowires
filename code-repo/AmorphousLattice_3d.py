@@ -166,7 +166,8 @@ class AmorphousLattice_3d:
     def set_configuration(self, x, y, z):
         self.x, self.y, self.z = x, y, z
 
-    def set_disorder(self, onsite_disorder):
+    def set_disorder(self, onsite_disorder, K_onsite):
+        self.K_onsite = K_onsite
         self.onsite_disorder = onsite_disorder
 
     def erase_configuration(self):

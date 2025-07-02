@@ -5,6 +5,8 @@ directly run provided the appropriated packages are in the virtual environment p
 
 The functions are written to produce a simulation from scratch. In order to reproduce the data for the figures presented
 in the main text, one can use these functions combined with the data from the different simulations given in the data folder.
+Load the parameters from the data file you want to reproduce, create the nanowires with the functions
+create_layer/fully_amorphous_nanowire_from_data() and use the functions provided here.
 
 The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
 For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
@@ -282,7 +284,7 @@ def G_vs_L_fully_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, lamb
         for j, phi in enumerate(flux):
             S = kwant.smatrix(nanowire, 0., params=dict(flux=phi, mu=-fermi, mu_leads=mu_leads - fermi))
             G[j, i] = S.transmission(1, 0)
-            loger_main.info(f'L: {j} / {len(L) - 1}, flux: {j} / {len(flux) - 1} || G: {G[j, i] :.2f}')
+            loger_main.info(f'L: {i} / {len(L) - 1}, flux: {j} / {len(flux) - 1} || G: {G[j, i] :.2f}')
 
     # Storing data
     filepath = os.path.join(datadir, filename)
@@ -444,7 +446,7 @@ def G_vs_flux_layer_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
     # Calculation
     for i, w in enumerate(width):
 
-        # Amorphous nanowire(the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
+        # Amorphous nanowire (the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
         # in order to reproduce any specific data files provided.)
         loger_main.info('Generating layer amorphous lattice...')
         lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
@@ -495,7 +497,7 @@ def G_vs_flux_layer_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
     loger_main.info('Data saved correctly')
 
 
-def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, mu_leads, filename, datadir):
+def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, K_onsite, disorder,  t, eps, lamb, eta, r, mu_leads, filename, datadir):
     """
     Input:
     flux -> float: flux at which to calculate the DoS
@@ -508,6 +510,7 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
     y -> np.ndarray: y coordinate of the nanowire sites
     z -> np.ndarray: z coordinate of the nanowire sites
     K_onsite -> float: onsite disorder strength
+    disorder -> np.ndarray: specific realization of the onsite disorder
     t -> float: hopping amplitude as described in the main text
     eps -> float: onsite energy as described in the main text
     lamb -> float: spin-orbit coupling as described in the main text
@@ -527,7 +530,7 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
     loger_main.info('Generating lattice for the topological state...')
     lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
     lattice.set_configuration(x, y, z)
-    lattice.set_disorder(disorder)
+    lattice.set_disorder(onsite_disorder=disorder, K_onsite=K_onsite)
     lattice.build_lattice()
     nanowire = promote_to_kwant_nanowire_3d(lattice, params_dict).finalized()
     loger_main.info('Nanowire promoted to Kwant successfully.')
@@ -538,6 +541,7 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
     state = kwant.wave_function(nanowire, params=dict(flux=flux, mu=-fermi, mu_leads=mu_leads - fermi))
 
     # Total DoS through cuts
+    loger_main.info('Calculating density of states...')
     R = np.linspace(2, Nx / 2, 10)
     DoS_R = np.zeros((len(R), ))
     for i, n in enumerate(R):
@@ -551,9 +555,10 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
     DoS_R = DoS_R / DoS_R[-1]
 
     # Local DoS
+    loger_main.info('Calculating local density of states...')
     def bulk(syst, rad):
-        new_sites_x = tuple([site for site in syst.id_by_site if 0 < (site.pos[0] - 0.5 * (Nx - 1)) < rad])
-        new_sites = tuple([site for site in new_sites_x if 0 < (site.pos[1] - 0.5 * (Ny - 1)) < rad])
+        new_sites_x = tuple([site for site in syst.id_by_site if  np.abs(site.pos[0] - 0.5 * (Nx - 1)) < rad])
+        new_sites = tuple([site for site in new_sites_x if np.abs(site.pos[1] - 0.5 * (Ny - 1)) < rad])
         new_sites_pos = np.array([site.pos for site in new_sites])
         return new_sites, new_sites_pos
     bulk_sites, bulk_pos = bulk(nanowire, Nx / 2 + 1)
@@ -569,7 +574,6 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
         simulation = f.create_group('Simulation')
         store_my_data(simulation, 'R', R)
         store_my_data(simulation, 'DoS_R', DoS_R)
-        store_my_data(simulation, 'bulk_sites', bulk_sites)
         store_my_data(simulation, 'bulk_pos', bulk_pos)
         store_my_data(simulation, 'local_DoS', local_DoS)
         store_my_data(simulation, 'flux', flux)
@@ -599,7 +603,7 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, disorder, t, eps, lamb, eta, r, 
 def marker_vs_width(width, fermi, N, L, K_onsite, t, eps, lamb, eta, r, num_moments, num_vecs, cutoff, filename, datadir):
     """
     Input:
-    width: -> float: width of the nanowire
+    width: -> np.ndarray: Width vector where to calculate the local marker
     fermi -> float: Fermi energy at which to calculate the local marker
     N -> int: Number of sites of the nanowire in x and y direction
     L -> int: Number of sites of the nanowire in z direction
@@ -715,6 +719,7 @@ def marker_cross_section(width, fermi, N, L, K_onsite, t, eps, lamb, eta, r, num
         simulation = f.create_group('Simulation')
         store_my_data(simulation, 'local_marker',    local_marker)
         store_my_data(simulation, 'width',           width)
+        store_my_data(simulation, 'num_moments',    num_moments)
         store_my_data(simulation, 'x',               x)
         store_my_data(simulation, 'y',               y)
         store_my_data(simulation, 'z',               z)

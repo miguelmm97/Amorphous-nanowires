@@ -153,8 +153,10 @@ class AmorphousLattice_2d:
     def set_configuration(self, x, y):
         self.x, self.y = x, y
 
-    def set_disorder(self, onsite_disorder):
+    def set_disorder(self, onsite_disorder, K_onsite):
+        self.K_onsite = K_onsite
         self.onsite_disorder = onsite_disorder
+
 
     def erase_configuration(self):
         self.x, self.y = None, None

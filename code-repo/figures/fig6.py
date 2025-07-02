@@ -21,7 +21,7 @@ r            = data_dict[file_list[0]]['Parameters']['r']
 t            = data_dict[file_list[0]]['Parameters']['t']
 eps          = data_dict[file_list[0]]['Parameters']['eps']
 lamb         = data_dict[file_list[0]]['Parameters']['lamb']
-lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z']
+lamb_z       = data_dict[file_list[0]]['Parameters']['lamb_z'] # referred to as eta in the main text
 mu_leads     = data_dict[file_list[0]]['Parameters']['mu_leads']
 
 # Simulation data
