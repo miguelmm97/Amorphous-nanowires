@@ -1,0 +1,18 @@
+name: amnano
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - matplotlib
+  - colorlog
+  - scipy
+  - shapely
+  - h5py
+  - kwant
+  - tqdm
+  - seaborn
+  - pytables
+  - drawarrow
+prefix: /home/mfmm/miniconda3/envs/amnano

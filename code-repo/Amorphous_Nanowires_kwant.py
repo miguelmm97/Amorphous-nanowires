@@ -1,3 +1,13 @@
+"""
+This file contains the functions and classes used in order to promote to kwant systems the nanowires created as
+instances of the classes AmorphousLattice_2d and AmorphousLattice_3d, in order to do transport calculations.
+Certain sections of this code have been adapted from https://doi.org/10.5281/zenodo.4382483.
+
+The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git.
+For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
+"""
+
+
 # %% Modules setup
 
 # Math and plotting
@@ -298,7 +308,7 @@ def promote_to_kwant_nanowire_2d(cross_section, n_layers, param_dict, attach_lea
         t      = param_dict['t']
         eps    = param_dict['eps']
         lamb   = param_dict['lamb']
-        lamb_z = param_dict['lamb_z']
+        eta = param_dict['eta']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
@@ -318,10 +328,10 @@ def promote_to_kwant_nanowire_2d(cross_section, n_layers, param_dict, attach_lea
     syst[(latt(i, z) for i in range(latt.Nsites) for z in range(n_layers))] = onsite_potential
 
     # Hopping functions
-    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
+    hopp_z_up = hopping(t, lamb, eta, 1., 0, 0, cross_section.r)
     def hopp_cross_section(site1, site0, flux):
         d, phi = displacement2D_kwant(site1, site0)
-        return hopping(t, lamb, lamb_z, d, phi, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
+        return hopping(t, lamb, eta, d, phi, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
 
     # Populate hoppings
     for i in range(latt.Nsites):
@@ -415,7 +425,7 @@ def attach_cubic_leads_2d(scatt_region, cross_section, latt, n_layers, param_dic
         t      = param_dict['t']
         eps    = param_dict['eps']
         lamb   = param_dict['lamb']
-        lamb_z = param_dict['lamb_z']
+        eta    = param_dict['eta']
     except KeyError as err:
         raise KeyError(f'Parameter error: {err}')
 
@@ -424,12 +434,12 @@ def attach_cubic_leads_2d(scatt_region, cross_section, latt, n_layers, param_dic
 
     # Hoppings
     def hopp_x_up(site1, site0, flux):
-        return hopping(t, lamb, lamb_z, 1., 0, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
+        return hopping(t, lamb, eta, 1., 0, pi / 2, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
     def hopp_lead_wire(site1, site0, flux):
         d, phi, theta = displacement3D_kwant(site1, site0)
-        return hopping(t, lamb, lamb_z, d, phi, theta, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
-    hopp_z_up = hopping(t, lamb, lamb_z, 1., 0, 0, cross_section.r)
-    hopp_y_up = hopping(t, lamb, lamb_z, 1., pi / 2, pi / 2, cross_section.r)
+        return hopping(t, lamb, eta, d, phi, theta, cross_section.r) * Peierls_kwant(site1, site0, flux, cross_section.area)
+    hopp_z_up = hopping(t, lamb, eta, 1., 0, 0, cross_section.r)
+    hopp_y_up = hopping(t, lamb, eta, 1., pi / 2, pi / 2, cross_section.r)
 
     # Left lead: definition
     loger_kwant.info('Attaching left lead...')

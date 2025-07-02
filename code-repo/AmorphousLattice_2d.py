@@ -1,3 +1,10 @@
+"""
+This file contains the functions and classes used to create layered-amorphous nanowires.
+
+The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
+For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
+"""
+
 #%% modules setup
 
 # Math and plotting

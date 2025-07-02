@@ -1,3 +1,15 @@
+"""
+This code provides minimal functions for the simulations discussed in the main text. Each function takes in certain
+parameters and produces an output data .h5 file with the data of the corresponding simulation. The functions can be
+directly run provided the appropriated packages are in the virtual environment provided in environment.yml.
+
+The functions are written to produce a simulation from scratch. In order to reproduce the data for the figures presented
+in the main text, one can use these functions combined with the data from the different simulations given in the data folder.
+
+The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
+For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
+"""
+
 # %% modules set up
 
 # Math and plotting
@@ -78,7 +90,8 @@ def G_vs_Ef_fully_amorphous(fermi, width, Nx, Ny, L, K_onsite, t, eps, lamb, eta
     # Calculation
     for i, w in enumerate(width):
 
-        # Amorphous nanowire
+        # Amorphous nanowire (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
+        # in order to reproduce any specific data files provided.)
         loger_main.info('Generating fully amorphous lattice...')
         lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
         lattice.build_lattice()
@@ -170,7 +183,8 @@ def G_vs_flux_fully_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
     # Calculation
     for i, w in enumerate(width):
 
-        # Amorphous nanowire
+        # Amorphous nanowire (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
+        # in order to reproduce any specific data files provided.)
         loger_main.info('Generating fully amorphous lattice...')
         lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
         lattice.build_lattice()
@@ -247,10 +261,12 @@ def G_vs_L_fully_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, lamb
     # Preallocation
     params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'eta': eta}
     G        = np.zeros((len(flux), len(L)))
-    disorder = np.zeros((Nx * Ny * L, ))
+    disorder = np.zeros((Nx * Ny * np.max(L), ))
 
     # Calculation
-    # Amorphous parent lattice
+    # Amorphous parent lattice (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
+    # in order to reproduce any specific data files provided.)
+    loger_main.info('Generating fully amorphous lattice...')
     parent_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(L), w=width, r=r)
     parent_lattice.build_lattice()
     parent_lattice.generate_onsite_disorder(K_onsite=K_onsite)
@@ -337,7 +353,8 @@ def G_vs_Ef_layer_amorphous(fermi, width, Nx, Ny, L, K_onsite, t, eps, lamb, eta
     # Calculation
     for i, w in enumerate(width):
 
-        # Amorphous nanowire
+        # Amorphous nanowire (the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
+        # in order to reproduce any specific data files provided.)
         loger_main.info('Generating layer amorphous lattice...')
         lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
         lattice.build_lattice()
@@ -419,7 +436,7 @@ def G_vs_flux_layer_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
 
     # Preallocation
     params_dict = {'t': t, 'eps': eps, 'lamb': lamb, 'eta': eta}
-    G           = np.zeros((len(fermi), len(width)))
+    G           = np.zeros((len(flux), len(width)))
     X           = np.zeros((len(width), Nx * Ny))
     Y           = np.zeros((len(width), Nx * Ny))
     disorder    = np.zeros((len(width), Nx * Ny))
@@ -427,7 +444,8 @@ def G_vs_flux_layer_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
     # Calculation
     for i, w in enumerate(width):
 
-        # Amorphous nanowire
+        # Amorphous nanowire(the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
+        # in order to reproduce any specific data files provided.)
         loger_main.info('Generating layer amorphous lattice...')
         lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
         lattice.build_lattice()
@@ -721,4 +739,40 @@ def marker_cross_section(width, fermi, N, L, K_onsite, t, eps, lamb, eta, r, num
     loger_main.info('Data saved correctly')
 
 
+def create_fully_amorphous_nanowire_from_data(x, y, z, width, Nx, Ny, L, r):
+    """
+    Input:
+    x, y, z -> np.ndarray: x, y, z positions of the stored nanowire
+    width: -> float: width of the amorphous distribution
+    Nx -> int: Number of sites of the nanowire in x direction
+    Ny -> int: Number of sites of the nanowire in y direction
+    L -> int: Number of sites of the nanowire in z direction
+    r -> float: cutoff distance above which the hopping vanishes
+
+    Output:
+    lattice -> AmorphousLattice_3d: Structure for the nanowire
+    """
+    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
+    lattice.set_configuration(x, y, z)
+    lattice.build_lattice()
+    return lattice
+
+
+def create_layer_amorphous_nanowire_from_data(x, y, width, Nx, Ny, L, r):
+    """
+    Input:
+    x, y -> np.ndarray: x, y positions of the stored nanowire
+    width: -> float: width of the amorphous distribution
+    Nx -> int: Number of sites of the nanowire in x direction
+    Ny -> int: Number of sites of the nanowire in y direction
+    L -> int: Number of sites of the nanowire in z direction
+    r -> float: cutoff distance above which the hopping vanishes
+
+    Output:
+    lattice -> AmorphousLattice_3d: Structure for the nanowire
+    """
+    lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+    lattice.set_configuration(x, y)
+    lattice.build_lattice()
+    return lattice
 

@@ -1,4 +1,13 @@
- #%% modules setup
+"""
+These file contains several functions used to correctly store, load and document any data used or created
+in this project, as well as some necessary set up for the logging used in the different codes provided.
+
+The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
+For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
+"""
+
+
+#%% Modules setup
 
 # Managing logging
 import logging
@@ -9,7 +18,6 @@ import numpy as np
 # Managing data
 import h5py
 import os
-
 
 # %% Logging setup
 def addLoggingLevel(levelName, levelNum, methodName=None):

@@ -1,3 +1,12 @@
+"""
+This file contains the functions related to the topological characterization of amorphous nanowires.
+Parts of this code have been adapted from https://doi.org/10.5281/zenodo.3741828.
+
+The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
+For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
+"""
+
+
 # %% Modules setup
 
 # Math and plotting

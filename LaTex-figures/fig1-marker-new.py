@@ -45,7 +45,7 @@ stream_handler.setFormatter(formatter)
 loger_main.addHandler(stream_handler)
 
 #%% Loading data marker
-file_list = ['data-cluster-marker-KPM-L=150.h5']
+file_list = ['data-cluster-marker-KPM-L=150-symmetric.h5']
 data_dict = load_my_data(file_list, '/home/mfmm/Projects/amorphous-nanowires/data/cluster-simulations/data-cluster-marker-vs-width')
 
 # Simulation data
