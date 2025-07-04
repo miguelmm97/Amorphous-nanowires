@@ -25,8 +25,8 @@ import kwant
 
 # modules
 from functions import *
-from AmorphousLattice_2d import AmorphousLattice_2d
-from AmorphousLattice_3d import AmorphousLattice_3d, take_cut_from_parent_wire
+from AmorphousNanowire_2d import AmorphousNanowire_2d
+from AmorphousNanowire_3d import AmorphousNanowire_3d, take_cut_from_parent_wire
 from Amorphous_Nanowires_kwant import promote_to_kwant_nanowire_2d, promote_to_kwant_nanowire_3d, select_perfect_transmission_flux
 from topology import local_marker_KPM_bulk, local_marker_per_site_cross_section_KPM
 
@@ -95,7 +95,7 @@ def G_vs_Ef_fully_amorphous(fermi, width, Nx, Ny, L, K_onsite, t, eps, lamb, eta
         # Amorphous nanowire (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
         # in order to reproduce any specific data files provided.)
         loger_main.info('Generating fully amorphous lattice...')
-        lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
+        lattice = AmorphousNanowire_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
         lattice.build_lattice()
         lattice.generate_onsite_disorder(K_onsite=K_onsite)
         nanowire = promote_to_kwant_nanowire_3d(lattice, params_dict).finalized()
@@ -188,7 +188,7 @@ def G_vs_flux_fully_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
         # Amorphous nanowire (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
         # in order to reproduce any specific data files provided.)
         loger_main.info('Generating fully amorphous lattice...')
-        lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
+        lattice = AmorphousNanowire_3d(Nx=Nx, Ny=Ny, Nz=L, w=w, r=r)
         lattice.build_lattice()
         lattice.generate_onsite_disorder(K_onsite=K_onsite)
         nanowire = promote_to_kwant_nanowire_3d(lattice, params_dict).finalized()
@@ -269,7 +269,7 @@ def G_vs_L_fully_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, lamb
     # Amorphous parent lattice (the next 4 lines can be replaced with the create_fully_amorphous_nanowire_from_data() function
     # in order to reproduce any specific data files provided.)
     loger_main.info('Generating fully amorphous lattice...')
-    parent_lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=np.max(L), w=width, r=r)
+    parent_lattice = AmorphousNanowire_3d(Nx=Nx, Ny=Ny, Nz=np.max(L), w=width, r=r)
     parent_lattice.build_lattice()
     parent_lattice.generate_onsite_disorder(K_onsite=K_onsite)
     X, Y, Z = parent_lattice.x, parent_lattice.y, parent_lattice.z
@@ -358,7 +358,7 @@ def G_vs_Ef_layer_amorphous(fermi, width, Nx, Ny, L, K_onsite, t, eps, lamb, eta
         # Amorphous nanowire (the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
         # in order to reproduce any specific data files provided.)
         loger_main.info('Generating layer amorphous lattice...')
-        lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
+        lattice = AmorphousNanowire_2d(Nx=Nx, Ny=Ny, w=w, r=r)
         lattice.build_lattice()
         lattice.generate_onsite_disorder(K_onsite=K_onsite)
         nanowire = promote_to_kwant_nanowire_2d(lattice, L,  params_dict).finalized()
@@ -449,7 +449,7 @@ def G_vs_flux_layer_amorphous(flux, width, fermi, Nx, Ny, L, K_onsite, t, eps, l
         # Amorphous nanowire (the next 4 lines can be replaced with the create_layer_amorphous_nanowire_from_data() function
         # in order to reproduce any specific data files provided.)
         loger_main.info('Generating layer amorphous lattice...')
-        lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=w, r=r)
+        lattice = AmorphousNanowire_2d(Nx=Nx, Ny=Ny, w=w, r=r)
         lattice.build_lattice()
         lattice.generate_onsite_disorder(K_onsite=K_onsite)
         nanowire = promote_to_kwant_nanowire_2d(lattice, L,  params_dict).finalized()
@@ -528,7 +528,7 @@ def DoS(flux, width, fermi, Nx, Ny, L, x, y, z, K_onsite, disorder,  t, eps, lam
 
     # Amorphous nanowire
     loger_main.info('Generating lattice for the topological state...')
-    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
+    lattice = AmorphousNanowire_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
     lattice.set_configuration(x, y, z)
     lattice.set_disorder(onsite_disorder=disorder, K_onsite=K_onsite)
     lattice.build_lattice()
@@ -632,7 +632,7 @@ def marker_vs_width(width, fermi, N, L, K_onsite, t, eps, lamb, eta, r, num_mome
     # Calculation
     for i, w in enumerate(width):
         loger_main.info(f'Generating lattice for w: {w}')
-        lattice = AmorphousLattice_3d(Nx=N, Ny=N, Nz=L, w=w, r=r)
+        lattice = AmorphousNanowire_3d(Nx=N, Ny=N, Nz=L, w=w, r=r)
         lattice.build_lattice()
         lattice.generate_onsite_disorder(K_onsite=K_onsite)
         nanowire = promote_to_kwant_nanowire_3d(lattice, params_dict, attach_leads=False).finalized()
@@ -701,7 +701,7 @@ def marker_cross_section(width, fermi, N, L, K_onsite, t, eps, lamb, eta, r, num
 
     # Amorphous nanowire
     loger_main.info(f'Generating lattice')
-    lattice = AmorphousLattice_3d(Nx=N, Ny=N, Nz=L, w=width, r=r)
+    lattice = AmorphousNanowire_3d(Nx=N, Ny=N, Nz=L, w=width, r=r)
     lattice.build_lattice()
     lattice.generate_onsite_disorder(K_onsite=K_onsite)
     nanowire = promote_to_kwant_nanowire_3d(lattice, params_dict, attach_leads=False).finalized()
@@ -755,9 +755,9 @@ def create_fully_amorphous_nanowire_from_data(x, y, z, width, Nx, Ny, L, r):
     r -> float: cutoff distance above which the hopping vanishes
 
     Output:
-    lattice -> AmorphousLattice_3d: Structure for the nanowire
+    lattice -> AmorphousNanowire_3d: Structure for the nanowire
     """
-    lattice = AmorphousLattice_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
+    lattice = AmorphousNanowire_3d(Nx=Nx, Ny=Ny, Nz=L, w=width, r=r)
     lattice.set_configuration(x, y, z)
     lattice.build_lattice()
     return lattice
@@ -774,9 +774,9 @@ def create_layer_amorphous_nanowire_from_data(x, y, width, Nx, Ny, L, r):
     r -> float: cutoff distance above which the hopping vanishes
 
     Output:
-    lattice -> AmorphousLattice_3d: Structure for the nanowire
+    lattice -> AmorphousNanowire_3d: Structure for the nanowire
     """
-    lattice = AmorphousLattice_2d(Nx=Nx, Ny=Ny, w=width, r=r)
+    lattice = AmorphousNanowire_2d(Nx=Nx, Ny=Ny, w=width, r=r)
     lattice.set_configuration(x, y)
     lattice.build_lattice()
     return lattice

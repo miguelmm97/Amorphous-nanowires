@@ -1,14 +1,13 @@
 """
-This file contains the functions and classes used to create layered-amorphous nanowires.
+This file contains the functions and classes used to create fully amorphous nanowires.
 
 The full repository for the project is public in https://github.com/miguelmm97/Amorphous-nanowires.git
 For any questions, typos/errors or further data please write to mfmm@kth.se or miguelmartinezmiquel@gmail.com.
 """
 
-#%% modules setup
+#%% Modules setup
 
 # Math and plotting
-from numpy import pi
 import numpy as np
 from scipy.spatial import KDTree
 
@@ -44,67 +43,81 @@ formatter = ColoredFormatter(
 stream_handler.setFormatter(formatter)
 loger_amorphous.addHandler(stream_handler)
 
-#%% Module
 
-def gaussian_point_set_2D(x, y, width):
+#%% Functions
+def gaussian_point_set_3D(x, y, z, width):
     """
     Input:
     x -> np.ndarray: x positions of the crystalline sites
     y -> np.ndarray: y positions of the crystalline sites
+    z -> np.ndarray: z position of the crystalline sites
     width -> float: standard deviation of the Gaussian point set
 
     Output:
-    x -> np.ndarray: x positions of the amorphous cross-section
-    y -> np.ndarray: y positions of the amorphous cross-section
+    x -> np.ndarray: x positions of the amorphous nanowire
+    y -> np.ndarray: y positions of the amorphous nanowire
+    z -> np.ndarray: z positions of the amorphous nanowire
     """
     x = np.random.normal(x, width, len(x))
     y = np.random.normal(y, width, len(y))
-    return x, y
+    z = np.random.normal(z, width, len(z))
+    return x, y, z
 
-def displacement2D(x1, y1, x2, y2):
+def take_cut_from_parent_wire(parent, Nx_new=None, Ny_new=None, Nz_new=None, keep_disorder=True):
     """
     Input:
-    x1, y1 -> float: coordinates of the site placed at the origin
-    x2, y2 -> float: coordinates of the site towards we hopp
+    parent -> kwant.builder.Builder: parent nanowire from which we want to make a cut
+    Nx_new -> int: Number of sites in x direction after the cut
+    Ny_new -> int: Number of sites in y direction after the cut
+    Nz_new -> int: Number of sites in z direction after the cut
+    keep_disorder -> bool: Specify if the cut should retain the disorder realization of the parent nanowire
 
     Output:
-    r -> float: distance between the two sites
-    phi -> float: azimuthal angle between sites
+    lattice -> kwant.builder.Builder: resulting kwant system after the cut
     """
 
-    v = np.zeros((2,))
-    v[0] = (x2 - x1)
-    v[1] = (y2 - y1)
+    # Sites from the new and parent lattice
+    Nx, Ny, Nz = parent.Nx, parent.Ny, parent.Nz
+    if Nx_new is None:
+        Nx_new = parent.Nx
+    if Ny_new is None:
+        Ny_new = parent.Ny
+    if Nz_new is None:
+        Nz_new = parent.Nz
 
-    # Norm of the vector between sites 2 and 1
-    r = np.sqrt(v[0] ** 2 + v[1] ** 2)
+    # Selecting sites from the parent lattice
+    Nsites1, Nxy = int(Nx * Ny * Nz_new), int(Nx * Ny)
+    x1, y1, z1 = parent.x[:Nsites1], parent.y[:Nsites1], parent.z[:Nsites1]
+    x2 = np.concatenate([x1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    y2 = np.concatenate([y1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    z2 = np.concatenate([z1[i * Nxy: i * Nxy + int(Nx * Ny_new)] for i in range(Nz)])
+    x  = np.concatenate([x2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
+    y  = np.concatenate([y2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
+    z  = np.concatenate([z2[i * Nx: i * Nx + Nx_new] for i in range(int(Ny_new * Nz_new))])
 
-    # Phi angle of the vector between sites 2 and 1 (angle in the XY plane)
-    if v[0] == 0:                                    # Pathological case, separated to not divide by 0
-        if v[1] > 0:
-            phi = pi / 2                             # Hopping in y
-        else:
-            phi = 3 * pi / 2                         # Hopping in -y
-    else:
-        if v[1] > 0:
-            phi = np.arctan2(v[1], v[0])             # 1st and 2nd quadrants
-        else:
-            phi = 2 * pi + np.arctan2(v[1], v[0])    # 3rd and 4th quadrants
-
-    return r, phi
+    # Generate child lattice
+    lattice = AmorphousNanowire_3d(Nx=Nx_new, Ny=Ny_new, Nz=Nz_new, w=parent.w, r=parent.r)
+    lattice.set_configuration(x, y, z)
+    lattice.build_lattice()
+    if keep_disorder:
+        lattice.K_onsite = parent.K_onsite
+        lattice.set_disorder(onsite_disorder=parent.onsite_disorder)
+    return lattice
 
 @dataclass
-class AmorphousLattice_2d:
+class AmorphousNanowire_3d:
 
     # Class fields set upon instantiation
     Nx:  int                                        # Number of lattice sites along x direction
     Ny:  int                                        # Number of lattice sites along y direction
+    Nz:  int                                        # Number of lattice sites along y direction
     w:   float                                      # Width of the Gaussian distribution
     r:   float                                      # Cutoff distance to consider neighbours
 
     # Class fields that can be set externally
     x: np.ndarray   = None                          # x position of the sites
     y: np.ndarray   = None                          # y position of the sites
+    z: np.ndarray   = None                          # z position of the sites
     K_onsite: float = None                          # Strength of the onsite disorder distribution
     onsite_disorder: np.ndarray = None              # Disorder array for only the onsite case
 
@@ -116,7 +129,6 @@ class AmorphousLattice_2d:
 
     # Methods for building the lattice
     def build_lattice(self):
-
         if self.w  < 1e-10:
             loger_amorphous.error('The amorphicity cannot be strictly 0')
             exit()
@@ -126,14 +138,15 @@ class AmorphousLattice_2d:
     def generate_configuration(self):
         loger_amorphous.trace('Generating lattice and neighbour tree...')
 
-        # Positions of x and y coordinates on the amorphous lattice
-        self.Nsites = int(self.Nx * self.Ny)
-        if self.x is None and self.y is None:
+        # Positions of x and y coordinates on the amorphous structure
+        self.Nsites = int(self.Nx * self.Ny * self.Nz)
+        if self.x is None and self.y is None and self.z is None:
             list_sites = np.arange(0, self.Nsites)
             x_crystal = list_sites % self.Nx
-            y_crystal = list_sites // self.Nx
-            self.x, self.y = gaussian_point_set_2D(x_crystal, y_crystal, self.w)
-        coords = np.array([self.x, self.y])
+            y_crystal = (list_sites // self.Nx) % self.Ny
+            z_crystal = list_sites // (self.Nx * self.Ny)
+            self.x, self.y, self.z = gaussian_point_set_3D(x_crystal, y_crystal, z_crystal, self.w)
+        coords = np.array([self.x, self.y, self.z])
 
         # Neighbour tree and accepting/discarding the configuration
         self.neighbours = KDTree(coords.T).query_ball_point(coords.T, self.r)
@@ -150,29 +163,16 @@ class AmorphousLattice_2d:
 
 
     # Setters and erasers
-    def set_configuration(self, x, y):
-        self.x, self.y = x, y
+    def set_configuration(self, x, y, z):
+        self.x, self.y, self.z = x, y, z
 
     def set_disorder(self, onsite_disorder, K_onsite):
         self.K_onsite = K_onsite
         self.onsite_disorder = onsite_disorder
 
-
     def erase_configuration(self):
-        self.x, self.y = None, None
+        self.x, self.y, self.z = None, None, None
 
     def erase_disorder(self):
         self.onsite_disorder= None
-
-    def plot_lattice(self, ax, sitecolor='deepskyblue', linkcolor='blue', alpha_site=1, alpha_link=1):
-
-        # Neighbour links
-        for site in range(self.Nsites):
-            for n in self.neighbours[site]:
-                ax.plot([self.x[site], self.x[n]], [self.y[site], self.y[n]], color=linkcolor,
-                        alpha=alpha_link, linewidth=1)
-                # ax.text(self.x[n] + 0.1, self.y[n] + 0.1, str(n))
-
-        # Lattice sites
-        ax.scatter(self.x, self.y, color=sitecolor, s=50, alpha=alpha_site)
 

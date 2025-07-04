@@ -15,4 +15,3 @@ dependencies:
   - seaborn
   - pytables
   - drawarrow
-prefix: /home/mfmm/miniconda3/envs/amnano

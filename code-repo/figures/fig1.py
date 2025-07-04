@@ -12,7 +12,7 @@ import kwant
 
 # modules
 from functions import *
-from AmorphousLattice_2d import AmorphousLattice_2d
+from AmorphousNanowire_2d import AmorphousNanowire_2d
 from Amorphous_Nanowires_kwant import promote_to_kwant_nanowire_2d
 
 
@@ -42,11 +42,11 @@ G0                = data_dict[file_list[1]]['Simulation']['G_0']
 G_half            = data_dict[file_list[1]]['Simulation']['G_half']
 
 #%% Wire examples
-cross_section = AmorphousLattice_2d(Nx=5, Ny=5, w=0.1, r=r)
+cross_section = AmorphousNanowire_2d(Nx=5, Ny=5, w=0.1, r=r)
 cross_section.build_lattice()
 nanowire = promote_to_kwant_nanowire_2d(cross_section, 10, params_dict).finalized()
 
-cross_section2 = AmorphousLattice_2d(Nx=5, Ny=5, w=0.000001, r=r)
+cross_section2 = AmorphousNanowire_2d(Nx=5, Ny=5, w=0.000001, r=r)
 cross_section2.build_lattice()
 nanowire2 = promote_to_kwant_nanowire_2d(cross_section, 10, params_dict).finalized()
 
